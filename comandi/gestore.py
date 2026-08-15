@@ -61,6 +61,53 @@ class GestoreComandi:
         comando
     ):
 
+        if not comando:
+
+            return "Comando vuoto."
+
+        comando = comando.lower().strip()
+
+        # Controllo sicurezza per comandi protetti
+        if self.kernel and hasattr(self.kernel, "sicurezza"):
+
+            if self.kernel.sicurezza.richiede_conferma(comando):
+
+                self.kernel.sicurezza.registra(
+                    "Comando protetto richiesto",
+                    comando
+                )
+
+                # In modalità solo-testo i comandi protetti vengono
+                # bloccati a meno di una conferma esplicita "confermo".
+                if "confermo" not in comando:
+
+                    return (
+                        "Questo comando richiede conferma. "
+                        "Aggiungi 'confermo' per autorizzarlo."
+                    )
+
+        risposta = self._esegui_raw(comando)
+
+        # Aggiornamento contesto conversazione
+        if self.kernel and hasattr(self.kernel, "contesto"):
+
+            try:
+
+                self.kernel.contesto.aggiorna(
+                    comando,
+                    risposta
+                )
+
+            except Exception:
+                pass
+
+        return risposta
+
+    def _esegui_raw(
+        self,
+        comando
+    ):
+
 
         if not comando:
 
@@ -80,6 +127,18 @@ class GestoreComandi:
         # DISPOSITIVI
         # ==========================
 
+        if comando in ("stato sistema", "stato del sistema"):
+
+            if self.kernel and hasattr(
+                self.kernel,
+                "stato_sistema_modulo"
+            ):
+
+                return str(
+                    self.kernel.stato_sistema_modulo.completo()
+                )
+
+            return "Monitor di sistema non disponibile."
 
 
         if "stato dispositivi" in comando:
@@ -530,6 +589,9 @@ class GestoreComandi:
                 )
 
 
+            return "Telefono non disponibile."
+
+
 
         if comando.startswith("chiudi "):
 
@@ -550,6 +612,9 @@ class GestoreComandi:
                 return telefono.chiudi_app(
                     app
                 )
+
+
+            return "Telefono non disponibile."
 
 
 

@@ -1,6 +1,13 @@
-import tkinter as tk
+# DEPRECATO — mantenuto per riferimento storico.
+# Usare il modulo ufficiale corrispondente (vedi analisi/README).
+# Non usato dal kernel 3.0.
 import math
 import random
+
+try:
+    import tkinter as tk
+except ImportError:
+    tk = None
 
 
 class InterfacciaJarvis:

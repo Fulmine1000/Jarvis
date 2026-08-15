@@ -1,3 +1,6 @@
+# DEPRECATO — mantenuto per riferimento storico.
+# Usare il modulo ufficiale corrispondente (vedi analisi/README).
+# Non usato dal kernel 3.0.
 import datetime
 
 

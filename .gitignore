@@ -19,6 +19,7 @@ vosk-model-small-it-0.22/
 # File temporanei
 *.tmp
 *.temp
+jarvis_voce.wav
 
 # Dati personali/generati da Jarvis
 memoria/profilo.json

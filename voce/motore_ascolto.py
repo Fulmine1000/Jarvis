@@ -78,7 +78,11 @@ class MotoreAscolto:
     def ciclo(self):
 
 
-        while self.attivo:
+        while self.attivo and getattr(
+            self.modulo_voce,
+            "ascolto_attivo",
+            False
+        ):
 
 
             try:

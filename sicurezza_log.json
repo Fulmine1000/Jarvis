@@ -3,5 +3,60 @@
         "ora": "02/08/2026 20:23:32",
         "azione": "Avvio Jarvis",
         "risultato": "Consentito"
+    },
+    {
+        "ora": "15/08/2026 16:15:20",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:17:18",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:18:29",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:19:41",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:20:10",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:41:53",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:43:03",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 16:43:05",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 17:46:30",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 18:03:21",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 18:03:22",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
     }
 ]

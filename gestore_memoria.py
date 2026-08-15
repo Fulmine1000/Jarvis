@@ -1,3 +1,6 @@
+# DEPRECATO — mantenuto per riferimento storico.
+# Usare il modulo ufficiale corrispondente (vedi analisi/README).
+# Non usato dal kernel 3.0.
 from memoria.profilo import ProfiloJarvis
 from memoria.ricordi import GestoreRicordi
 from memoria.conversazioni import GestoreConversazioni

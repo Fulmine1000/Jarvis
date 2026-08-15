@@ -1,0 +1,27 @@
+# =============================================================================
+# Jarvis 3.0 — Dipendenze Python
+# =============================================================================
+# Installazione:  pip install -r requirements.txt
+#
+# Nota: sounddevice richiede PortAudio sul sistema:
+#   - macOS:  brew install portaudio
+#   - Linux:  sudo apt install portaudio19-dev
+#
+# Le dipendenze audio (vosk, sounddevice) sono OPZIONALI a runtime: Jarvis
+# avvia comunque in modalità solo-testo se non sono installate o se manca
+# il microfono / il modello Vosk. psutil è opzionale (monitor di sistema).
+# =============================================================================
+
+# Riconoscimento vocale offline (offline speech recognition).
+# Necessario solo per l'ascolto vocale. Se assente, Jarvis resta in
+# modalità solo-testo.
+vosk>=0.3.45
+
+# Acquisizione audio da microfono.
+# Necessario solo per l'ascolto vocale. Se assente, Jarvis resta in
+# modalità solo-testo.
+sounddevice>=0.4.6
+
+# Monitor di sistema (CPU/RAM/disco/batteria). Facoltativo: se assente,
+# StatoJarvis restituisce "Non disponibile" per le metriche non disponibili.
+psutil>=5.9.0

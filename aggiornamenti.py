@@ -12,34 +12,67 @@ class AggiornamentiJarvis:
 
     def __init__(self):
 
-        self.versione = "1.0.0"
+        self.versione = "3.0.0"
 
         self.data = datetime.datetime.now().strftime("%d/%m/%Y")
 
         self.moduli = [
 
-            "jarvis.py",
-            "voce.py",
-            "ascolto.py",
-            "wake_word.py",
-            "personalita.py",
-            "comandi.py",
-            "configurazione.py",
-            "gestore_memoria.py",
-            "hud.py",
-            "stato.py",
-            "sicurezza.py",
+            "main.py",
 
-            "dispositivi/computer.py",
+            "core/kernel.py",
+            "core/config.py",
+            "core/logger.py",
+            "core/event_bus.py",
+            "core/manager.py",
+
+            "memoria/memoria.py",
+            "memoria/database.py",
+            "memoria/profilo.py",
+            "memoria/preferenze.py",
+            "memoria/contesto.py",
+            "memoria/conversazioni.py",
+            "memoria/ricordi.py",
+            "memoria/backup_memoria.py",
+
+            "voce/ascoltatore.py",
+            "voce/riconoscimento.py",
+            "voce/sintesi.py",
+            "voce/wake_word.py",
+            "voce/motore_ascolto.py",
+            "voce/assistente_voce.py",
+
+            "comandi/gestore.py",
+
+            "dispositivi/gestore.py",
+            "dispositivi/connessione.py",
             "dispositivi/telefono.py",
+            "dispositivi/computer.py",
             "dispositivi/rete.py",
             "dispositivi/bluetooth.py",
             "dispositivi/smart_home.py",
             "dispositivi/console.py",
-            "dispositivi/gestore.py"
+            "dispositivi/identita.py",
+            "dispositivi/telefono_controller.py",
+
+            "moduli/voce_modulo.py",
+            "moduli/dispositivi_modulo.py",
+            "moduli/comandi_modulo.py",
+
+            "plugin/plugin_base.py",
+            "plugin/plugin_manager.py",
+            "plugin/sistema.py",
+
+            "interfaccia/hud.py",
+            "personalita/personalita.py",
+            "stato.py",
+            "sicurezza.py",
+            "aggiornamenti.py"
         ]
 
-        self.salva_versione()
+        # NB: salva_versione() non viene chiamato in __init__ per evitare
+        # di sovrascrivere versione_jarvis.json a ogni avvio del kernel.
+        # Usare salva_versione() esplicitamente quando si vuole persistere.
 
 
     def salva_versione(self):

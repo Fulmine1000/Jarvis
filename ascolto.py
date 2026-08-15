@@ -1,13 +1,32 @@
+# DEPRECATO — mantenuto per riferimento storico.
+# Usare il modulo ufficiale `voce/` (ascoltatore + riconoscimento).
+# Non usato dal kernel 3.0.
 import json
-import sounddevice as sd
-from vosk import Model, KaldiRecognizer
-from wake_word import WakeWordJarvis
+
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
+
+try:
+    from vosk import Model, KaldiRecognizer
+except (ImportError, OSError):
+    Model = None
+    KaldiRecognizer = None
+
+from voce.wake_word import WakeWordJarvis
 
 
 class AscoltoJarvis:
 
 
     def __init__(self):
+
+        if Model is None or KaldiRecognizer is None:
+
+            raise ImportError(
+                "Vosk non installato: AscoltoJarvis non disponibile."
+            )
 
         self.model = Model(
             "vosk-model-small-it-0.22"

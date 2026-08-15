@@ -108,3 +108,9 @@ class LoggerJarvis:
             messaggio
 
         )
+
+    # Alias per coerenza con la convenzione standard Python (logging).
+    # Mantenuti i nomi italiani per retrocompatibilità con il codice esistente.
+    error = errore
+
+    warn = warning

@@ -5,6 +5,7 @@ from dispositivi.rete import Rete
 from dispositivi.bluetooth import Bluetooth
 from dispositivi.telefono import TelefonoJarvis
 from dispositivi.connessione import ConnessioneDispositivi
+from dispositivi.smart_home import SmartHomeJarvis
 
 
 
@@ -124,6 +125,19 @@ class ModuloDispositivi:
             "bluetooth",
 
             bluetooth
+
+        )
+
+        # SMART HOME
+
+        smart_home = SmartHomeJarvis()
+
+
+        self.gestore.registra(
+
+            "smart_home",
+
+            smart_home
 
         )
 

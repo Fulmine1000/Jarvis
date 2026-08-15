@@ -1,8 +1,13 @@
-import sounddevice as sd
 import queue
 
-
-
+# Import opzionale: sounddevice richiede la libreria di sistema PortAudio.
+# Se il pacchetto Python non è installato (ModuleNotFoundError/ImportError)
+# oppure se PortAudio non è presente (OSError), si entra in modalità
+# solo-testo: AscoltatoreVoce.disponibile = False e avvia() ritorna False.
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
 
 
 class AscoltatoreVoce:
@@ -29,6 +34,9 @@ class AscoltatoreVoce:
 
 
         self.stream = None
+
+
+        self.disponibile = sd is not None
 
 
 
@@ -79,6 +87,24 @@ class AscoltatoreVoce:
 
 
     def avvia(self):
+
+
+        if not self.disponibile:
+
+
+            print(
+
+                "Sounddevice non disponibile: "
+
+                "ascolto microfono disattivato."
+
+            )
+
+
+            self.attivo = False
+
+
+            return False
 
 
         try:
@@ -298,6 +324,11 @@ class AscoltatoreVoce:
 
             "stream":
 
-                self.stream is not None
+                self.stream is not None,
+
+
+            "disponibile":
+
+                self.disponibile
 
         }
