@@ -64,6 +64,96 @@ class TestWakeWord(unittest.TestCase):
         self.assertFalse(risultato["attivato"])
 
 
+class TestWakeWordVarianti(unittest.TestCase):
+    """Test robustezza wake word italiana (bug 'ehi' di Vosk)."""
+
+    def setUp(self):
+        self.ww = WakeWordJarvis()
+
+    def _attiva_senza_comando(self, testo):
+        """Assert che il testo attivi con comando vuoto (solo wake word)."""
+        ww = WakeWordJarvis()
+        r = ww.controlla(testo)
+        self.assertTrue(r["attivato"], f"non attivato per {testo!r}")
+        self.assertEqual(r["comando"], "", f"comando non vuoto per {testo!r}: {r['comando']!r}")
+
+    def test_jarvis_solo(self):
+        """'Jarvis' da solo attiva con comando vuoto."""
+        self._attiva_senza_comando("Jarvis")
+
+    def test_ehi_jarvis(self):
+        """'Ehi Jarvis' attiva con comando vuoto."""
+        self._attiva_senza_comando("Ehi Jarvis")
+
+    def test_hey_jarvis(self):
+        """'Hey Jarvis' attiva con comando vuoto."""
+        self._attiva_senza_comando("Hey Jarvis")
+
+    def test_ehi_jarvis_virgola(self):
+        """'Ehi, Jarvis' (con virgola) attiva con comando vuoto."""
+        self._attiva_senza_comando("Ehi, Jarvis")
+
+    def test_hey_jarvis_virgola(self):
+        """'Hey, Jarvis' (con virgola) attiva con comando vuoto."""
+        self._attiva_senza_comando("Hey, Jarvis")
+
+    def test_ehi_solo_prefisso(self):
+        """Vosk trascrive solo 'ehi': attiva senza passare al GestoreComandi."""
+        self._attiva_senza_comando("ehi")
+
+    def test_hey_solo_prefisso(self):
+        """Vosk trascrive solo 'hey': attiva senza passare al GestoreComandi."""
+        self._attiva_senza_comando("hey")
+
+    def test_ehi_jarvis_con_comando(self):
+        """'Ehi Jarvis che ore sono' attiva ed estrae il comando."""
+        r = self.ww.controlla("Ehi Jarvis che ore sono")
+        self.assertTrue(r["attivato"])
+        self.assertEqual(r["comando"], "che ore sono")
+
+    def test_jarvis_con_comando(self):
+        """'jarvis accendi la luce' attiva ed estrae il comando."""
+        r = self.ww.controlla("jarvis accendi la luce")
+        self.assertTrue(r["attivato"])
+        self.assertEqual(r["comando"], "accendi la luce")
+
+
+class TestWakeWordBugEhi(unittest.TestCase):
+    """Test specifici per il bug: 'ehi' non deve produrre
+    'Non ho trovato un comando compatibile'."""
+
+    def test_jarvis_poi_ehi_non_passa_al_gestore(self):
+        """Dopo 'Jarvis', un 'ehi' parziale non diventa comando."""
+        ww = WakeWordJarvis()
+        ww.controlla("Jarvis")  # attiva, comando vuoto
+        r = ww.controlla("ehi")  # entro timeout
+        self.assertTrue(r["attivato"])
+        self.assertEqual(r["comando"], "",
+                         "'ehi' non deve essere passato come comando")
+
+    def test_ehi_poi_jarvis_poi_comando(self):
+        """Vosk spezza 'Ehi Jarvis' in 'ehi' + 'jarvis': flusso corretto."""
+        ww = WakeWordJarvis()
+        r1 = ww.controlla("ehi")
+        self.assertTrue(r1["attivato"])
+        self.assertEqual(r1["comando"], "")
+        r2 = ww.controlla("jarvis")
+        self.assertTrue(r2["attivato"])
+        self.assertEqual(r2["comando"], "",
+                         "'jarvis' da solo non deve diventare comando")
+        r3 = ww.controlla("che ore sono")
+        self.assertTrue(r3["attivato"])
+        self.assertEqual(r3["comando"], "che ore sono")
+
+    def test_jarvis_poi_jarvis_non_doppia_risposta(self):
+        """Doppio 'Jarvis' non produce comando residuo."""
+        ww = WakeWordJarvis()
+        ww.controlla("Jarvis")
+        r = ww.controlla("Jarvis")
+        self.assertTrue(r["attivato"])
+        self.assertEqual(r["comando"], "")
+
+
 class TestAscoltatore(unittest.TestCase):
 
     def setUp(self):
