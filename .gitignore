@@ -1,0 +1,29 @@
+# Ambiente virtuale
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS
+.DS_Store
+
+# Log
+logs/
+*.log
+
+# Modelli locali
+vosk-model-small-it-0.22/
+
+# File temporanei
+*.tmp
+*.temp
+
+# Dati personali/generati da Jarvis
+memoria/profilo.json
+memoria/ricordi.json
+memoria/conversazioni.json
+memoria/database.json
+memoria/backup/
+memoria_jarvis.json

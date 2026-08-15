@@ -1,0 +1,70 @@
+{
+    "jarvis": {
+        "nome": "Jarvis",
+        "versione": "3.0",
+        "stato": "operativo"
+    },
+
+    "utente": {
+        "nome": "Simone"
+    },
+
+    "base": {
+        "dispositivo": "Motorola",
+        "tipo": "Android",
+        "principale": true
+    },
+
+    "voce": {
+
+        "wake_word": "jarvis",
+
+        "lingua": "it-IT",
+
+        "ascolto_continuo": true,
+
+        "sample_rate": 16000,
+
+        "modello_riconoscimento": "vosk-model-small-it-0.22",
+
+        "modello": "voce/modelli/it_IT-jarvis.onnx",
+
+        "velocita": 1.0,
+
+        "volume": 100,
+
+        "stile": "Jarvis"
+    },
+
+
+    "memoria": {
+
+        "attiva": true,
+
+        "salvataggio": true,
+
+        "percorso": "memoria"
+    },
+
+
+    "dispositivi": {
+
+        "telefono": true,
+
+        "computer": true,
+
+        "rete": true,
+
+        "bluetooth": true
+    },
+
+
+    "sistema": {
+
+        "log": true,
+
+        "avvio_automatico": false,
+
+        "modalita_debug": true
+    }
+}

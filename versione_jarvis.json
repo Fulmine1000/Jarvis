@@ -1,0 +1,24 @@
+{
+    "versione": "1.0.0",
+    "data": "02/08/2026",
+    "moduli": [
+        "jarvis.py",
+        "voce.py",
+        "ascolto.py",
+        "wake_word.py",
+        "personalita.py",
+        "comandi.py",
+        "configurazione.py",
+        "gestore_memoria.py",
+        "hud.py",
+        "stato.py",
+        "sicurezza.py",
+        "dispositivi/computer.py",
+        "dispositivi/telefono.py",
+        "dispositivi/rete.py",
+        "dispositivi/bluetooth.py",
+        "dispositivi/smart_home.py",
+        "dispositivi/console.py",
+        "dispositivi/gestore.py"
+    ]
+}

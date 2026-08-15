@@ -1,0 +1,23 @@
+{
+    "nome": "J.A.R.V.I.S.",
+    "versione": "2.0.0",
+    "lingua": "Italiano",
+    "modalita": "Normale",
+    "voce": {
+        "nome": "Alice",
+        "velocita": 170,
+        "volume": 100
+    },
+    "hud": {
+        "attivo": true,
+        "tema": "Blu"
+    },
+    "sicurezza": {
+        "attiva": true
+    },
+    "percorsi": {
+        "memoria": "memoria",
+        "plugin": "plugin",
+        "log": "logs"
+    }
+}
