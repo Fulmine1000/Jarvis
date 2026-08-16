@@ -1,181 +1,270 @@
-import subprocess
 import os
-import shutil
 import platform
+import shutil
+import subprocess
 
 
 class SintesiVocale:
-    """Sintesi vocale di Jarvis.
+    """
+    Sistema di sintesi vocale di Jarvis.
 
-    Motore principale: Piper (con modello .onnx). Se Piper o il modello non
-    sono disponibili, cade su fallback di sistema: `say` (macOS), `espeak`
-    (Linux), oppure stampa a terminale. Non solleva mai eccezioni per
-    dipendenze mancanti.
+    Su macOS utilizza il comando nativo 'say'.
+    Supporta inoltre Piper ed espeak come fallback.
+
+    La sintesi è indipendente dal microfono e da Vosk.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, modulo_voce=None):
+        self.modulo_voce = modulo_voce
 
-        self.nome = "Sintesi Vocale"
+        self.attiva = True
+        self.disponibile = False
+        self.attivo = False
 
-        self.attivo = True
+        self.sistema = platform.system().lower()
 
-        self.config = config
+        self.piper = shutil.which("piper")
+        self.say = shutil.which("say")
+        self.espeak = shutil.which("espeak")
+        self.afplay = shutil.which("afplay")
 
-        # MOTORE VOCE
-        self.motore = "piper"
+        self._rileva_disponibilita()
 
-        # MODELLO VOCALE
-        self.modello = "voce/modelli/it_IT-jarvis.onnx"
+    def _rileva_disponibilita(self):
+        """Controlla se esiste almeno un sistema TTS utilizzabile."""
 
-        # IMPOSTAZIONI
-        self.voce = "Jarvis"
-        self.velocita = 1.0
-        self.volume = 100
-        self.stile = "Jarvis"
+        if self.sistema == "darwin" and self.say:
+            self.disponibile = True
+            return
 
-        if self.config:
+        if self.piper and self.afplay:
+            self.disponibile = True
+            return
 
-            voce_config = self.config.sezione("voce")
+        if self.espeak:
+            self.disponibile = True
+            return
 
-            self.modello = voce_config.get(
-                "modello",
-                self.modello
+        self.disponibile = False
+
+    def avvia(self):
+        """Avvia la sintesi vocale."""
+
+        self._rileva_disponibilita()
+
+        self.attiva = True
+        self.attivo = self.disponibile
+
+        if self.attivo:
+            self._log("Sintesi vocale disponibile.")
+
+        else:
+            self._log(
+                "Sintesi vocale non disponibile."
             )
 
-            self.velocita = voce_config.get(
-                "velocita",
-                1.0
-            )
-
-            self.volume = voce_config.get(
-                "volume",
-                100
-            )
-
-            self.stile = voce_config.get(
-                "stile",
-                "Jarvis"
-            )
-
-    def _piper_disponibile(self):
-        return shutil.which("piper") is not None
-
-    def _afplay_disponibile(self):
-        return shutil.which("afplay") is not None
+        return self.attivo
 
     def parla(self, testo):
+        """
+        Pronuncia il testo una sola volta.
+        """
 
-        if not self.attivo:
+        if not self.attiva:
             return False
+
+        if not self.disponibile:
+            return False
+
+        if testo is None:
+            return False
+
+        testo = str(testo).strip()
 
         if not testo:
             return False
 
-        try:
+        # =========================================================
+        # macOS
+        # =========================================================
 
-            # PIPER + modello presente + afplay per riprodurre
-            if (
-                self._piper_disponibile()
-                and os.path.exists(self.modello)
-            ):
+        if self.sistema == "darwin":
 
-                file_audio = "jarvis_voce.wav"
-
-                comando = [
-                    "piper",
-                    "--model",
-                    self.modello,
-                    "--output_file",
-                    file_audio
-                ]
-
-                processo = subprocess.Popen(
-                    comando,
-                    stdin=subprocess.PIPE,
-                    text=True
-                )
-
-                processo.communicate(testo)
-
-                if self._afplay_disponibile():
-                    subprocess.run(
-                        ["afplay", file_audio]
-                    )
-                else:
-                    # Nessun player WAV: riproduzione non disponibile
-                    print(f"[JARVIS] {testo}")
-
-                if os.path.exists(file_audio):
-                    os.remove(file_audio)
-
-                return True
-
-            # FALLBACK macOS: say
-            if platform.system() == "Darwin" and shutil.which("say"):
-
-                subprocess.run(["say", testo])
-
-                return True
-
-            # FALLBACK Linux: espeak
-            if platform.system() == "Linux" and shutil.which("espeak"):
-
-                subprocess.run(["espeak", "-v", "it", testo])
-
-                return True
-
-            # ULTIMO FALLBACK: stampa a terminale
-            print(f"[JARVIS] {testo}")
-
-            return True
-
-        except Exception as errore:
-
-            print(
-                f"Errore sintesi vocale: {errore}"
+            comando_say = (
+                self.say
+                or shutil.which("say")
             )
 
-            return False
+            if comando_say:
 
-    def cambia_modello(self, modello):
-        self.modello = modello
+                try:
+                    risultato = subprocess.run(
+                        [
+                            comando_say,
+                            "-v",
+                            "Alice",
+                            testo
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False
+                    )
 
-    def cambia_velocita(self, velocita):
-        self.velocita = velocita
+                    if risultato.returncode == 0:
+                        return True
 
-    def cambia_stile(self, stile):
-        self.stile = stile
+                    self._log(
+                        "Il comando say ha restituito un errore."
+                    )
 
-    def ferma(self):
+                except Exception as errore:
+
+                    self._log(
+                        f"Errore say macOS: {errore}"
+                    )
+
+        # =========================================================
+        # Piper
+        # =========================================================
+
+        if self.piper:
+
+            try:
+
+                file_audio = "/tmp/jarvis_tts.wav"
+
+                risultato = subprocess.run(
+                    [
+                        self.piper,
+                        "--output_file",
+                        file_audio
+                    ],
+                    input=testo.encode("utf-8"),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False
+                )
+
+                if (
+                    risultato.returncode == 0
+                    and os.path.exists(file_audio)
+                    and self.afplay
+                ):
+
+                    riproduzione = subprocess.run(
+                        [
+                            self.afplay,
+                            file_audio
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False
+                    )
+
+                    if riproduzione.returncode == 0:
+                        return True
+
+            except Exception as errore:
+
+                self._log(
+                    f"Errore Piper: {errore}"
+                )
+
+        # =========================================================
+        # Linux / espeak
+        # =========================================================
+
+        if self.espeak:
+
+            try:
+
+                risultato = subprocess.run(
+                    [
+                        self.espeak,
+                        testo
+                    ],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False
+                )
+
+                if risultato.returncode == 0:
+                    return True
+
+            except Exception as errore:
+
+                self._log(
+                    f"Errore espeak: {errore}"
+                )
+
+        return False
+
+    def attiva_voce(self):
+        """Attiva la sintesi vocale."""
+
+        self.attiva = True
+        self._rileva_disponibilita()
+
+        self.attivo = self.disponibile
+
+        return self.attivo
+
+    def disattiva_voce(self):
+        """Disattiva la sintesi vocale."""
+
+        self.attiva = False
         self.attivo = False
 
-    def avvia(self):
-        self.attivo = True
+        return True
+
+    def ferma(self):
+        """Arresta la sintesi vocale."""
+
+        self.attiva = False
+        self.attivo = False
+
         return True
 
     def stato(self):
+        """Restituisce lo stato della sintesi vocale."""
 
         return {
-            "nome":
-                self.nome,
-
-            "stato":
-                "attivo"
-                if self.attivo
-                else "spento",
-
-            "motore":
-                self.motore,
-
-            "modello":
-                self.modello,
-
-            "velocita":
-                self.velocita,
-
-            "stile":
-                self.stile,
-
-            "piper_disponibile":
-                self._piper_disponibile()
+            "attiva": self.attiva,
+            "attivo": self.attivo,
+            "disponibile": self.disponibile,
+            "sistema": self.sistema,
+            "piper": bool(self.piper),
+            "say": bool(self.say),
+            "espeak": bool(self.espeak),
+            "afplay": bool(self.afplay)
         }
+
+    def _log(self, messaggio):
+        """Scrive nel logger del modulo voce."""
+
+        try:
+
+            if self.modulo_voce is not None:
+
+                logger = getattr(
+                    self.modulo_voce,
+                    "logger",
+                    None
+                )
+
+                if logger is not None:
+
+                    metodo = getattr(
+                        logger,
+                        "info",
+                        None
+                    )
+
+                    if callable(metodo):
+                        metodo(messaggio)
+                        return
+
+        except Exception:
+            pass
+
+        print(messaggio)

@@ -15,7 +15,7 @@
 # Riconoscimento vocale offline (offline speech recognition).
 # Necessario solo per l'ascolto vocale. Se assente, Jarvis resta in
 # modalità solo-testo.
-vosk>=0.3.45
+vosk>=0.3.44
 
 # Acquisizione audio da microfono.
 # Necessario solo per l'ascolto vocale. Se assente, Jarvis resta in

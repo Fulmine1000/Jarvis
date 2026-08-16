@@ -58,5 +58,10 @@
         "ora": "15/08/2026 18:03:22",
         "azione": "Comando protetto richiesto",
         "risultato": "elimina file importante"
+    },
+    {
+        "ora": "15/08/2026 22:06:58",
+        "azione": "Comando protetto richiesto",
+        "risultato": "elimina file importante"
     }
 ]

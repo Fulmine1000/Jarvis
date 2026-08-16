@@ -6,11 +6,12 @@ from voce.motore_ascolto import MotoreAscolto
 
 
 class ModuloVoce:
-    """Modulo voce di Jarvis.
+    """
+    Modulo voce di Jarvis.
 
-    L'ascolto (microfono + Vosk) è opzionale: se le dipendenze audio o il
-    modello Vosk mancano, il modulo resta attivo per la sola sintesi vocale e
-    l'assistente può comunque parlare e accettare comandi testuali.
+    La sintesi vocale è indipendente dal microfono.
+    Quindi Jarvis può parlare anche se il riconoscimento
+    vocale non è disponibile.
     """
 
     def __init__(self, kernel):
@@ -19,13 +20,8 @@ class ModuloVoce:
 
         self.nome = "Voce"
 
-        # attivo = modulo avviato (almeno la sintesi è disponibile)
         self.attivo = False
-
-        # ascolto_attivo = microfono + riconoscimento operativi
         self.ascolto_attivo = False
-
-        # sintesi_attiva = sintesi vocale disponibile
         self.sintesi_attiva = False
 
         self.config = (
@@ -34,27 +30,43 @@ class ModuloVoce:
             else None
         )
 
+        # =========================================================
         # MICROFONO
+        # =========================================================
+
         self.ascoltatore = AscoltatoreVoce()
 
-        # RICONOSCIMENTO VOCALE VOSK
+        # =========================================================
+        # RICONOSCIMENTO VOSK
+        # =========================================================
+
         self.riconoscitore = RiconoscitoreVoce(
             self.config
         )
 
-        # SINTESI VOCALE JARVIS
+        # =========================================================
+        # SINTESI VOCALE
+        # =========================================================
+
+        # Passiamo il modulo voce, non la configurazione.
         self.sintesi = SintesiVocale(
-            self.config
+            self
         )
 
         self.voce_jarvis = self.sintesi
 
-        # LOGICA ASSISTENTE
+        # =========================================================
+        # ASSISTENTE
+        # =========================================================
+
         self.assistente = AssistenteVoce(
             self.kernel
         )
 
-        # CICLO ASCOLTO
+        # =========================================================
+        # MOTORE ASCOLTO
+        # =========================================================
+
         self.motore = MotoreAscolto(
             self
         )
@@ -66,35 +78,95 @@ class ModuloVoce:
             if self.attivo:
                 return True
 
-            # La sintesi non dipende dal microfono: viene sempre avviata.
-            self.sintesi_attiva = self.sintesi.avvia()
+            # -----------------------------------------------------
+            # SINTESI VOCALE
+            # -----------------------------------------------------
 
-            # Ascolto: microfono + modello Vosk. Entrambi opzionali.
-            microfono = self.ascoltatore.avvia()
-            modello = self.riconoscitore.avvia()
+            self.sintesi_attiva = (
+                self.sintesi.avvia()
+            )
+
+            # -----------------------------------------------------
+            # ASCOLTO
+            # -----------------------------------------------------
+
+            microfono = False
+            modello = False
+
+            try:
+                microfono = bool(
+                    self.ascoltatore.avvia()
+                )
+            except Exception as errore:
+                print(
+                    f"Microfono non disponibile: {errore}"
+                )
+
+            try:
+                modello = bool(
+                    self.riconoscitore.avvia()
+                )
+            except Exception as errore:
+                print(
+                    f"Riconoscimento vocale non disponibile: {errore}"
+                )
+
+            # -----------------------------------------------------
+            # MOTORE VOCALE
+            # -----------------------------------------------------
 
             if microfono and modello:
 
                 self.ascolto_attivo = True
 
-                self.assistente.avvia()
+                try:
+                    self.assistente.avvia()
+                except Exception:
+                    pass
+
                 self.motore.avvia()
 
             else:
 
-                # Nessun ascolto vocale: modalità solo-testo.
-                self.ascoltatore.ferma()
-
                 self.ascolto_attivo = False
 
-            # Il modulo è "attivo" se almeno la sintesi è disponibile.
-            self.attivo = True
+                try:
+                    self.ascoltatore.ferma()
+                except Exception:
+                    pass
 
-            if self.sintesi_attiva and self.ascolto_attivo:
+                try:
+                    self.riconoscitore.ferma()
+                except Exception:
+                    pass
 
-                self.rispondi(
-                    "Sistema vocale Jarvis attivo."
-                )
+            # -----------------------------------------------------
+            # MODULO ATTIVO
+            # -----------------------------------------------------
+
+            self.attivo = (
+                self.sintesi_attiva
+                or self.ascolto_attivo
+            )
+
+            # -----------------------------------------------------
+            # MESSAGGIO DI AVVIO
+            # -----------------------------------------------------
+
+            if self.sintesi_attiva:
+
+                if self.ascolto_attivo:
+
+                    self.rispondi(
+                        "Sistema vocale Jarvis attivo."
+                    )
+
+                else:
+
+                    self.rispondi(
+                        "Sistema vocale Jarvis attivo. "
+                        "Il riconoscimento vocale non è disponibile."
+                    )
 
             return True
 
@@ -105,6 +177,8 @@ class ModuloVoce:
             )
 
             self.attivo = False
+            self.sintesi_attiva = False
+            self.ascolto_attivo = False
 
             return False
 
@@ -113,47 +187,104 @@ class ModuloVoce:
         if not self.ascolto_attivo:
             return None
 
-        audio = self.ascoltatore.ascolta()
+        try:
 
-        if not audio:
+            audio = self.ascoltatore.ascolta()
+
+            if not audio:
+                return None
+
+            return self.riconoscitore.riconosci(
+                audio
+            )
+
+        except Exception as errore:
+
+            print(
+                f"Errore ascolto comando: {errore}"
+            )
+
             return None
-
-        return self.riconoscitore.riconosci(
-            audio
-        )
 
     def elabora_voce(self, testo):
 
-        return self.assistente.elabora(
-            testo
-        )
+        try:
+
+            return self.assistente.elabora(
+                testo
+            )
+
+        except Exception as errore:
+
+            print(
+                f"Errore elaborazione voce: {errore}"
+            )
+
+            return None
 
     def rispondi(self, testo):
 
         if not self.sintesi_attiva:
             return False
 
+        if testo is None:
+            return False
+
+        testo = str(testo).strip()
+
         if not testo:
             return False
 
-        return self.sintesi.parla(
-            testo
-        )
+        try:
+
+            return self.sintesi.parla(
+                testo
+            )
+
+        except Exception as errore:
+
+            print(
+                f"Errore sintesi vocale: {errore}"
+            )
+
+            return False
 
     def ferma(self):
 
         try:
 
             self.motore.ferma()
+
+        except Exception:
+            pass
+
+        try:
+
             self.assistente.ferma()
+
+        except Exception:
+            pass
+
+        try:
+
             self.ascoltatore.ferma()
+
+        except Exception:
+            pass
+
+        try:
+
             self.riconoscitore.ferma()
 
-        except Exception as errore:
+        except Exception:
+            pass
 
-            print(
-                f"Errore arresto modulo voce: {errore}"
-            )
+        try:
+
+            self.sintesi.ferma()
+
+        except Exception:
+            pass
 
         self.attivo = False
         self.ascolto_attivo = False
