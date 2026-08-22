@@ -1,6 +1,6 @@
-# J.A.R.V.I.S. 3.1
+# J.A.R.V.I.S. — versione definitiva
 
-Assistente intelligente personale modulare per macOS/Linux/Android companion, con kernel centrale, memoria persistente, voce offline, wake word, gestione dispositivi, smart home, plugin e integrazione opzionale con TV LG webOS.
+Assistente intelligente personale modulare per macOS/Linux con companion Android, kernel centrale, memoria persistente, voce offline, wake word, gestione dispositivi, smart home, plugin e integrazione opzionale con TV LG webOS.
 
 ## Avvio
 
@@ -69,7 +69,7 @@ sicurezza.py             controlli di sicurezza
 stato.py                 monitor sistema
 aggiornamenti.py         aggiornamenti/backup
 scripts/                 avvio
- tests/                  regressioni automatiche
+tests/                   regressioni automatiche
 ```
 
 I file legacy sono mantenuti per compatibilità/storia; il percorso ufficiale è `main.py` → `core.kernel.KernelJarvis`.
