@@ -60,6 +60,10 @@ class KernelJarvis:
         self.voce_disponibile = False
 
     def avvia(self):
+        """Avvia Jarvis una sola volta e degrada in modo sicuro."""
+        if self.stato == "Operativo":
+            return True
+
         self.logger.info("Avvio Kernel Jarvis...")
         self.stato = "Avvio"
         self.avvio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -73,6 +77,7 @@ class KernelJarvis:
 
         for nome, modulo in moduli.items():
             self.manager.registra(nome, modulo)
+
         for nome in moduli:
             self.manager.avvia(nome)
 
@@ -123,14 +128,22 @@ class KernelJarvis:
         }
 
     def arresta(self):
+        """Arresta plugin e tutti i moduli senza lasciare componenti attivi."""
+        if self.stato == "Spento":
+            return True
+
         self.logger.info("Arresto Jarvis...")
         try:
             self.plugin_manager.ferma_tutti()
-        except Exception:
-            pass
+        except Exception as errore:
+            self.logger.warning(f"Errore arresto plugin: {errore}")
+
         try:
-            self.modulo_voce.ferma()
-        except Exception:
-            pass
+            self.manager.ferma_tutti()
+        except Exception as errore:
+            self.logger.warning(f"Errore arresto moduli: {errore}")
+
+        self.voce_disponibile = False
         self.stato = "Spento"
         self.logger.info("Jarvis arrestato.")
+        return True
