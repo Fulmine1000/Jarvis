@@ -3,114 +3,34 @@ from datetime import datetime
 
 
 class LoggerJarvis:
+    """Logger leggero, locale e senza dipendenze esterne."""
 
+    def __init__(self, cartella="logs"):
+        self.cartella = cartella
+        os.makedirs(self.cartella, exist_ok=True)
 
-    def __init__(self):
-
-        self.cartella = "logs"
-
-        if not os.path.exists(self.cartella):
-
-            os.makedirs(self.cartella)
-
-
-
-    def scrivi(
-        self,
-        livello,
-        messaggio
-    ):
-
-        ora = datetime.now().strftime(
-            "%d/%m/%Y %H:%M:%S"
-        )
-
-
+    def scrivi(self, livello, messaggio):
+        ora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         testo = f"[{ora}] [{livello}] {messaggio}"
-
-
         print(testo)
+        file_log = os.path.join(self.cartella, "jarvis.log")
+        try:
+            with open(file_log, "a", encoding="utf-8") as log:
+                log.write(testo + "\n")
+        except OSError:
+            pass
 
+    def info(self, messaggio):
+        self.scrivi("INFO", messaggio)
 
-        file = os.path.join(
+    def errore(self, messaggio):
+        self.scrivi("ERRORE", messaggio)
 
-            self.cartella,
+    def warning(self, messaggio):
+        self.scrivi("WARNING", messaggio)
 
-            "jarvis.log"
+    def debug(self, messaggio):
+        self.scrivi("DEBUG", messaggio)
 
-        )
-
-
-        with open(
-
-            file,
-
-            "a",
-
-            encoding="utf-8"
-
-        ) as log:
-
-
-            log.write(
-
-                testo + "\n"
-
-            )
-
-
-
-
-
-    def info(
-        self,
-        messaggio
-    ):
-
-        self.scrivi(
-
-            "INFO",
-
-            messaggio
-
-        )
-
-
-
-
-
-    def errore(
-        self,
-        messaggio
-    ):
-
-        self.scrivi(
-
-            "ERRORE",
-
-            messaggio
-
-        )
-
-
-
-
-
-    def warning(
-        self,
-        messaggio
-    ):
-
-        self.scrivi(
-
-            "WARNING",
-
-            messaggio
-
-        )
-
-    # Alias per coerenza con la convenzione standard Python (logging).
-    # Mantenuti i nomi italiani per retrocompatibilità con il codice esistente.
     error = errore
-
     warn = warning

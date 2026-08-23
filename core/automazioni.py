@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable
@@ -19,32 +18,48 @@ class Automazione:
 
 
 class AutomazioniJarvis:
-    """Motore di automazioni locali e attività periodiche."""
+    """Motore per automazioni periodiche locali."""
 
     def __init__(self, logger=None):
         self.logger = logger
         self.automazioni: dict[str, Automazione] = {}
         self._stop = threading.Event()
+        self._lock = threading.RLock()
+
+    def avvia(self):
+        with self._lock:
+            self._stop.clear()
+            for auto in self.automazioni.values():
+                auto.attiva = True
+                if auto.intervallo and (not auto.thread or not auto.thread.is_alive()):
+                    auto.thread = threading.Thread(
+                        target=self._loop,
+                        args=(auto,),
+                        daemon=True,
+                        name=f"JarvisAuto-{auto.nome}",
+                    )
+                    auto.thread.start()
+        return True
 
     def registra(self, nome, azione, intervallo=None):
-        nome = nome.strip().lower()
+        nome = str(nome).strip().lower()
         if not nome or not callable(azione):
             raise ValueError("Automazione non valida")
         auto = Automazione(nome, azione, float(intervallo) if intervallo else None)
-        self.automazioni[nome] = auto
-        if auto.intervallo:
-            auto.thread = threading.Thread(target=self._loop, args=(auto,), daemon=True, name=f"JarvisAuto-{nome}")
-            auto.thread.start()
+        with self._lock:
+            self.automazioni[nome] = auto
+            if auto.intervallo and not self._stop.is_set():
+                auto.thread = threading.Thread(target=self._loop, args=(auto,), daemon=True, name=f"JarvisAuto-{nome}")
+                auto.thread.start()
         return f"Automazione '{nome}' registrata."
 
     def _loop(self, auto):
         while not self._stop.wait(auto.intervallo or 1):
-            if not auto.attiva:
-                continue
-            self.esegui(auto.nome)
+            if auto.attiva:
+                self.esegui(auto.nome)
 
     def esegui(self, nome):
-        auto = self.automazioni.get(nome.strip().lower())
+        auto = self.automazioni.get(str(nome).strip().lower())
         if not auto or not auto.attiva:
             return False
         try:
@@ -58,21 +73,21 @@ class AutomazioniJarvis:
             return False
 
     def attiva(self, nome):
-        auto = self.automazioni.get(nome.strip().lower())
+        auto = self.automazioni.get(str(nome).strip().lower())
         if not auto:
             return False
         auto.attiva = True
         return True
 
     def disattiva(self, nome):
-        auto = self.automazioni.get(nome.strip().lower())
+        auto = self.automazioni.get(str(nome).strip().lower())
         if not auto:
             return False
         auto.attiva = False
         return True
 
     def elimina(self, nome):
-        return self.automazioni.pop(nome.strip().lower(), None) is not None
+        return self.automazioni.pop(str(nome).strip().lower(), None) is not None
 
     def ferma(self):
         self._stop.set()
@@ -93,30 +108,38 @@ class AutomazioniJarvis:
                     "intervallo": a.intervallo,
                     "esecuzioni": a.esecuzioni,
                     "ultima_esecuzione": a.ultima_esecuzione,
-                } for nome, a in self.automazioni.items()
+                }
+                for nome, a in self.automazioni.items()
             },
         }
 
 
 class PianificatoreJarvis:
-    """Scheduler leggero per callback ritardate, senza dipendenze esterne."""
+    """Scheduler per attività ritardate."""
 
     def __init__(self, logger=None):
         self.logger = logger
         self._timers = {}
+        self._lock = threading.RLock()
+        self._attivo = True
 
     def pianifica(self, nome, secondi, azione):
         if not callable(azione) or secondi < 0:
             raise ValueError("Pianificazione non valida")
         self.annulla(nome)
-        timer = threading.Timer(secondi, self._esegui, args=(nome, azione))
-        timer.daemon = True
-        self._timers[nome] = timer
-        timer.start()
+        with self._lock:
+            timer = threading.Timer(secondi, self._esegui, args=(nome, azione))
+            timer.daemon = True
+            self._timers[nome] = timer
+            timer.start()
         return f"Attività '{nome}' pianificata tra {secondi} secondi."
 
     def _esegui(self, nome, azione):
-        self._timers.pop(nome, None)
+        with self._lock:
+            self._timers.pop(nome, None)
+            attivo = self._attivo
+        if not attivo:
+            return
         try:
             azione()
         except Exception as errore:
@@ -124,11 +147,22 @@ class PianificatoreJarvis:
                 self.logger.error(f"Attività pianificata {nome}: {errore}")
 
     def annulla(self, nome):
-        timer = self._timers.pop(nome, None)
+        with self._lock:
+            timer = self._timers.pop(nome, None)
         if timer:
             timer.cancel()
             return True
         return False
 
+    def ferma(self):
+        self._attivo = False
+        for nome in list(self._timers):
+            self.annulla(nome)
+        return True
+
+    def avvia(self):
+        self._attivo = True
+        return True
+
     def stato(self):
-        return {"attivita_pianificate": list(self._timers)}
+        return {"attivo": self._attivo, "attivita_pianificate": list(self._timers)}

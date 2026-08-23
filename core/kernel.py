@@ -8,6 +8,7 @@ from core.capacita import CapacitaJarvis
 from core.dialogo import DialogoJarvis
 from core.automazioni import AutomazioniJarvis, PianificatoreJarvis
 from core.visione import VisioneJarvis
+from core.diagnostica import DiagnosticaJarvis
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
 from memoria.contesto import ContestoJarvis
@@ -22,16 +23,18 @@ from plugin.plugin_manager import PluginManager
 
 
 class KernelJarvis:
-    """Orchestratore centrale e definitivo di J.A.R.V.I.S."""
+    """Orchestratore centrale di J.A.R.V.I.S. Definitive Edition."""
 
     def __init__(self):
         self.config = ConfigJarvis()
         dati = self.config.sezione("jarvis")
         self.nome = dati.get("nome", "J.A.R.V.I.S.")
-        self.versione = dati.get("versione", "definitiva")
+        self.versione = dati.get("versione", "4.0")
         self.base = self.config.sezione("base").get("dispositivo", "computer")
         self.stato = "Spento"
         self.avvio = None
+        self.arresto_richiesto = False
+        self.hud = None
         self.logger = LoggerJarvis()
         self.event_bus = EventBus()
         self.manager = ModuleManager(self.logger)
@@ -48,6 +51,7 @@ class KernelJarvis:
         self.automazioni = AutomazioniJarvis(self.logger)
         self.pianificatore = PianificatoreJarvis(self.logger)
         self.visione = VisioneJarvis(self.logger)
+        self.diagnostica = DiagnosticaJarvis(self)
         self.modulo_dispositivi = ModuloDispositivi(self)
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
@@ -58,22 +62,31 @@ class KernelJarvis:
             return True
         self.logger.info("Avvio Kernel Jarvis...")
         self.stato = "Avvio"
+        self.arresto_richiesto = False
         self.avvio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        moduli = {"Memoria": self.memoria, "Dispositivi": self.modulo_dispositivi,
-                  "Comandi": self.modulo_comandi, "Voce": self.modulo_voce}
+        self.automazioni.avvia()
+        self.pianificatore.avvia()
+        moduli = {
+            "Memoria": self.memoria,
+            "Dispositivi": self.modulo_dispositivi,
+            "Comandi": self.modulo_comandi,
+            "Voce": self.modulo_voce,
+        }
         for nome, modulo in moduli.items():
             self.manager.registra(nome, modulo)
         for nome in moduli:
-            try:
-                self.manager.avvia(nome)
-            except Exception as errore:
-                self.logger.warning(f"Modulo {nome} non avviato: {errore}")
+            self.manager.avvia(nome)
         self.voce_disponibile = bool(getattr(self.modulo_voce, "ascolto_attivo", False))
         try:
             self.plugin_manager.carica_plugin()
             self.plugin_manager.avvia_tutti()
         except Exception as errore:
             self.logger.warning(f"Plugin non completamente disponibili: {errore}")
+        try:
+            self.visione.rileva()
+            self.diagnostica.esegui()
+        except Exception as errore:
+            self.logger.warning(f"Diagnostica non completata: {errore}")
         self.stato = "Operativo"
         self.logger.info("Jarvis operativo.")
         return True
@@ -87,26 +100,44 @@ class KernelJarvis:
             self.parla(risposta)
         return risposta
 
+    def richiedi_arresto(self):
+        self.arresto_richiesto = True
+        return True
+
     def stato_sistema(self):
         return {
-            "nome": self.nome, "versione": self.versione, "stato": self.stato,
-            "base": self.base, "avvio": self.avvio,
+            "nome": self.nome,
+            "versione": self.versione,
+            "stato": self.stato,
+            "base": self.base,
+            "avvio": self.avvio,
+            "arresto_richiesto": self.arresto_richiesto,
             "voce_disponibile": self.voce_disponibile,
-            "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(),
+            "memoria": self.memoria.stato(),
+            "voce": self.modulo_voce.stato(),
             "comandi": self.modulo_comandi.stato(),
             "dispositivi": self.modulo_dispositivi.stato(),
-            "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(),
-            "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(),
-            "visione": self.visione.stato(), "plugin": self.plugin_manager.stato(),
-            "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(),
-            "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo(),
+            "capacita": self.capacita.stato(),
+            "dialogo_ai": self.dialogo.stato(),
+            "automazioni": self.automazioni.stato(),
+            "pianificatore": self.pianificatore.stato(),
+            "visione": self.visione.stato(),
+            "diagnostica": self.diagnostica.stato(),
+            "plugin": self.plugin_manager.stato(),
+            "moduli": self.manager.stato(),
+            "personalita": self.personalita.stato_personalita(),
+            "preferenze": self.preferenze.stato(),
+            "sicurezza": self.sicurezza.stato(),
+            "sistema": self.stato_sistema_modulo.completo(),
         }
 
     def arresta(self):
         if self.stato == "Spento":
             return True
         self.logger.info("Arresto Jarvis...")
+        self.arresto_richiesto = True
         self.automazioni.ferma()
+        self.pianificatore.ferma()
         try:
             self.plugin_manager.ferma_tutti()
         except Exception as errore:

@@ -1,38 +1,23 @@
-# J.A.R.V.I.S.
+# J.A.R.V.I.S. — Definitive Edition
 
-Assistente personale modulare in Python, progettato come **Jarvis 3.x Definitive Edition**: voce, memoria, personalità, dispositivi, smart home, diagnostica e automazioni locali in un'unica architettura.
+Assistente personale modulare in Python, progettato per avvicinarsi il più possibile a un Jarvis cinematografico usando funzioni realmente disponibili su computer e dispositivi collegati.
 
-## Cosa fa
+## Funzioni
 
-### Conversazione e voce
-- Wake word e riconoscimento vocale tramite Vosk quando microfono e modello sono disponibili.
-- Sintesi vocale con Piper quando installato, con fallback nativo macOS/Linux.
-- Modalità testo sempre disponibile quando l'audio non è configurato.
-- Personalità formale, naturale e contestuale in italiano.
-- Risposte per saluti, identità, ringraziamenti, richieste di aiuto e comandi non riconosciuti.
-- Memoria e contesto delle conversazioni tramite i moduli dedicati.
-
-### Capacità operative
-- Ora, data e diagnostica del computer.
-- CPU, RAM e disco tramite `psutil` quando disponibile.
-- Calcolatrice sicura senza esecuzione arbitraria di codice.
-- Apertura di applicazioni e cartelle.
-- Apertura di siti e ricerca web nel browser predefinito.
-- Meteo online tramite servizio HTTP pubblico.
-- Screenshot su sistemi compatibili.
-- Volume e mute su macOS.
-- Timer con notifica su macOS.
-
-### Dispositivi
-- Gestione modulare di computer, telefono, Bluetooth, rete e console.
-- Controllo Android tramite i moduli ADB disponibili.
-- Trasferimento della sessione tra base e telefono quando i dispositivi sono configurati.
-- TV LG webOS con il modulo dedicato.
-- Smart home con il modulo dedicato.
-- Sistema plugin per estendere Jarvis senza riscrivere il kernel.
-
-### Sicurezza
-Le operazioni protette passano dal modulo di sicurezza e richiedono conferma esplicita. Le nuove capacità operative non eseguono comandi shell arbitrari provenienti dalla voce.
+- HUD desktop futuristico **animato**, ispirato al riferimento fornito: anelli concentrici, segmenti rotanti, tacche radiali, nucleo centrale, accento giallo, pannelli tecnici e stati `SYSTEM ONLINE`, `LISTENING`, `SPEAKING`.
+- Kernel centrale con gestione moduli, eventi, configurazione e log.
+- Conversazione in italiano e personalità formale/elegante.
+- AI locale opzionale tramite Ollama per conversazioni libere.
+- Wake word `Jarvis`, `Hey Jarvis`, `Ehi Jarvis` e riconoscimento Vosk opzionale.
+- Sintesi vocale Piper opzionale con fallback macOS `say`, Linux `espeak` e terminale.
+- Memoria persistente, profilo, ricordi e contesto.
+- Calcolatrice sicura, ora/data, diagnostica, CPU/RAM/disco, browser, app, cartelle, screenshot, volume e timer.
+- Automazioni e attività pianificate.
+- Modulo visione predisposto e rilevamento camera.
+- Integrazioni per computer, telefono Android, rete, Bluetooth, smart home e TV LG webOS.
+- Plugin caricabili.
+- Sicurezza con conferma per operazioni protette.
+- Suite di test e GitHub Actions CI.
 
 ## Avvio
 
@@ -40,32 +25,23 @@ Le operazioni protette passano dal modulo di sicurezza e richiedono conferma esp
 python3 main.py
 ```
 
-Per la modalità di avvio già predisposta:
+oppure:
 
 ```bash
-./scripts/start_jarvis.sh
+./scripts/avvia_jarvis.sh
 ```
 
 ## Test
 
 ```bash
+python -m compileall -q .
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-La CI compila il progetto, verifica le dipendenze ed esegue l'intera suite di test su Python 3.11, 3.12 e 3.13.
+## Struttura
 
-## Nota importante
+`core/` kernel e servizi · `comandi/` comandi · `memoria/` memoria · `voce/` audio · `interfaccia/` HUD · `dispositivi/` integrazioni · `moduli/` adattatori · `personalita/` personalità · `plugin/` estensioni · `config/` configurazione · `tests/` test · `docs/` documentazione · `scripts/` avvio.
 
-L'architettura è stata portata verso un Jarvis cinematografico, ma le funzioni fisicamente possibili dipendono dall'hardware, dal sistema operativo, dai dispositivi collegati, dai permessi e dai servizi esterni. Funzioni come controllo di una casa, telefono o TV richiedono quindi la relativa integrazione reale: il software non può creare hardware o permessi che non esistono.
+## Nota
 
-## Architettura
-
-- `core/` — kernel, configurazione, eventi, logging e capacità operative.
-- `comandi/` — linguaggio naturale e router dei comandi.
-- `memoria/` — profilo, ricordi, contesto e conversazioni.
-- `personalita/` — comportamento conversazionale.
-- `voce/` — ascolto, wake word, riconoscimento e sintesi.
-- `dispositivi/` — integrazioni hardware e rete.
-- `moduli/` — moduli caricati dal kernel.
-- `plugin/` — estensioni.
-- `tests/` — test automatici.
+Le funzioni cinematografiche che richiedono hardware inesistente non possono essere create dal solo software. Jarvis, però, è strutturato per sfruttare l'hardware e i servizi realmente collegati senza fingere che un'azione sia stata eseguita quando non lo è stata.
