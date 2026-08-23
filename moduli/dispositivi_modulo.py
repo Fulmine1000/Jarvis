@@ -33,7 +33,6 @@ class ModuloDispositivi:
         ):
             self.gestore.registra(nome, dispositivo)
 
-        # TV LG webOS: integrazione reale solo se configurata; mai bloccare Jarvis.
         tv_cfg = self.kernel.config.sezione("tv_lg")
         tv = LgWebOSTv(
             name=tv_cfg.get("nome", "tv"),
@@ -57,7 +56,7 @@ class ModuloDispositivi:
         self.connessione.connetti("telefono")
 
         self.attivo = True
-        logger.info("Modulo Dispositivi J.A.R.V.I.S. 3.1 attivo.")
+        logger.info("Modulo Dispositivi J.A.R.V.I.S. definitivo attivo.")
         return True
 
     def get_gestore(self):
