@@ -1,5 +1,5 @@
-# Jarvis 3.1 — dipendenze runtime
-# Audio/Vosk/psutil sono gestite in modo degradato quando non disponibili.
+# Dipendenze runtime di J.A.R.V.I.S.
+# Le integrazioni opzionali degradano senza bloccare l'avvio.
 vosk>=0.3.45
 sounddevice>=0.4.6
 psutil>=5.9.0
