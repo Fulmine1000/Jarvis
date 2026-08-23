@@ -1,127 +1,120 @@
 """J.A.R.V.I.S. — Entry point ufficiale.
 
-Avvia il kernel e, in base alla disponibilità del modulo voce, entra in:
-  - modalità vocale (microfono + Vosk + wake word "Jarvis"), oppure
-  - modalità solo-testo (comandi da terminale).
-
-Entrambe le modalità integrano l'HUD testuale.
+Il processo principale mantiene il loop grafico dell'HUD; il kernel e i
+comandi lavorano in un thread separato. Questo evita i problemi di Tkinter
+su macOS, dove il loop grafico deve restare nel main thread.
 """
 
 import signal
 import sys
+import threading
 import time
 import traceback
 
 from core.kernel import KernelJarvis
 from interfaccia.hud import HUDJarvis
 
-
 kernel = None
 hud = None
-
-
-def mostra_hud():
-    """Aggiorna e stampa l'HUD se disponibile."""
-    if hud and kernel:
-        try:
-            hud.aggiorna_kernel()
-            hud.mostra()
-        except Exception:
-            pass
+_worker = None
+_chiusura_richiesta = threading.Event()
 
 
 def ciclo_testuale():
-    """Loop dei comandi da terminale."""
     print()
     print("Modalità solo-testo attiva. Digita un comando.")
-    print("Comandi: 'buongiorno', 'che ore sono', 'stato sistema',")
-    print("'stato dispositivi', 'accendi luce soggiorno', 'esci'.")
+    print("Comandi: 'buongiorno', 'che ore sono', 'stato sistema', 'esci'.")
     print()
-
-    while True:
+    while not _chiusura_richiesta.is_set():
         try:
             comando = input("\nTu: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print()
             break
-
         if not comando:
             continue
         if comando.lower() in ("esci", "chiudi", "stop"):
             break
-
         risposta = kernel.esegui_comando(comando)
         if risposta:
             print("\nJ.A.R.V.I.S.:", risposta)
+            hud.registra_evento(f"Comando: {comando}")
 
 
 def attesa_signal():
-    """Mantiene attivo Jarvis in modalità vocale."""
     try:
         signal.signal(signal.SIGINT, chiusura)
         signal.signal(signal.SIGTERM, chiusura)
     except (ValueError, OSError):
         pass
+    while not _chiusura_richiesta.is_set():
+        time.sleep(1)
 
+
+def worker_jarvis():
     try:
-        while True:
-            signal.pause()
-    except AttributeError:
-        while True:
-            time.sleep(1)
+        if kernel.voce_disponibile:
+            print("Modalità vocale attiva. Pronuncia la wake word: Jarvis")
+            attesa_signal()
+        else:
+            print("Modalità solo-testo (audio non disponibile).")
+            ciclo_testuale()
+    except Exception:
+        traceback.print_exc()
+    finally:
+        _chiusura_richiesta.set()
+        if hud:
+            hud.ferma()
 
 
 def chiusura(signum=None, frame=None):
-    global kernel
+    if _chiusura_richiesta.is_set():
+        return
+    _chiusura_richiesta.set()
     print("\nArresto Jarvis...")
-
+    try:
+        if hud:
+            hud.ferma()
+    except Exception:
+        pass
     try:
         if kernel:
             kernel.arresta()
     except Exception as errore:
         print(f"Errore durante l'arresto: {errore}")
 
-    raise SystemExit(0)
-
 
 def main():
-    global kernel, hud
-
+    global kernel, hud, _worker
     print("=" * 60)
     print("           J.A.R.V.I.S.")
     print("       Assistente Intelligente Personale")
     print("          Versione definitiva")
     print("=" * 60)
     print()
-
     try:
         kernel = KernelJarvis()
         kernel.avvia()
-
-        hud = HUDJarvis()
-        hud.avvia()
+        hud = HUDJarvis(kernel=kernel, width=1500, height=900)
+        hud.aggiorna_kernel()
         hud.collega_kernel(kernel)
-        mostra_hud()
 
-        print()
-        print("Jarvis è operativo.")
+        _worker = threading.Thread(target=worker_jarvis, name="JarvisCore", daemon=True)
+        _worker.start()
 
-        if kernel.voce_disponibile:
-            print("Modalità vocale attiva. Pronuncia la wake word: Jarvis")
-            print("Premi CTRL+C per uscire.")
-            attesa_signal()
-        else:
-            print("Modalità solo-testo (audio non disponibile).")
-            print("Premi CTRL+C per uscire.")
-            ciclo_testuale()
+        print("Avvio HUD J.A.R.V.I.S. animato...")
+        # Tkinter resta nel main thread: è necessario soprattutto su macOS.
+        hud.avvia()
 
-        chiusura()
-
+        _chiusura_richiesta.set()
+        if kernel:
+            kernel.arresta()
     except KeyboardInterrupt:
         chiusura()
     except Exception:
         traceback.print_exc()
         chiusura()
+    finally:
+        sys.exit(0)
 
 
 if __name__ == "__main__":
