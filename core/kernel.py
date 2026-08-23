@@ -6,6 +6,8 @@ from core.manager import ModuleManager
 from core.config import ConfigJarvis
 from core.capacita import CapacitaJarvis
 from core.dialogo import DialogoJarvis
+from core.automazioni import AutomazioniJarvis, PianificatoreJarvis
+from core.visione import VisioneJarvis
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
 from memoria.contesto import ContestoJarvis
@@ -43,6 +45,9 @@ class KernelJarvis:
         self.aggiornamenti = AggiornamentiJarvis()
         self.capacita = CapacitaJarvis(self.logger)
         self.dialogo = DialogoJarvis(self.logger)
+        self.automazioni = AutomazioniJarvis(self.logger)
+        self.pianificatore = PianificatoreJarvis(self.logger)
+        self.visione = VisioneJarvis(self.logger)
         self.modulo_dispositivi = ModuloDispositivi(self)
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
@@ -91,8 +96,9 @@ class KernelJarvis:
             "comandi": self.modulo_comandi.stato(),
             "dispositivi": self.modulo_dispositivi.stato(),
             "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(),
-            "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(),
-            "personalita": self.personalita.stato_personalita(),
+            "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(),
+            "visione": self.visione.stato(), "plugin": self.plugin_manager.stato(),
+            "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(),
             "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo(),
         }
 
@@ -100,6 +106,7 @@ class KernelJarvis:
         if self.stato == "Spento":
             return True
         self.logger.info("Arresto Jarvis...")
+        self.automazioni.ferma()
         try:
             self.plugin_manager.ferma_tutti()
         except Exception as errore:
