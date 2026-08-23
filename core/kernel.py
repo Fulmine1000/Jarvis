@@ -23,39 +23,29 @@ from plugin.plugin_manager import PluginManager
 
 
 class KernelJarvis:
-    """Kernel centrale di Jarvis 3.0.
+    """Kernel centrale di Jarvis.
 
-    Coordina config, logger, event bus, moduli (memoria, dispositivi, comandi,
-    voce), personalità, preferenze, contesto, stato, sicurezza, aggiornamenti e
-    plugin. Tutte le dipendenze opzionali (audio, Vosk, psutil) sono gestite
-    in modo che il kernel avvii comunque in modalità degradata.
+    È il punto di coordinamento ufficiale del sistema: configurazione, log,
+    eventi, memoria, dispositivi, comandi, voce, personalità, sicurezza,
+    aggiornamenti e plugin.
     """
 
     def __init__(self):
-
         self.config = ConfigJarvis()
-
         dati = self.config.sezione("jarvis")
 
         self.nome = dati.get("nome", "Jarvis")
-
-        self.versione = dati.get("versione", "3.0")
-
-        self.base = self.config.sezione("base").get(
-            "dispositivo",
-            "Motorola"
-        )
+        self.versione = dati.get("versione", "definitiva")
+        self.base = self.config.sezione("base").get("dispositivo", "Motorola")
 
         self.stato = "Spento"
         self.avvio = None
 
-        # --- CORE ---
         self.logger = LoggerJarvis()
         self.event_bus = EventBus()
         self.manager = ModuleManager(self.logger)
         self.plugin_manager = PluginManager(self)
 
-        # --- SERVIZI TRASVERSALI ---
         self.memoria = MemoriaJarvis(self.logger)
         self.preferenze = PreferenzeJarvis()
         self.contesto = ContestoJarvis()
@@ -64,20 +54,14 @@ class KernelJarvis:
         self.sicurezza = SicurezzaJarvis()
         self.aggiornamenti = AggiornamentiJarvis()
 
-        # --- MODULI ---
         self.modulo_dispositivi = ModuloDispositivi(self)
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
-
-        # Flag di disponibilità voce (valorizzato in avvia)
         self.voce_disponibile = False
 
     def avvia(self):
-
         self.logger.info("Avvio Kernel Jarvis...")
-
         self.stato = "Avvio"
-
         self.avvio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         moduli = {
@@ -89,48 +73,37 @@ class KernelJarvis:
 
         for nome, modulo in moduli.items():
             self.manager.registra(nome, modulo)
-
         for nome in moduli:
             self.manager.avvia(nome)
 
-        # Esito modulo voce: determina la modalità operativa.
         self.voce_disponibile = bool(
             getattr(self.modulo_voce, "ascolto_attivo", False)
         )
-
         if not self.voce_disponibile:
             self.logger.warning(
-                "Modulo voce non attivo — "
-                "Jarvis operativo in modalità solo-testo."
+                "Modulo voce non attivo — Jarvis operativo in modalità solo-testo."
             )
 
-        # Plugin (non bloccanti)
         try:
             self.plugin_manager.carica_plugin()
             self.plugin_manager.avvia_tutti()
-        except Exception:
-            pass
+        except Exception as errore:
+            self.logger.warning(f"Plugin non completamente disponibili: {errore}")
 
         self.stato = "Operativo"
-
         self.logger.info("Jarvis operativo.")
-
         return True
 
     def parla(self, testo):
         return self.modulo_voce.rispondi(testo)
 
     def esegui_comando(self, comando):
-
         risposta = self.modulo_comandi.esegui(comando)
-
         if risposta:
             self.parla(risposta)
-
         return risposta
 
     def stato_sistema(self):
-
         return {
             "nome": self.nome,
             "versione": self.versione,
@@ -150,19 +123,14 @@ class KernelJarvis:
         }
 
     def arresta(self):
-
         self.logger.info("Arresto Jarvis...")
-
         try:
             self.plugin_manager.ferma_tutti()
         except Exception:
             pass
-
         try:
             self.modulo_voce.ferma()
         except Exception:
             pass
-
         self.stato = "Spento"
-
         self.logger.info("Jarvis arrestato.")
