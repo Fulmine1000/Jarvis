@@ -23,13 +23,13 @@ from plugin.plugin_manager import PluginManager
 
 
 class KernelJarvis:
-    """Orchestratore centrale di J.A.R.V.I.S. Definitive Edition."""
+    """Orchestratore centrale di J.A.R.V.I.S. nella versione definitiva."""
 
     def __init__(self):
         self.config = ConfigJarvis()
         dati = self.config.sezione("jarvis")
         self.nome = dati.get("nome", "J.A.R.V.I.S.")
-        self.versione = dati.get("versione", "4.0")
+        self.versione = "definitiva"
         self.base = self.config.sezione("base").get("dispositivo", "computer")
         self.stato = "Spento"
         self.avvio = None
