@@ -73,6 +73,14 @@ class GestoreComandi:
             return (f"Diagnostica completata. Jarvis {s['stato']}, versione {s['versione']}. "
                     f"Voce: {'attiva' if s['voce_disponibile'] else 'solo testo'}. "
                     f"Dispositivi registrati: {len(s['dispositivi'].get('dispositivi', []))}. Capacità operative attive.")
+        if c in ("stato automazioni", "quali automazioni", "automazioni attive"):
+            return str(k.automazioni.stato()) if k else "Motore automazioni non disponibile."
+        if c in ("stato visione", "stato videocamera", "stato camera"):
+            return str(k.visione.stato()) if k else "Modulo visione non disponibile."
+        if c in ("rileva videocamera", "rileva fotocamera", "controlla videocamera"):
+            if not k:
+                return "Modulo visione non disponibile."
+            return "Videocamera disponibile." if k.visione.rileva() else "Non ho rilevato una videocamera accessibile."
         if "stato dispositivi" in c:
             return str(self.dispositivi.stato_tutti()) if self.dispositivi else "Gestore dispositivi non disponibile."
         if "quali dispositivi" in c or "elenca dispositivi" in c:
@@ -132,6 +140,18 @@ class GestoreComandi:
             return cap.timer_avvia(valore * moltiplicatore)
         if "annulla timer" in c and cap:
             return cap.timer_annulla()
+
+        # Automazioni semplici: esegui subito una frase-comando come attività nominata.
+        m = re.match(r"(?:esegui|avvia) automazione (.+)$", c)
+        if m and k:
+            nome = m.group(1).strip()
+            return "Automazione eseguita." if k.automazioni.esegui(nome) else f"Non trovo l'automazione '{nome}'."
+        m = re.match(r"(?:disattiva|ferma) automazione (.+)$", c)
+        if m and k:
+            return "Automazione disattivata." if k.automazioni.disattiva(m.group(1)) else "Automazione non trovata."
+        m = re.match(r"attiva automazione (.+)$", c)
+        if m and k:
+            return "Automazione attivata." if k.automazioni.attiva(m.group(1)) else "Automazione non trovata."
 
         m = re.search(r"(?:volume|audio) (?:a |del |al )?(\d{1,3})", c)
         if m and cap:
@@ -193,7 +213,6 @@ class GestoreComandi:
             if nome in c:
                 return funzione()
 
-        # Se esiste un LLM locale, usalo solo per la conversazione libera.
         if k and hasattr(k, "dialogo"):
             risposta_ai = k.dialogo.rispondi(c)
             if risposta_ai:
