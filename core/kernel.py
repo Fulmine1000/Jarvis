@@ -5,7 +5,7 @@ from core.event_bus import EventBus
 from core.manager import ModuleManager
 from core.config import ConfigJarvis
 from core.capacita import CapacitaJarvis
-
+from core.dialogo import DialogoJarvis
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
 from memoria.contesto import ContestoJarvis
@@ -42,6 +42,7 @@ class KernelJarvis:
         self.sicurezza = SicurezzaJarvis()
         self.aggiornamenti = AggiornamentiJarvis()
         self.capacita = CapacitaJarvis(self.logger)
+        self.dialogo = DialogoJarvis(self.logger)
         self.modulo_dispositivi = ModuloDispositivi(self)
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
@@ -89,8 +90,9 @@ class KernelJarvis:
             "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(),
             "comandi": self.modulo_comandi.stato(),
             "dispositivi": self.modulo_dispositivi.stato(),
-            "capacita": self.capacita.stato(), "plugin": self.plugin_manager.stato(),
-            "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(),
+            "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(),
+            "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(),
+            "personalita": self.personalita.stato_personalita(),
             "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo(),
         }
 
