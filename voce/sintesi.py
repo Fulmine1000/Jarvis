@@ -1,181 +1,114 @@
-import subprocess
 import os
-import shutil
 import platform
+import shutil
+import subprocess
+import tempfile
 
 
 class SintesiVocale:
-    """Sintesi vocale di Jarvis.
-
-    Motore principale: Piper (con modello .onnx). Se Piper o il modello non
-    sono disponibili, cade su fallback di sistema: `say` (macOS), `espeak`
-    (Linux), oppure stampa a terminale. Non solleva mai eccezioni per
-    dipendenze mancanti.
-    """
+    """Motore vocale ufficiale di Jarvis con Piper e fallback di sistema."""
 
     def __init__(self, config=None):
-
         self.nome = "Sintesi Vocale"
-
         self.attivo = True
-
         self.config = config
-
-        # MOTORE VOCE
         self.motore = "piper"
-
-        # MODELLO VOCALE
         self.modello = "voce/modelli/it_IT-jarvis.onnx"
-
-        # IMPOSTAZIONI
         self.voce = "Jarvis"
         self.velocita = 1.0
         self.volume = 100
         self.stile = "Jarvis"
 
-        if self.config:
-
-            voce_config = self.config.sezione("voce")
-
-            self.modello = voce_config.get(
-                "modello",
-                self.modello
-            )
-
-            self.velocita = voce_config.get(
-                "velocita",
-                1.0
-            )
-
-            self.volume = voce_config.get(
-                "volume",
-                100
-            )
-
-            self.stile = voce_config.get(
-                "stile",
-                "Jarvis"
-            )
+        if config:
+            voce_config = config.sezione("voce")
+            self.motore = voce_config.get("motore", self.motore)
+            self.modello = voce_config.get("modello", self.modello)
+            self.velocita = float(voce_config.get("velocita", self.velocita))
+            self.volume = int(voce_config.get("volume", self.volume))
+            self.stile = voce_config.get("stile", self.stile)
 
     def _piper_disponibile(self):
-        return shutil.which("piper") is not None
+        return shutil.which("piper") is not None and os.path.isfile(self.modello)
 
-    def _afplay_disponibile(self):
-        return shutil.which("afplay") is not None
+    def _riproduci(self, file_audio):
+        if platform.system() == "Darwin" and shutil.which("afplay"):
+            risultato = subprocess.run(["afplay", file_audio], check=False)
+            return risultato.returncode == 0
+        if platform.system() == "Linux" and shutil.which("aplay"):
+            risultato = subprocess.run(["aplay", "-q", file_audio], check=False)
+            return risultato.returncode == 0
+        return False
 
     def parla(self, testo):
-
-        if not self.attivo:
+        if not self.attivo or not str(testo or "").strip():
             return False
-
-        if not testo:
-            return False
+        testo = str(testo).strip()
 
         try:
-
-            # PIPER + modello presente + afplay per riprodurre
-            if (
-                self._piper_disponibile()
-                and os.path.exists(self.modello)
-            ):
-
-                file_audio = "jarvis_voce.wav"
-
-                comando = [
-                    "piper",
-                    "--model",
-                    self.modello,
-                    "--output_file",
-                    file_audio
-                ]
-
-                processo = subprocess.Popen(
-                    comando,
-                    stdin=subprocess.PIPE,
-                    text=True
-                )
-
-                processo.communicate(testo)
-
-                if self._afplay_disponibile():
-                    subprocess.run(
-                        ["afplay", file_audio]
+            if self._piper_disponibile():
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as file_audio:
+                    percorso = file_audio.name
+                try:
+                    processo = subprocess.run(
+                        ["piper", "--model", self.modello, "--output_file", percorso],
+                        input=testo,
+                        text=True,
+                        capture_output=True,
+                        check=False,
                     )
-                else:
-                    # Nessun player WAV: riproduzione non disponibile
-                    print(f"[JARVIS] {testo}")
+                    if processo.returncode == 0 and self._riproduci(percorso):
+                        return True
+                finally:
+                    try:
+                        os.remove(percorso)
+                    except OSError:
+                        pass
 
-                if os.path.exists(file_audio):
-                    os.remove(file_audio)
-
-                return True
-
-            # FALLBACK macOS: say
             if platform.system() == "Darwin" and shutil.which("say"):
+                risultato = subprocess.run(
+                    ["say", "-v", self.voce, "-r", str(int(170 * self.velocita)), testo],
+                    check=False,
+                )
+                return risultato.returncode == 0
 
-                subprocess.run(["say", testo])
-
-                return True
-
-            # FALLBACK Linux: espeak
             if platform.system() == "Linux" and shutil.which("espeak"):
+                risultato = subprocess.run(["espeak", "-v", "it", testo], check=False)
+                return risultato.returncode == 0
 
-                subprocess.run(["espeak", "-v", "it", testo])
-
-                return True
-
-            # ULTIMO FALLBACK: stampa a terminale
             print(f"[JARVIS] {testo}")
-
             return True
-
-        except Exception as errore:
-
-            print(
-                f"Errore sintesi vocale: {errore}"
-            )
-
+        except (OSError, ValueError, subprocess.SubprocessError):
+            print(f"[JARVIS] {testo}")
             return False
 
     def cambia_modello(self, modello):
-        self.modello = modello
+        self.modello = str(modello)
+        return self.modello
 
     def cambia_velocita(self, velocita):
-        self.velocita = velocita
+        self.velocita = max(0.1, min(3.0, float(velocita)))
+        return self.velocita
 
     def cambia_stile(self, stile):
-        self.stile = stile
+        self.stile = str(stile)
+        return self.stile
 
     def ferma(self):
         self.attivo = False
+        return True
 
     def avvia(self):
         self.attivo = True
         return True
 
     def stato(self):
-
         return {
-            "nome":
-                self.nome,
-
-            "stato":
-                "attivo"
-                if self.attivo
-                else "spento",
-
-            "motore":
-                self.motore,
-
-            "modello":
-                self.modello,
-
-            "velocita":
-                self.velocita,
-
-            "stile":
-                self.stile,
-
-            "piper_disponibile":
-                self._piper_disponibile()
+            "nome": self.nome,
+            "stato": "attivo" if self.attivo else "spento",
+            "motore": self.motore,
+            "modello": self.modello,
+            "velocita": self.velocita,
+            "volume": self.volume,
+            "stile": self.stile,
+            "piper_disponibile": self._piper_disponibile(),
         }
