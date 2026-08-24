@@ -1,251 +1,74 @@
-# DEPRECATO — mantenuto per riferimento storico.
-# Usare il modulo ufficiale corrispondente (vedi analisi/README).
-# Non usato dal kernel 3.0.
-import datetime
+"""Compatibilità del gestore comandi storico di Jarvis.
 
+Il sistema ufficiale usa ``moduli.comandi_modulo``; questa implementazione
+mantiene l'API precedente e delega allo stesso kernel quando disponibile.
+"""
+
+from datetime import datetime
 
 
 class GestoreComandi:
-
-
-    def __init__(
-        self,
-        memoria=None,
-        personalita=None,
-        dispositivi=None,
-        kernel=None,
-        logger=None
-    ):
-
+    def __init__(self, memoria=None, personalita=None, dispositivi=None, kernel=None, logger=None):
         self.memoria = memoria
-
         self.personalita = personalita
-
         self.dispositivi = dispositivi
-
         self.kernel = kernel
-
         self.logger = logger
-
         self.attivo = False
-
         self.comandi_personalizzati = {}
 
-
-
-
-
     def avvia(self):
-
-
         self.attivo = True
-
-
         if self.logger:
+            self.logger.info("Gestore comandi avviato.")
+        return True
 
-            self.logger.info(
-                "Gestore comandi avviato."
-            )
+    def ferma(self):
+        self.attivo = False
+        return True
 
-
-
-
-
-    def esegui(
-        self,
-        comando
-    ):
-
-
-        comando = comando.lower().strip()
-
-
-
+    def esegui(self, comando):
+        comando = str(comando or "").strip().lower()
         if not comando:
-
             return "Comando vuoto."
 
-
-
-
-
-        if comando == "stato sistema" or comando == "stato":
-
-
-            if self.kernel:
-
-
-                return str(
-                    self.kernel.stato_sistema()
-                )
-
-
-            return "Kernel non collegato."
-
-
-
-
+        if comando in {"stato sistema", "stato"} and self.kernel:
+            return str(self.kernel.stato_sistema())
 
         if "che ore sono" in comando:
+            return f"Sono le {datetime.now():%H:%M}."
 
+        if "che giorno è" in comando or comando == "data":
+            return f"Oggi è il {datetime.now():%d/%m/%Y}."
 
-            ora = datetime.datetime.now().strftime(
-                "%H:%M"
-            )
+        if "stato dispositivi" in comando and self.dispositivi:
+            return str(self.dispositivi.stato_tutti())
 
-
-            return f"Sono le {ora}."
-
-
-
-
-
-        if "che giorno è" in comando or "data" in comando:
-
-
-            oggi = datetime.datetime.now().strftime(
-                "%d/%m/%Y"
-            )
-
-
-            return f"Oggi è il {oggi}."
-
-
-
-
-
-        if "stato dispositivi" in comando:
-
-
-            if self.dispositivi:
-
-
-                return str(
-                    self.dispositivi.stato_tutti()
-                )
-
-
-            return "Gestore dispositivi non collegato."
-
-
-
-
-
-        if "quali dispositivi" in comando:
-
-
-            if self.dispositivi:
-
-
-                return str(
-                    self.dispositivi.elenco()
-                )
-
-
-            return "Nessun dispositivo registrato."
-
-
-
-
+        if "quali dispositivi" in comando and self.dispositivi:
+            return str(self.dispositivi.elenco())
 
         if comando.startswith("ricorda "):
-
-
-            testo = comando.replace(
-                "ricorda ",
-                ""
-            )
-
-
-
-            parti = testo.split(
-                " è ",
-                1
-            )
-
-
-
+            testo = comando[8:]
+            parti = testo.split(" è ", 1)
             if len(parti) == 2 and self.memoria:
-
-
-                return self.memoria.ricorda(
-                    parti[0],
-                    parti[1]
-                )
-
-
-
+                return self.memoria.ricorda(parti[0], parti[1])
             return "Non riesco a salvare il ricordo."
 
-
-
-
-
-        if "cosa ricordi di me" in comando:
-
-
-            if self.memoria:
-
-
-                return self.memoria.profilo.mostra_profilo()
-
-
-
-            return "Memoria non disponibile."
-
-
-
-
+        if "cosa ricordi di me" in comando and self.memoria:
+            return self.memoria.profilo.mostra_profilo()
 
         for nome, funzione in self.comandi_personalizzati.items():
-
-
-            if nome in comando:
-
-
+            if nome.lower() in comando:
                 return funzione()
-
-
-
-
 
         return "Non ho trovato un comando compatibile."
 
-
-
-
-
-    def aggiungi_comando(
-        self,
-        nome,
-        funzione
-    ):
-
-
-        self.comandi_personalizzati[nome] = funzione
-
-
+    def aggiungi_comando(self, nome, funzione):
+        self.comandi_personalizzati[str(nome)] = funzione
         return f"Comando {nome} aggiunto."
 
-
-
-
-
     def stato(self):
-
-
         return {
-
-
-            "nome":
-
-                "Gestore Comandi",
-
-
-            "stato":
-
-                "attivo"
-                if self.attivo
-                else "spento"
-
+            "nome": "Gestore Comandi",
+            "stato": "attivo" if self.attivo else "spento",
         }
