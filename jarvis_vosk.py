@@ -1,6 +1,9 @@
-# DEPRECATO — mantenuto per riferimento storico.
-# Usare il modulo ufficiale corrispondente (vedi analisi/README).
-# Non usato dal kernel 3.0.
+"""Listener Vosk compatibile con il sistema vocale di Jarvis.
+
+Il modulo è mantenuto come compatibilità per i vecchi avvii. Il modulo voce
+ufficiale gestisce il normale ciclo di vita dell'ascolto.
+"""
+
 import json
 
 try:
@@ -14,30 +17,40 @@ except (ImportError, OSError):
     Model = None
     KaldiRecognizer = None
 
-if Model is not None and KaldiRecognizer is not None:
-    model = Model("vosk-model-small-it-0.22")
-    rec = KaldiRecognizer(model, 16000)
-else:
-    model = None
-    rec = None
 
-def ascolta():
-    print("🎤 Ti ascolto...")
+MODEL_PATH = "vosk-model-small-it-0.22"
 
-    with sd.RawInputStream(
-        samplerate=16000,
-        blocksize=8000,
-        dtype="int16",
-        channels=1
-    ) as stream:
 
-        while True:
-            dati, overflow = stream.read(4000)
+def crea_riconoscitore(model_path=MODEL_PATH):
+    if Model is None or KaldiRecognizer is None:
+        return None
+    try:
+        return KaldiRecognizer(Model(model_path), 16000)
+    except (OSError, ValueError, RuntimeError):
+        return None
 
-            if rec.AcceptWaveform(bytes(dati)):
-                risultato = json.loads(rec.Result())
-                testo = risultato["text"]
 
-                if testo:
-                    print("Hai detto:", testo)
-                    return testo
+def ascolta(rec=None, timeout=None):
+    """Ascolta una frase e restituisce il testo, oppure ``None`` se non disponibile."""
+    if sd is None:
+        return None
+    recognizer = rec or crea_riconoscitore()
+    if recognizer is None:
+        return None
+
+    try:
+        with sd.RawInputStream(
+            samplerate=16000,
+            blocksize=8000,
+            dtype="int16",
+            channels=1,
+        ) as stream:
+            while True:
+                dati, _ = stream.read(4000)
+                if recognizer.AcceptWaveform(bytes(dati)):
+                    risultato = json.loads(recognizer.Result())
+                    testo = risultato.get("text", "").strip()
+                    if testo:
+                        return testo
+    except (OSError, RuntimeError, ValueError):
+        return None
