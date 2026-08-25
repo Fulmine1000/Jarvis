@@ -4,182 +4,55 @@ from .database import DatabaseMemoria
 from .profilo import ProfiloJarvis
 
 
-
 class MemoriaJarvis:
+    """Sistema centrale di memoria persistente di Jarvis."""
 
-
-    def __init__(
-        self,
-        logger=None
-    ):
-
+    def __init__(self, logger=None):
         self.nome = "Memoria Jarvis"
-
         self.attiva = False
-
         self.logger = logger
-
-
         self.database = DatabaseMemoria()
-
-        self.profilo = ProfiloJarvis(
-            logger
-        )
-
-
-
-
+        self.profilo = ProfiloJarvis(logger)
 
     def avvia(self):
-
-
         self.attiva = True
-
-
         self.profilo.avvia()
-
-
-
         if self.logger:
+            self.logger.info("Memoria Jarvis avviata.")
+        return True
 
-            self.logger.info(
-                "Memoria Jarvis avviata."
-            )
+    def ferma(self):
+        self.attiva = False
+        return True
 
+    def ricorda(self, chiave, valore):
+        """Salva un ricordo senza annidare inutilmente il campo valore."""
+        if not str(chiave).strip():
+            return "La chiave del ricordo non può essere vuota."
+        self.database.aggiungi("ricordi", chiave, valore)
+        return f"Ricorderò: {chiave}"
 
+    def cerca(self, chiave):
+        dato = self.database.leggi("ricordi", chiave)
+        if not dato:
+            return None
+        return dato.get("valore") if isinstance(dato, dict) else dato
 
+    def elenco_ricordi(self):
+        return self.database.lista("ricordi")
 
-
-    def ricorda(
-        self,
-        chiave,
-        valore
-    ):
-
-
-        memoria = {
-
-
-            "valore":
-
-                valore,
-
-
-            "data":
-
-                datetime.now().strftime(
-                    "%d/%m/%Y %H:%M:%S"
-                )
-
-        }
-
-
-
-        self.database.aggiungi(
-            "ricordi",
-            chiave,
-            memoria
-        )
-
-
-
-        return (
-            f"Ricorderò: {chiave}"
-        )
-
-
-
-
-
-    def cerca(
-        self,
-        chiave
-    ):
-
-
-        dato = self.database.leggi(
-            "ricordi",
-            chiave
-        )
-
-
-
-        if dato:
-
-
-            if isinstance(
-                dato["valore"],
-                dict
-            ):
-
-                return dato["valore"]["valore"]
-
-
-            return dato["valore"]
-
-
-
-        return None
-
-
-
-
-
-    def elenco_ricordi(
-        self
-    ):
-
-
-        return self.database.lista(
-            "ricordi"
-        )
-
-
-
-
-
-    def dimentica(
-        self,
-        chiave
-    ):
-
-
-        if self.database.elimina(
-            "ricordi",
-            chiave
-        ):
-
-
+    def dimentica(self, chiave):
+        if self.database.elimina("ricordi", chiave):
             return "Ricordo eliminato."
-
-
-
         return "Ricordo non trovato."
 
-
-
-
+    def conta_ricordi(self):
+        return self.database.numero_ricordi()
 
     def stato(self):
-
-
         return {
-
-
-            "nome":
-
-                self.nome,
-
-
-            "stato":
-
-                "attiva"
-                if self.attiva
-                else "spenta",
-
-
-            "profilo":
-
-                self.profilo.stato()
-
+            "nome": self.nome,
+            "stato": "attiva" if self.attiva else "spenta",
+            "ricordi": self.conta_ricordi(),
+            "profilo": self.profilo.stato(),
         }
