@@ -1,282 +1,84 @@
 import json
 import os
+import tempfile
 from datetime import datetime
-
-
 
 FILE_DATABASE = "memoria/database.json"
 
 
-
-
 class DatabaseMemoria:
+    """Persistenza JSON della memoria di Jarvis con salvataggio atomico."""
 
-
-
-    def __init__(self):
-
+    def __init__(self, percorso=FILE_DATABASE):
+        self.file_database = percorso
         self.crea_cartella()
-
         self.dati = {}
-
         self.carica()
 
-
-
-
-
     def crea_cartella(self):
-
-        if not os.path.exists("memoria"):
-
-            os.makedirs("memoria")
-
-
-
-
+        cartella = os.path.dirname(self.file_database)
+        if cartella:
+            os.makedirs(cartella, exist_ok=True)
 
     def carica(self):
-
-
-        if os.path.exists(FILE_DATABASE):
-
-
-            try:
-
-
-                with open(
-                    FILE_DATABASE,
-                    "r",
-                    encoding="utf-8"
-                ) as file:
-
-
-                    self.dati = json.load(file)
-
-
-
-            except:
-
-
-                self.dati = {}
-
-
-
-        else:
-
-
+        if not os.path.exists(self.file_database):
             self.salva()
-
-
-
-
+            return
+        try:
+            with open(self.file_database, "r", encoding="utf-8") as file:
+                dati = json.load(file)
+            self.dati = dati if isinstance(dati, dict) else {}
+        except (OSError, ValueError, TypeError):
+            self.dati = {}
 
     def salva(self):
-
-
-        with open(
-            FILE_DATABASE,
-            "w",
-            encoding="utf-8"
-        ) as file:
-
-
-            json.dump(
-
-                self.dati,
-
-                file,
-
-                indent=4,
-
-                ensure_ascii=False
-
-            )
-
-
-
-
-
-    def aggiungi(
-        self,
-        categoria,
-        chiave,
-        valore
-    ):
-
-
-        if categoria not in self.dati:
-
-
-            self.dati[categoria] = {}
-
-
-
-        self.dati[categoria][chiave] = {
-
-
-            "valore":
-
-                valore,
-
-
-            "data":
-
-                datetime.now().strftime(
-
-                    "%d/%m/%Y %H:%M:%S"
-
-                )
-
-        }
-
-
-
-        self.salva()
-
-
-
-
-
-    def leggi(
-        self,
-        categoria,
-        chiave
-    ):
-
-
+        self.crea_cartella()
+        cartella = os.path.dirname(os.path.abspath(self.file_database)) or "."
+        fd, temporaneo = tempfile.mkstemp(prefix=".jarvis_memoria_", suffix=".json", dir=cartella)
         try:
+            with os.fdopen(fd, "w", encoding="utf-8") as file:
+                json.dump(self.dati, file, indent=4, ensure_ascii=False)
+                file.flush()
+                os.fsync(file.fileno())
+            os.replace(temporaneo, self.file_database)
+            return True
+        except (OSError, TypeError, ValueError):
+            try:
+                os.remove(temporaneo)
+            except OSError:
+                pass
+            return False
 
+    def aggiungi(self, categoria, chiave, valore):
+        categoria = str(categoria)
+        chiave = str(chiave)
+        self.dati.setdefault(categoria, {})[chiave] = {
+            "valore": valore,
+            "data": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        }
+        return self.salva()
 
-            return self.dati[categoria][chiave]
+    def leggi(self, categoria, chiave):
+        return self.dati.get(str(categoria), {}).get(str(chiave))
 
+    def elimina(self, categoria, chiave):
+        categoria = str(categoria)
+        chiave = str(chiave)
+        dati_categoria = self.dati.get(categoria)
+        if not isinstance(dati_categoria, dict) or chiave not in dati_categoria:
+            return False
+        del dati_categoria[chiave]
+        if not dati_categoria:
+            self.dati.pop(categoria, None)
+        self.salva()
+        return True
 
-
-        except:
-
-
-            return None
-
-
-
-
-
-    def elimina(
-        self,
-        categoria,
-        chiave
-    ):
-
-
-        if categoria in self.dati:
-
-
-            if chiave in self.dati[categoria]:
-
-
-                del self.dati[categoria][chiave]
-
-
-                self.salva()
-
-
-                return True
-
-
-
-        return False
-
-
-
-
-
-    def lista(
-        self,
-        categoria
-    ):
-
-
-        if categoria in self.dati:
-
-
-            return self.dati[categoria]
-
-
-
-        return {}
-
-
-
-
+    def lista(self, categoria):
+        dati = self.dati.get(str(categoria), {})
+        return dict(dati) if isinstance(dati, dict) else {}
 
     def tutto(self):
-
-
-        return self.dati
-
-
-
-
+        return dict(self.dati)
 
     def numero_ricordi(self):
-
-
-        totale = 0
-
-
-
-        for categoria in self.dati:
-
-
-            totale += len(
-                self.dati[categoria]
-            )
-
-
-
-        return totale
-
-
-
-
-
-if __name__ == "__main__":
-
-
-    memoria = DatabaseMemoria()
-
-
-
-    memoria.aggiungi(
-
-        "test",
-
-        "stato",
-
-        "Jarvis operativo"
-
-    )
-
-
-
-    print(
-
-        memoria.leggi(
-
-            "test",
-
-            "stato"
-
-        )
-
-    )
-
-
-
-    print(
-
-        "Ricordi:",
-
-        memoria.numero_ricordi()
-
-    )
+        return sum(len(valore) for valore in self.dati.values() if isinstance(valore, dict))
