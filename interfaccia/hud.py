@@ -19,6 +19,7 @@ class HUDJarvis:
 
     def __init__(self, kernel=None, width=1500, height=900):
         self.nome = "J.A.R.V.I.S. HUD"
+        self.versione = "definitiva"
         self.kernel = kernel
         self.width = width
         self.height = height
@@ -173,7 +174,7 @@ class HUDJarvis:
             c.create_oval(cx-pr, cy-pr, cx+pr, cy+pr, outline=self.CYAN, width=2)
         c.create_text(cx, cy-5, text="J.A.R.V.I.S.", fill=self.WHITE, font=("Helvetica", max(24, int(r*.105)), "bold"))
         c.create_text(cx, cy+35, text="JUST A RATHER VERY INTELLIGENT SYSTEM", fill="#69C7D5", font=("Helvetica", 8, "bold"))
-        c.create_text(cx, cy+59, text="VERSION 3.0.0", fill="#69C7D5", font=("Helvetica", 8))
+        c.create_text(cx, cy+59, text="VERSION DEFINITIVA", fill="#69C7D5", font=("Helvetica", 8))
         status = self._stato()
         c.create_text(cx, cy+r+30, text=status, fill=self.GREEN if status == "SYSTEM ONLINE" else self.CYAN, font=("Helvetica", 14, "bold"))
         c.create_text(cx, cy+r+51, text="TUTTI I SISTEMI OPERATIVI" if status == "SYSTEM ONLINE" else "IN ATTESA DI ISTRUZIONI", fill="#7FAEB5", font=("Helvetica", 8, "bold"))
@@ -181,7 +182,7 @@ class HUDJarvis:
         self._console(c, 325, h-86, w-325, h-18)
 
     def _topbar(self, c, w):
-        c.create_text(22, 18, anchor="w", text="J.A.R.V.I.S.  v3.0.0", fill=self.WHITE, font=("Helvetica", 11, "bold"))
+        c.create_text(22, 18, anchor="w", text="J.A.R.V.I.S.  DEFINITIVA", fill=self.WHITE, font=("Helvetica", 11, "bold"))
         c.create_text(w*.28, 18, text="// STATUS: ", fill="#777F83", font=("Helvetica", 9))
         c.create_text(w*.32, 18, text="ONLINE" if self.dati else "STARTING", fill=self.GREEN, font=("Helvetica", 9, "bold"))
         c.create_text(w*.52, 18, text="// TEMPO DI ATTIVITÀ: 00:00:00", fill="#72C8D5", font=("Helvetica", 9))
@@ -303,7 +304,7 @@ class HUDJarvis:
         self.dati["stato"] = testo
 
     def stato(self):
-        return {"attivo": self.attivo, "ascolto": self.ascolto, "parlando": self.parlando, "dati": self.dati, "eventi": self.eventi[-10:]}
+        return {"nome": self.nome, "versione": self.versione, "attivo": self.attivo, "ascolto": self.ascolto, "parlando": self.parlando, "dati": self.dati, "eventi": self.eventi[-10:]}
 
 
 if __name__ == "__main__":
