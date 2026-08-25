@@ -1,13 +1,13 @@
 """J.A.R.V.I.S. — punto di ingresso definitivo.
 
-Il main thread appartiene a Tkinter/HUD. Il kernel, il testo e l'audio
-restano separati per evitare blocchi e problemi di threading su macOS.
+Il kernel viene avviato prima dell'interfaccia; l'HUD gestisce il proprio
+ciclo Tkinter in un thread dedicato, mentre il worker principale gestisce
+comandi e voce senza bloccare l'interfaccia.
 """
 
 from __future__ import annotations
 
 import signal
-import sys
 import threading
 import time
 import traceback
@@ -77,14 +77,15 @@ def chiusura(signum=None, frame=None) -> None:
 
 
 def controlla_chiusura() -> None:
-    """Esegue la chiusura dal thread Tkinter, mai dal thread audio."""
-    global hud
     if _chiusura_richiesta.is_set() or (kernel and kernel.arresto_richiesto):
         if hud and hud.attivo:
             hud.ferma()
         return
     if hud and hud.finestra:
-        hud.finestra.after(100, controlla_chiusura)
+        try:
+            hud.finestra.after(100, controlla_chiusura)
+        except Exception:
+            pass
 
 
 def main() -> int:
@@ -105,19 +106,16 @@ def main() -> int:
         hud.collega_kernel(kernel)
         hud.aggiorna_kernel()
 
-        _worker = threading.Thread(
-            target=worker_jarvis,
-            name="JarvisCore",
-            daemon=True,
-        )
+        _worker = threading.Thread(target=worker_jarvis, name="JarvisCore", daemon=True)
         _worker.start()
 
         print("Avvio HUD J.A.R.V.I.S. animato...")
         hud.avvia()
         if hud.finestra:
             hud.finestra.after(100, controlla_chiusura)
-            # Tkinter deve rimanere nel main thread.
-            hud.finestra.mainloop()
+            # HUDJarvis possiede già il mainloop del proprio thread Tkinter.
+            while hud.attivo and not _chiusura_richiesta.is_set():
+                time.sleep(0.1)
 
     except KeyboardInterrupt:
         chiusura()
@@ -126,6 +124,8 @@ def main() -> int:
         chiusura()
     finally:
         _chiusura_richiesta.set()
+        if hud and hud.attivo:
+            hud.ferma()
         if _worker and _worker.is_alive():
             _worker.join(timeout=1.5)
         if kernel:
@@ -140,4 +140,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
