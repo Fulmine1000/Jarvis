@@ -1,13 +1,15 @@
 """Test dei comandi (Fase 5.6).
 
 Verifica il gestore comandi end-to-end attraverso il kernel, inclusi i
-comandi protetti (sicurezza), l'integrazione del contesto e i fallback
-quando i dispositivi non sono disponibili.
+comandi protetti, l'integrazione del contesto e i fallback dei dispositivi.
+I test non devono produrre audio reale: la sintesi viene sostituita da un
+mock e viene verificato che ogni comando venga inoltrato una sola volta.
 """
 
 import os
 import sys
 import unittest
+from unittest.mock import Mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -20,10 +22,15 @@ class TestComandi(unittest.TestCase):
     def setUpClass(cls):
         cls.kernel = KernelJarvis()
         cls.kernel.avvia()
+        cls.parla_mock = Mock(return_value=True)
+        cls.kernel.parla = cls.parla_mock
 
     @classmethod
     def tearDownClass(cls):
         cls.kernel.arresta()
+
+    def setUp(self):
+        self.parla_mock.reset_mock()
 
     def _cmd(self, comando):
         return self.kernel.esegui_comando(comando)
@@ -39,11 +46,11 @@ class TestComandi(unittest.TestCase):
 
     def test_ora(self):
         risposta = self._cmd("che ore sono")
-        self.assertIn(":", risposta)  # formato HH:MM
+        self.assertIn(":", risposta)
 
     def test_data(self):
         risposta = self._cmd("che giorno è")
-        self.assertIn("/", risposta)  # formato DD/MM/YYYY
+        self.assertIn("/", risposta)
 
     def test_stato_dispositivi(self):
         risposta = self._cmd("stato dispositivi")
@@ -57,7 +64,6 @@ class TestComandi(unittest.TestCase):
 
     def test_ricorda_e_cerca(self):
         self._cmd("ricorda animale è gatto")
-        # Verifica indiretta: il comando non deve fallire.
         risposta = self._cmd("ricorda animale è gatto")
         self.assertIsInstance(risposta, str)
 
@@ -71,10 +77,8 @@ class TestComandi(unittest.TestCase):
         self.assertIsInstance(risposta, str)
 
     def test_apri_senza_telefono_principale(self):
-        """'apri <app>' senza telefono principale restituisce un messaggio."""
         risposta = self._cmd("apri spotify")
         self.assertIsInstance(risposta, str)
-        # Non deve cadere nel catch-all finale.
         self.assertNotEqual(risposta, "Non ho trovato un comando compatibile.")
 
     def test_chiudi_senza_telefono_principale(self):
@@ -96,15 +100,17 @@ class TestComandi(unittest.TestCase):
         self.assertGreater(len(risposta), 0)
 
     def test_contesto_aggiornato(self):
-        """Dopo un comando, il contesto è aggiornato."""
         self._cmd("che ore sono")
         stato = self.kernel.contesto.stato()
         self.assertGreaterEqual(stato["comandi_memorizzati"], 1)
 
     def test_comando_protetto_bloccato(self):
-        """Un comando protetto senza 'confermo' viene bloccato."""
         risposta = self._cmd("elimina file importante")
         self.assertIn("conferma", risposta.lower())
+
+    def test_risposta_vocale_una_sola_volta(self):
+        risposta = self._cmd("buongiorno")
+        self.parla_mock.assert_called_once_with(risposta)
 
 
 if __name__ == "__main__":
