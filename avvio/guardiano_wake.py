@@ -1,11 +1,9 @@
 """Guardiano vocale di J.A.R.V.I.S.
 
 Rimane in background e ascolta esclusivamente la wake word. Quando riconosce
-"Jarvis", "Hey Jarvis" o "Ehi Jarvis", libera il microfono e avvia jarvis.py.
-Quando Jarvis viene chiuso, il guardiano riprende automaticamente l'ascolto.
-
-Il modulo è progettato per essere eseguito direttamente da macOS LaunchAgent,
-quindi non assume che la directory di lavoro sia già presente in sys.path.
+"Jarvis", "Hey Jarvis" o "Ehi Jarvis", libera il microfono e avvia jarvis.py
+in modalita interattiva grafica. Quando Jarvis viene chiuso, il guardiano
+riprende automaticamente l'ascolto.
 """
 
 from __future__ import annotations
@@ -15,9 +13,6 @@ import subprocess
 import sys
 import time
 
-# Quando LaunchAgent esegue questo file direttamente, sys.path contiene
-# normalmente la cartella avvio/ e non necessariamente la radice del progetto.
-# Inseriamo esplicitamente la radice prima di importare i moduli Jarvis.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
@@ -42,7 +37,6 @@ class GuardianoWake:
         self.attivo = True
 
     def _log(self, messaggio: str) -> None:
-        """Scrive un log locale utile anche quando LaunchAgent nasconde il terminale."""
         try:
             log_dir = os.path.join(self.root, "logs")
             os.makedirs(log_dir, exist_ok=True)
@@ -59,11 +53,16 @@ class GuardianoWake:
         return any(testo.startswith(parola + " ") for parola in self.PAROLE)
 
     def _avvia_jarvis(self) -> None:
-        self._log("Wake word riconosciuta: avvio Jarvis.")
+        self._log("Wake word riconosciuta: avvio della sessione grafica di Jarvis.")
         self.ascoltatore.ferma()
         self.riconoscitore.ferma()
 
         jarvis = os.path.join(self.root, "jarvis.py")
+        ambiente = os.environ.copy()
+        # Comunica a jarvis.py che la sessione e stata attivata dalla wake word.
+        # In questo caso l'HUD deve essere visibile subito, non tornare in standby.
+        ambiente["JARVIS_ATTIVATO_DA_WAKE"] = "1"
+
         try:
             self.jarvis_process = subprocess.Popen(
                 [self.python, jarvis],
@@ -72,8 +71,9 @@ class GuardianoWake:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
+                env=ambiente,
             )
-            self._log(f"Jarvis avviato, PID {self.jarvis_process.pid}.")
+            self._log(f"Jarvis avviato dalla wake word, PID {self.jarvis_process.pid}.")
         except (OSError, ValueError) as errore:
             self._log(f"Errore avvio Jarvis: {errore}")
             self.jarvis_process = None
@@ -83,7 +83,7 @@ class GuardianoWake:
             time.sleep(0.5)
 
         if self.jarvis_process is not None:
-            self._log("Jarvis chiuso: riprendo ascolto della wake word.")
+            self._log("Sessione Jarvis terminata: riprendo ascolto della wake word.")
         self.jarvis_process = None
 
     def _prepara_ascolto(self) -> bool:
@@ -99,12 +99,10 @@ class GuardianoWake:
 
     def ciclo(self) -> int:
         self._log("Guardiano vocale avviato.")
-
         while self.attivo:
             if not self._prepara_ascolto():
                 time.sleep(3)
                 continue
-
             try:
                 while self.attivo and self.jarvis_process is None:
                     audio = self.ascoltatore.ascolta(timeout=1)
@@ -123,7 +121,6 @@ class GuardianoWake:
             finally:
                 self.ascoltatore.ferma()
                 self.riconoscitore.ferma()
-
         self._log("Guardiano vocale terminato.")
         return 0
 
