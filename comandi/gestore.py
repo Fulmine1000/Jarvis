@@ -117,8 +117,24 @@ class GestoreComandi:
             return cap.meteo(localita or "Napoli") if cap else "Servizio meteo non disponibile."
         if c.startswith("apri app "):
             return cap.apri_app(c[9:].strip()) if cap else "Apertura app non disponibile."
-        if c in ("apri cartella", "apri finder"):
+        if c.startswith("apri "):
+            app = c[5:].strip()
+            if app:
+                telefono_principale = self._telefono_principale()
+                if telefono_principale:
+                    return telefono_principale.apri_app(app)
+                return "Nessun telefono principale attivo."
+        if c.startswith("apri cartella",):
             return cap.apri_cartella() if cap else "Gestione cartelle non disponibile."
+        if c in ("apri finder",):
+            return cap.apri_cartella() if cap else "Gestione cartelle non disponibile."
+        if c.startswith("chiudi "):
+            app = c[7:].strip()
+            if app:
+                telefono_principale = self._telefono_principale()
+                if telefono_principale:
+                    return telefono_principale.chiudi_app(app)
+                return "Nessun telefono principale attivo."
         if "fai uno screenshot" in c or "fai una schermata" in c:
             return cap.screenshot() if cap else "Screenshot non disponibile."
         m = re.search(r"(?:imposta|avvia|crea) (?:un )?timer (?:di )?(\d+)\s*(secondi|secondo|minuti|minuto|ore|ora)?", c)
@@ -155,6 +171,15 @@ class GestoreComandi:
             if risposta_ai:
                 return risposta_ai
         return "Non ho trovato un comando compatibile."
+
+    def _telefono_principale(self):
+        """Restituisce il telefono attualmente impostato come principale, se presente."""
+        if not self.dispositivi:
+            return None
+        for dispositivo in self.dispositivi.dispositivi.values():
+            if getattr(dispositivo, "principale", False):
+                return dispositivo
+        return None
 
     def ferma(self):
         """Arresta il gestore senza perdere i comandi personalizzati."""
