@@ -86,7 +86,7 @@ class SintesiVocale:
         return self.modello
 
     def cambia_velocita(self, velocita):
-        self.velocita = max(0.1, min(3.0, float(velocita)))
+        self.velocita = max(0.1, min(3, float(velocita)))
         return self.velocita
 
     def cambia_stile(self, stile):
