@@ -130,41 +130,52 @@ class SintesiVocale:
     def _parla_con_sistema(self, testo):
         """Usa il motore vocale integrato nel sistema operativo."""
         if platform.system() == "Darwin" and shutil.which("say"):
-            voce = self.voce_sistema or self.voce
+            voce = self.voce_sistema
 
-            risultato = subprocess.run(
-                [
-                    "say",
-                    "-v",
-                    voce,
-                    "-r",
-                    str(int(170 * self.velocita)),
-                    testo,
-                ],
-                check=False,
-            )
+            # Usa la voce italiana rilevata quando disponibile. Se non è
+            # disponibile, non tenta di invocare una voce inesistente.
+            if voce:
+                try:
+                    risultato = subprocess.run(
+                        [
+                            "say",
+                            "-v",
+                            voce,
+                            "-r",
+                            str(int(170 * self.velocita)),
+                            testo,
+                        ],
+                        check=False,
+                    )
+                    if risultato.returncode == 0:
+                        return True
+                except (OSError, subprocess.SubprocessError):
+                    pass
 
-            if risultato.returncode == 0:
-                return True
-
-            # Se la voce configurata non esiste, prova il motore predefinito.
-            risultato = subprocess.run(
-                [
-                    "say",
-                    "-r",
-                    str(int(170 * self.velocita)),
-                    testo,
-                ],
-                check=False,
-            )
-            return risultato.returncode == 0
+            # Ultimo fallback: voce predefinita di macOS.
+            try:
+                risultato = subprocess.run(
+                    [
+                        "say",
+                        "-r",
+                        str(int(170 * self.velocita)),
+                        testo,
+                    ],
+                    check=False,
+                )
+                return risultato.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                return False
 
         if platform.system() == "Linux" and shutil.which("espeak"):
-            risultato = subprocess.run(
-                ["espeak", "-v", "it", testo],
-                check=False,
-            )
-            return risultato.returncode == 0
+            try:
+                risultato = subprocess.run(
+                    ["espeak", "-v", "it", testo],
+                    check=False,
+                )
+                return risultato.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                return False
 
         return False
 
@@ -181,12 +192,13 @@ class SintesiVocale:
             if self._parla_con_sistema(testo):
                 return True
 
-            print(f"[JARVIS] {testo}")
-            return True
-
         except (OSError, ValueError, subprocess.SubprocessError):
-            print(f"[JARVIS] {testo}")
-            return False
+            pass
+
+        # Il fallback testuale è una modalità valida: parla() deve comunque
+        # segnalare che la richiesta è stata gestita anche senza audio.
+        print(f"[JARVIS] {testo}")
+        return True
 
     def cambia_modello(self, modello):
         self.modello = str(modello)
