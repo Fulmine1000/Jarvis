@@ -62,18 +62,23 @@ class JarvisOS:
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
 
-            # Il Main Thread crea e mantiene Tkinter. La finestra viene
-            # inizialmente nascosta: la wake word la riporta in primo piano.
-            # In questo modo Jarvis può restare in ascolto senza mostrare
-            # subito l'interfaccia grafica.
-            def prepara_hud():
-                try:
-                    self.hud.finestra.withdraw()
-                    self.hud.registra_evento("HUD in standby: in attesa della wake word")
-                except Exception:
-                    pass
+            # Tkinter/AppKit deve restare nel Main Thread. Il primo disegno
+            # viene eseguito normalmente e subito dopo la finestra viene
+            # nascosta: la wake word la renderà nuovamente visibile.
+            animazione_originale = self.hud._animazione
+            hud_nascosto = {"fatto": False}
 
-            self.hud._prepara_avvio = prepara_hud
+            def animazione_in_standby():
+                animazione_originale()
+                if not hud_nascosto["fatto"] and self.hud.finestra:
+                    try:
+                        self.hud.finestra.withdraw()
+                        self.hud.registra_evento("HUD in standby: in attesa della wake word")
+                        hud_nascosto["fatto"] = True
+                    except Exception:
+                        pass
+
+            self.hud._animazione = animazione_in_standby
             self.hud._run_tk()
 
             self._chiusura.set()
