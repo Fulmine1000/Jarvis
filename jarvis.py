@@ -1,8 +1,9 @@
 """J.A.R.V.I.S. — punto di ingresso ufficiale.
 
 ``python jarvis.py`` avvia l'intero sistema: kernel, voce e HUD.
-La gestione dell'ascolto vocale resta nel ModuloVoce/MotoreAscolto; questo
-launcher non crea un secondo ciclo input che possa competere con il microfono.
+Quando viene attivato dal guardiano tramite la wake word, l'HUD viene mostrato
+immediatamente. Se invece viene avviato manualmente, parte in standby in attesa
+della wake word.
 
 Il codice grafico Tkinter viene eseguito esclusivamente nel Main Thread,
 come richiesto da macOS/AppKit. L'ascolto vocale e la supervisione del kernel
@@ -11,6 +12,7 @@ restano invece in background.
 
 from __future__ import annotations
 
+import os
 import signal
 import threading
 import time
@@ -62,23 +64,29 @@ class JarvisOS:
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
 
-            # Tkinter/AppKit deve restare nel Main Thread. Il primo disegno
-            # viene eseguito normalmente e subito dopo la finestra viene
-            # nascosta: la wake word la renderà nuovamente visibile.
-            animazione_originale = self.hud._animazione
-            hud_nascosto = {"fatto": False}
+            # Se Jarvis è stato chiamato con la wake word, deve apparire subito.
+            # L'ambiente viene impostato dal guardiano_wake.py.
+            attivato_da_wake = os.environ.get("JARVIS_ATTIVATO_DA_WAKE") == "1"
 
-            def animazione_in_standby():
-                animazione_originale()
-                if not hud_nascosto["fatto"] and self.hud.finestra:
-                    try:
-                        self.hud.finestra.withdraw()
-                        self.hud.registra_evento("HUD in standby: in attesa della wake word")
-                        hud_nascosto["fatto"] = True
-                    except Exception:
-                        pass
+            if not attivato_da_wake:
+                # Avvio manuale: HUD inizialmente nascosto, come comportamento
+                # precedente. La wake word può renderlo visibile tramite il
+                # normale flusso del ModuloVoce.
+                animazione_originale = self.hud._animazione
+                hud_nascosto = {"fatto": False}
 
-            self.hud._animazione = animazione_in_standby
+                def animazione_in_standby():
+                    animazione_originale()
+                    if not hud_nascosto["fatto"] and self.hud.finestra:
+                        try:
+                            self.hud.finestra.withdraw()
+                            self.hud.registra_evento("HUD in standby: in attesa della wake word")
+                            hud_nascosto["fatto"] = True
+                        except Exception:
+                            pass
+
+                self.hud._animazione = animazione_in_standby
+
             self.hud._run_tk()
 
             self._chiusura.set()
