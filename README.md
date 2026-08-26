@@ -4,10 +4,10 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 
 ## Funzioni
 
-- HUD desktop futuristico **animato**, ispirato al riferimento fornito: anelli concentrici, segmenti rotanti, tacche radiali, nucleo centrale, accento giallo, pannelli tecnici e stati `SYSTEM ONLINE`, `LISTENING`, `SPEAKING`.
+- HUD desktop futuristico animato.
 - Kernel centrale con gestione moduli, eventi, configurazione e log.
 - Conversazione in italiano e personalità formale/elegante.
-- AI locale opzionale tramite Ollama per conversazioni libere.
+- AI locale opzionale tramite Ollama.
 - Wake word `Jarvis`, `Hey Jarvis`, `Ehi Jarvis` e riconoscimento Vosk opzionale.
 - Sintesi vocale Piper opzionale con fallback macOS `say`, Linux `espeak` e terminale.
 - Memoria persistente, profilo, ricordi e contesto.
@@ -21,8 +21,10 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 
 ## Avvio
 
+Il punto di ingresso ufficiale è `jarvis.py`:
+
 ```bash
-python3 main.py
+python jarvis.py
 ```
 
 oppure:
@@ -40,7 +42,22 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 
 ## Struttura
 
-`core/` kernel e servizi · `comandi/` comandi · `memoria/` memoria · `voce/` audio · `interfaccia/` HUD · `dispositivi/` integrazioni · `moduli/` adattatori · `personalita/` personalità · `plugin/` estensioni · `config/` configurazione · `tests/` test · `docs/` documentazione · `scripts/` avvio.
+- `jarvis.py` — unico punto di ingresso ufficiale.
+- `core/` — kernel e servizi fondamentali.
+- `comandi/` — gestione ed esecuzione dei comandi.
+- `voce/` — ascolto, wake word, riconoscimento e sintesi vocale.
+- `interfaccia/` — HUD grafico.
+- `memoria/` — memoria persistente.
+- `dispositivi/` — integrazioni hardware e smart home.
+- `moduli/` — adattatori dei moduli Jarvis.
+- `personalita/` — personalità e comportamento.
+- `plugin/` — estensioni.
+- `config/` — configurazioni e metadati di versione/identità.
+- `docs/` — documentazione.
+- `tests/` — test automatici.
+- `legacy/` — moduli storici mantenuti esclusivamente per compatibilità e riferimento.
+
+La root del progetto contiene quindi solo gli elementi realmente necessari al progetto, mentre i componenti tecnici sono organizzati nelle rispettive cartelle.
 
 ## Nota
 
