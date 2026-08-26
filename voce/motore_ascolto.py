@@ -7,9 +7,6 @@ from voce.wake_word import WakeWordJarvis
 class MotoreAscolto:
     """Ascolto continuo: wake word -> comando -> risposta, senza doppia sintesi."""
 
-    # Vosk può produrre due risultati finali identici per lo stesso parlato.
-    # Questo intervallo evita che una seconda trascrizione immediata venga
-    # interpretata come un nuovo comando.
     DUPLICATO_TIMEOUT = 1.5
 
     def __init__(self, modulo_voce):
@@ -65,8 +62,6 @@ class MotoreAscolto:
                     time.sleep(0.1)
                     continue
 
-                # Ignora soltanto una ripetizione identica e ravvicinata.
-                # Un comando diverso, anche se pronunciato subito dopo, passa normalmente.
                 if self._e_duplicato_immediato(testo):
                     self.log(f"Trascrizione duplicata ignorata: {self._normalizza_testo(testo)}")
                     continue
@@ -79,7 +74,6 @@ class MotoreAscolto:
                     self.modulo_voce.rispondi("Sono qui.")
                     continue
                 self.log(f"Comando ricevuto: {comando}")
-                # Kernel.esegui_comando gestisce già la risposta vocale.
                 self.modulo_voce.kernel.esegui_comando(comando)
                 self.wake_word.disattiva()
             except Exception as errore:
@@ -118,3 +112,32 @@ class MotoreAscolto:
             "thread": self.thread.is_alive() if self.thread else False,
             "wake_word": self.wake_word.stato(),
         }
+
+
+def main():
+    """Avvio standalone: `python -m voce.motore_ascolto` mantiene Jarvis in ascolto."""
+    from core.kernel import KernelJarvis
+
+    kernel = KernelJarvis()
+    try:
+        if not kernel.avvia():
+            return 1
+
+        voce = kernel.modulo_voce
+        if not getattr(voce, "ascolto_attivo", False):
+            print("Audio non disponibile: impossibile avviare l'ascolto vocale.")
+            return 1
+
+        print("Jarvis in ascolto. Di' 'Ehi Jarvis' oppure 'Hey Jarvis'. Premi Ctrl+C per uscire.")
+        while kernel.stato == "Operativo" and not kernel.arresto_richiesto:
+            time.sleep(0.5)
+        return 0
+    except KeyboardInterrupt:
+        print("\nArresto richiesto.")
+        return 0
+    finally:
+        kernel.arresta()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
