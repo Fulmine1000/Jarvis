@@ -62,7 +62,18 @@ class JarvisOS:
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
 
-            # Tkinter/AppKit deve essere creato e gestito dal Main Thread su macOS.
+            # Il Main Thread crea e mantiene Tkinter. La finestra viene
+            # inizialmente nascosta: la wake word la riporta in primo piano.
+            # In questo modo Jarvis può restare in ascolto senza mostrare
+            # subito l'interfaccia grafica.
+            def prepara_hud():
+                try:
+                    self.hud.finestra.withdraw()
+                    self.hud.registra_evento("HUD in standby: in attesa della wake word")
+                except Exception:
+                    pass
+
+            self.hud._prepara_avvio = prepara_hud
             self.hud._run_tk()
 
             self._chiusura.set()
@@ -84,8 +95,6 @@ class JarvisOS:
         try:
             while not self._chiusura.is_set():
                 if self.kernel and self.kernel.arresto_richiesto:
-                    # Il thread non modifica direttamente Tk: accoda la chiusura
-                    # al Main Thread tramite after().
                     if self.hud and self.hud.finestra:
                         try:
                             self.hud.finestra.after(0, self.hud.ferma)
