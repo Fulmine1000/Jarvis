@@ -57,6 +57,28 @@ class MotoreAscolto:
         """Ignora la frase prodotta da Jarvis e riascoltata dal microfono."""
         return self._normalizza_testo(testo) in self.RISPOSTE_ECO
 
+    def _mostra_hud(self):
+        """Porta l'HUD in primo piano dal Main Thread di Tkinter."""
+        hud = getattr(self.modulo_voce.kernel, "hud", None)
+        if not hud or not getattr(hud, "finestra", None):
+            return
+        try:
+            hud.finestra.after(0, self._mostra_hud_main_thread, hud)
+        except Exception as errore:
+            self.log(f"Impossibile mostrare HUD: {errore}")
+
+    @staticmethod
+    def _mostra_hud_main_thread(hud):
+        try:
+            hud.finestra.deiconify()
+            hud.finestra.lift()
+            hud.finestra.attributes("-topmost", True)
+            hud.finestra.after(250, lambda: hud.finestra.attributes("-topmost", False))
+            hud.finestra.focus_force()
+            hud.registra_evento("Wake word rilevata: HUD attivato")
+        except Exception:
+            pass
+
     def ciclo(self):
         while self.attivo and getattr(self.modulo_voce, "ascolto_attivo", False):
             try:
@@ -67,9 +89,6 @@ class MotoreAscolto:
 
                 normalizzato = self._normalizza_testo(testo)
 
-                # Dopo "Jarvis" Jarvis dice "Sono qui.". Il microfono puo'
-                # catturare la propria voce e trasformarla in un falso comando.
-                # La ignoriamo lasciando attiva la finestra per il comando reale.
                 if self._e_eco_jarvis(normalizzato):
                     self.log("Eco della risposta Jarvis ignorata: Sono qui.")
                     self._reset_duplicato()
@@ -83,11 +102,13 @@ class MotoreAscolto:
                 if not risultato or not risultato.get("attivato", False):
                     continue
 
+                # La finestra HUD viene mostrata quando viene riconosciuta
+                # la wake word, senza richiedere alcun comando nel terminale.
+                self._mostra_hud()
+
                 comando = risultato.get("comando", "").strip()
                 if not comando:
                     self.modulo_voce.rispondi("Sono qui.")
-                    # Mantiene la wake word attiva per il comando successivo:
-                    # "Jarvis" -> "Sono qui" -> "che ore sono".
                     continue
 
                 self.log(f"Comando ricevuto: {comando}")
