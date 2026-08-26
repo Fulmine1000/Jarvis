@@ -2,8 +2,8 @@
 
 Rimane in background e ascolta esclusivamente la wake word. Quando riconosce
 "Jarvis", "Hey Jarvis" o "Ehi Jarvis", libera il microfono e avvia jarvis.py
-in modalita interattiva grafica. Quando Jarvis viene chiuso, il guardiano
-riprende automaticamente l'ascolto.
+in modalita interattiva grafica. Se nella stessa frase e presente un comando,
+lo passa direttamente alla nuova sessione di Jarvis.
 """
 
 from __future__ import annotations
@@ -46,22 +46,36 @@ class GuardianoWake:
         except OSError:
             pass
 
+    def _estrai_comando_wake(self, testo: str) -> str:
+        """Restituisce il testo dopo la wake word, se presente."""
+        testo = self.wake_word.pulisci_testo(testo)
+        for parola in sorted(self.PAROLE, key=len, reverse=True):
+            if testo == parola:
+                return ""
+            prefisso = parola + " "
+            if testo.startswith(prefisso):
+                return testo[len(prefisso):].strip()
+        return ""
+
     def _e_wake_word(self, testo: str) -> bool:
         testo = self.wake_word.pulisci_testo(testo)
-        if testo in self.PAROLE:
-            return True
-        return any(testo.startswith(parola + " ") for parola in self.PAROLE)
+        return testo in self.PAROLE or any(
+            testo.startswith(parola + " ") for parola in self.PAROLE
+        )
 
-    def _avvia_jarvis(self) -> None:
+    def _avvia_jarvis(self, comando_iniziale: str = "") -> None:
         self._log("Wake word riconosciuta: avvio della sessione grafica di Jarvis.")
         self.ascoltatore.ferma()
         self.riconoscitore.ferma()
 
         jarvis = os.path.join(self.root, "jarvis.py")
         ambiente = os.environ.copy()
-        # Comunica a jarvis.py che la sessione e stata attivata dalla wake word.
-        # In questo caso l'HUD deve essere visibile subito, non tornare in standby.
         ambiente["JARVIS_ATTIVATO_DA_WAKE"] = "1"
+        if comando_iniziale:
+            ambiente["JARVIS_COMANDO_INIZIALE"] = comando_iniziale
+            self._log(f"Comando iniziale passato a Jarvis: {comando_iniziale}")
+        else:
+            ambiente.pop("JARVIS_COMANDO_INIZIALE", None)
 
         try:
             self.jarvis_process = subprocess.Popen(
@@ -110,7 +124,8 @@ class GuardianoWake:
                         continue
                     testo = self.riconoscitore.riconosci(audio)
                     if testo and self._e_wake_word(testo):
-                        self._avvia_jarvis()
+                        comando = self._estrai_comando_wake(testo)
+                        self._avvia_jarvis(comando)
                         break
             except (KeyboardInterrupt, SystemExit):
                 self.attivo = False
