@@ -156,5 +156,12 @@ class GestoreComandi:
                 return risposta_ai
         return self.personalita.non_capito(c) if self.personalita and hasattr(self.personalita, "non_capito") else "Non ho trovato un comando compatibile."
 
+    def ferma(self):
+        """Arresta il gestore senza perdere i comandi personalizzati."""
+        self.attivo = False
+        if self.logger:
+            self.logger.info("Gestore comandi Jarvis fermato.")
+        return True
+
     def stato(self):
         return {"nome": "Gestore Comandi", "stato": "attivo" if self.attivo else "spento", "comandi_personalizzati": len(self.comandi_personalizzati)}
