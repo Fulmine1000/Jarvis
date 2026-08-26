@@ -64,14 +64,10 @@ class JarvisOS:
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
 
-            # Se Jarvis è stato chiamato con la wake word, deve apparire subito.
-            # L'ambiente viene impostato dal guardiano_wake.py.
             attivato_da_wake = os.environ.get("JARVIS_ATTIVATO_DA_WAKE") == "1"
+            comando_iniziale = os.environ.get("JARVIS_COMANDO_INIZIALE", "").strip()
 
             if not attivato_da_wake:
-                # Avvio manuale: HUD inizialmente nascosto, come comportamento
-                # precedente. La wake word può renderlo visibile tramite il
-                # normale flusso del ModuloVoce.
                 animazione_originale = self.hud._animazione
                 hud_nascosto = {"fatto": False}
 
@@ -86,6 +82,13 @@ class JarvisOS:
                             pass
 
                 self.hud._animazione = animazione_in_standby
+
+            if attivato_da_wake and comando_iniziale:
+                try:
+                    self.hud.registra_evento(f"Comando iniziale: {comando_iniziale}")
+                    self.kernel.esegui_comando(comando_iniziale)
+                except Exception as errore:
+                    self.kernel.logger.error(f"Errore comando iniziale: {errore}")
 
             self.hud._run_tk()
 
