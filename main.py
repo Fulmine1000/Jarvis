@@ -39,10 +39,10 @@ def ciclo_testuale() -> None:
             break
         try:
             risposta = kernel.esegui_comando(comando) if kernel else None
-            if risposta:
-                print("\nJ.A.R.V.I.S.:", risposta)
-                if hud:
-                    hud.registra_evento(f"Comando: {comando}")
+            # KernelJarvis è l'unico proprietario della risposta vocale/testuale.
+            # In modalità solo-testo SintesiVocale mostra già il fallback [JARVIS].
+            if risposta and hud:
+                hud.registra_evento(f"Comando: {comando}")
         except Exception as errore:
             print(f"Errore comando: {errore}")
 
