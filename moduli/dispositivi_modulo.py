@@ -6,10 +6,11 @@ from dispositivi.telefono import TelefonoJarvis
 from dispositivi.connessione import ConnessioneDispositivi
 from dispositivi.smart_home import SmartHomeJarvis
 from dispositivi.tv_lg import LgWebOSTv
+from dispositivi.trasferimento import TrasferimentoJarvis
 
 
 class ModuloDispositivi:
-    """Registra e coordina tutti i dispositivi conosciuti da Jarvis."""
+    """Registra e coordina i dispositivi e il livello multi-dispositivo di Jarvis."""
 
     def __init__(self, kernel):
         self.kernel = kernel
@@ -17,6 +18,7 @@ class ModuloDispositivi:
         self.attivo = False
         self.gestore = None
         self.connessione = None
+        self.trasferimento = None
 
     def avvia(self):
         logger = self.kernel.logger
@@ -24,6 +26,7 @@ class ModuloDispositivi:
         self.connessione.avvia()
         self.gestore = GestoreDispositivi(logger)
         self.gestore.collega_connessione(self.connessione)
+        self.trasferimento = TrasferimentoJarvis(logger)
 
         for nome, dispositivo in (
             ("computer", ComputerJarvis()),
@@ -65,10 +68,14 @@ class ModuloDispositivi:
     def get_connessione(self):
         return self.connessione
 
+    def get_trasferimento(self):
+        return self.trasferimento
+
     def stato(self):
         return {
             "nome": self.nome,
             "stato": "attivo" if self.attivo else "errore",
             "dispositivi": self.gestore.elenco() if self.gestore else [],
             "connessione": self.connessione.stato() if self.connessione else {},
+            "trasferimento": self.trasferimento.stato() if self.trasferimento else {},
         }
