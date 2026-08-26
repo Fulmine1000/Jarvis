@@ -28,9 +28,34 @@ jobs:
         run: python -m compileall -q .
       - name: Verify no legacy version references
         run: |
-          if grep -RInE '(["'"']|\b)(3\.1|3\.0|4\.0)(["'"']|\b)' --exclude-dir=.git --exclude-dir=venv --exclude-dir=.github --exclude='*.json' .; then
-            echo "Trovati riferimenti a versioni legacy."
-            exit 1
-          fi
+          python - <<'PY'
+          import os
+          import re
+
+          pattern = re.compile(r"(?<![0-9])(3\.1|3\.0|4\.0)(?![0-9])")
+          excluded_dirs = {".git", ".github", "venv", "__pycache__"}
+          excluded_extensions = {".json", ".pyc"}
+          found = []
+
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in excluded_dirs]
+              for filename in files:
+                  if os.path.splitext(filename)[1].lower() in excluded_extensions:
+                      continue
+                  path = os.path.join(root, filename)
+                  try:
+                      with open(path, "r", encoding="utf-8") as file:
+                          for line_number, line in enumerate(file, 1):
+                              if pattern.search(line):
+                                  found.append(f"{path}:{line_number}:{line.rstrip()}")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+
+          if found:
+              print("Trovati riferimenti a versioni legacy:")
+              print("\n".join(found))
+              raise SystemExit(1)
+          print("Nessun riferimento legacy trovato.")
+          PY
       - name: Run tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
