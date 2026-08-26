@@ -7,18 +7,20 @@ import os
 import platform
 import secrets
 import socket
+import urllib.request
 from pathlib import Path
 
 
 class TrasferimentoJarvis:
-    """Livello portatile per usare Jarvis su più dispositivi.
+    """Trasferimento portabile di Jarvis tra host compatibili.
 
-    Non presume che il dispositivo remoto possa eseguire Python: crea un
-    profilo di identità/capacità condivisibile e mantiene separati i dati
-    trasferibili dalle capacità specifiche della piattaforma.
+    Il trasferimento separa il Core dai connettori della piattaforma. Il
+    pacchetto contiene metadati e identità non sensibili; credenziali e memoria
+    personale non vengono esportate automaticamente.
     """
 
     PROTOCOLLO = "JARVIS-MULTIDEVICE/1"
+    VERSIONE = 2
 
     def __init__(self, logger=None, root=None):
         self.logger = logger
@@ -35,62 +37,30 @@ class TrasferimentoJarvis:
             except Exception:
                 pass
         nome = socket.gethostname() or platform.node() or "dispositivo"
-        identita = {
-            "id": secrets.token_hex(12),
-            "nome": nome,
-            "piattaforma": platform.system() or "sconosciuta",
-            "architettura": platform.machine() or "sconosciuta",
-            "protocollo": self.PROTOCOLLO,
-            "creato": dt.datetime.now().isoformat(timespec="seconds"),
-        }
-        self.identita_path.write_text(
-            json.dumps(identita, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        identita = {"id": secrets.token_hex(12), "nome": nome, "piattaforma": platform.system() or "sconosciuta", "architettura": platform.machine() or "sconosciuta", "protocollo": self.PROTOCOLLO, "creato": dt.datetime.now().isoformat(timespec="seconds")}
+        self.identita_path.write_text(json.dumps(identita, ensure_ascii=False, indent=2), encoding="utf-8")
         return identita
 
     def dispositivo(self):
-        """Descrizione portatile del dispositivo corrente."""
         return dict(self.identita)
 
     def crea_pacchetto(self, gestore=None, destinazione=None):
-        """Crea un manifesto trasferibile, senza copiare segreti o credenziali."""
         dispositivi = []
         if gestore:
             for nome in gestore.elenco():
                 dispositivo = gestore.cerca(nome)
-                dispositivi.append({
-                    "nome": nome,
-                    "modello": getattr(dispositivo, "modello", None),
-                    "capacita": gestore.capacita_dispositivo(nome),
-                    "base": bool(getattr(dispositivo, "base", False)),
-                })
-        pacchetto = {
-            "protocollo": self.PROTOCOLLO,
-            "versione": 1,
-            "creato": dt.datetime.now().isoformat(timespec="seconds"),
-            "origine": self.dispositivo(),
-            "dispositivi": dispositivi,
-            "contenuto": {
-                "identita": True,
-                "preferenze": True,
-                "memoria": "solo se esportata esplicitamente dall'utente",
-                "credenziali": False,
-            },
-        }
-        path = Path(destinazione) if destinazione else self.root / "jarvis_trasferimento.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
+                dispositivi.append({"nome": nome, "modello": getattr(dispositivo, "modello", None), "capacita": gestore.capacita_dispositivo(nome), "base": bool(getattr(dispositivo, "base", False))})
+        pacchetto = {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "creato": dt.datetime.now().isoformat(timespec="seconds"), "origine": self.dispositivo(), "dispositivi": dispositivi, "contenuto": {"identita": True, "preferenze": True, "memoria": "solo se esportata esplicitamente dall'utente", "credenziali": False}}
         raw = json.dumps(pacchetto, ensure_ascii=False, indent=2).encode("utf-8")
         pacchetto["checksum_sha256"] = hashlib.sha256(raw).hexdigest()
+        path = Path(destinazione) if destinazione else self.root / "jarvis_trasferimento.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(pacchetto, ensure_ascii=False, indent=2), encoding="utf-8")
-        self.stato_path.write_text(
-            json.dumps({"ultimo_pacchetto": str(path), "data": dt.datetime.now().isoformat()}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        self.stato_path.write_text(json.dumps({"ultimo_pacchetto": str(path), "data": dt.datetime.now().isoformat()}, ensure_ascii=False, indent=2), encoding="utf-8")
         self._log("info", f"Pacchetto trasferimento Jarvis creato: {path}")
         return f"Pacchetto Jarvis creato in {path}."
 
     def importa_pacchetto(self, percorso):
-        """Valida un manifesto Jarvis e ne importa solo metadati non sensibili."""
         path = Path(os.path.expanduser(str(percorso)))
         if not path.exists():
             return "Pacchetto Jarvis non trovato."
@@ -104,28 +74,40 @@ class TrasferimentoJarvis:
         except Exception:
             return "Pacchetto Jarvis non valido."
 
+    def trasferisci_http(self, indirizzo, porta=8765, timeout=8):
+        """Invia il manifesto a un Agente Jarvis compatibile sulla rete locale."""
+        pacchetto = self.root / "jarvis_trasferimento.json"
+        if not pacchetto.exists():
+            self.crea_pacchetto()
+        dati = pacchetto.read_bytes()
+        url = f"http://{indirizzo}:{int(porta)}/jarvis/trasferimento"
+        richiesta = urllib.request.Request(url, data=dati, method="POST", headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(richiesta, timeout=timeout) as risposta:
+                result = json.loads(risposta.read().decode("utf-8"))
+            self._log("info", f"Trasferimento remoto completato verso {indirizzo}:{porta}")
+            return result
+        except Exception as errore:
+            self._log("warning", f"Trasferimento remoto fallito verso {indirizzo}:{porta}: {errore}")
+            return {"ok": False, "errore": str(errore)}
+
+    def verifica_host(self, indirizzo, porta=8765, timeout=4):
+        """Verifica se un dispositivo espone l'Agente Jarvis."""
+        try:
+            with urllib.request.urlopen(f"http://{indirizzo}:{int(porta)}/jarvis/handshake", timeout=timeout) as risposta:
+                dati = json.loads(risposta.read().decode("utf-8"))
+            return dati if dati.get("protocollo") == self.PROTOCOLLO else None
+        except Exception:
+            return None
+
     def codice_associazione(self):
-        """Genera un codice temporaneo per un futuro collegamento remoto."""
-        codice = secrets.token_urlsafe(12)
-        return f"Codice di associazione temporaneo: {codice}."
+        return f"Codice di associazione temporaneo: {secrets.token_urlsafe(12)}."
 
     def supporto(self):
-        return {
-            "protocollo": self.PROTOCOLLO,
-            "piattaforma": self.identita.get("piattaforma"),
-            "architettura": self.identita.get("architettura"),
-            "trasferimento_manifesto": True,
-            "connessione_remota": False,
-            "nota": "La connessione remota richiede un connettore/agente compatibile sul dispositivo destinatario.",
-        }
+        return {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "piattaforma": self.identita.get("piattaforma"), "architettura": self.identita.get("architettura"), "trasferimento_manifesto": True, "trasferimento_rete": True, "agente_portatile": True, "nota": "Il dispositivo destinatario deve eseguire un agente/connettore Jarvis compatibile."}
 
     def stato(self):
-        return {
-            "nome": "Trasferimento multi-dispositivo",
-            "stato": "attivo",
-            "protocollo": self.PROTOCOLLO,
-            "dispositivo": self.identita.get("nome"),
-        }
+        return {"nome": "Trasferimento multi-dispositivo", "stato": "attivo", "protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "dispositivo": self.identita.get("nome"), "trasferimento_rete": True}
 
     def _log(self, livello, messaggio):
         if self.logger and hasattr(self.logger, livello):
