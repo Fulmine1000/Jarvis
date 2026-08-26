@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import threading
 
 from voce.ascoltatore import AscoltatoreVoce
@@ -8,7 +10,7 @@ from voce.motore_ascolto import MotoreAscolto
 
 
 class ModuloVoce:
-    """Ascolto, wake word, riconoscimento e sintesi vocale di Jarvis."""
+    """Gestisce sintesi, microfono e riconoscimento senza bloccare Jarvis in modalita testo."""
 
     def __init__(self, kernel):
         self.kernel = kernel
@@ -28,23 +30,51 @@ class ModuloVoce:
     def avvia(self):
         if self.attivo:
             return True
+
         try:
             self.sintesi_attiva = bool(self.sintesi.avvia())
+
+            # Prima verifica il microfono. Se non e disponibile non carichiamo
+            # Vosk: in questo modo l'avvio solo-testo non tocca librerie native.
             microfono = self.ascoltatore.avvia()
-            modello = self.riconoscitore.avvia()
-            if microfono and modello:
-                self.ascolto_attivo = True
-                self.assistente.avvia()
-                self.motore.avvia()
-            else:
+            if not microfono:
+                self.riconoscitore.ferma()
                 self.ascoltatore.ferma()
                 self.ascolto_attivo = False
+                self.attivo = True
+                if self.kernel and self.kernel.logger:
+                    self.kernel.logger.info("Audio non disponibile: modalita solo-testo attiva.")
+                return True
+
+            modello = self.riconoscitore.avvia()
+            if not modello:
+                self.ascoltatore.ferma()
+                self.riconoscitore.ferma()
+                self.ascolto_attivo = False
+                self.attivo = True
+                if self.kernel and self.kernel.logger:
+                    self.kernel.logger.info("Riconoscimento vocale non disponibile: modalita solo-testo attiva.")
+                return True
+
+            self.ascolto_attivo = True
+            self.assistente.avvia()
+            self.motore.avvia()
             self.attivo = True
             return True
+
         except Exception as errore:
-            self.kernel.logger.warning(f"Errore avvio modulo voce: {errore}")
-            self.attivo = False
-            return False
+            try:
+                self.motore.ferma()
+                self.assistente.ferma()
+                self.ascoltatore.ferma()
+                self.riconoscitore.ferma()
+            except Exception:
+                pass
+            self.attivo = True
+            self.ascolto_attivo = False
+            if self.kernel and self.kernel.logger:
+                self.kernel.logger.warning(f"Voce non disponibile: modalita solo-testo attiva ({errore})")
+            return True
 
     def ascolta_comando(self):
         if not self.ascolto_attivo:
@@ -85,7 +115,8 @@ class ModuloVoce:
             self.riconoscitore.ferma()
             self.sintesi.ferma()
         except Exception as errore:
-            self.kernel.logger.warning(f"Errore arresto modulo voce: {errore}")
+            if self.kernel and self.kernel.logger:
+                self.kernel.logger.warning(f"Errore arresto modulo voce: {errore}")
         self.attivo = False
         self.ascolto_attivo = False
         self.sintesi_attiva = False
