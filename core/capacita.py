@@ -181,7 +181,9 @@ class CapacitaJarvis:
             return "Non riesco a recuperare il meteo in questo momento."
 
     def ora(self):
-        return dt.datetime.now().strftime("Sono le %H:%M:%S.")
+        """Restituisce l'ora in una forma naturale per la risposta vocale."""
+        adesso = dt.datetime.now()
+        return f"Sono le {adesso.hour:02d} e {adesso.minute:02d}."
 
     def data(self):
         giorni = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
