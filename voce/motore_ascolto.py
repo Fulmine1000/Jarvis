@@ -7,21 +7,55 @@ from voce.wake_word import WakeWordJarvis
 class MotoreAscolto:
     """Ascolto continuo: wake word -> comando -> risposta, senza doppia sintesi."""
 
+    # Vosk può produrre due risultati finali identici per lo stesso parlato.
+    # Questo intervallo evita che una seconda trascrizione immediata venga
+    # interpretata come un nuovo comando.
+    DUPLICATO_TIMEOUT = 1.5
+
     def __init__(self, modulo_voce):
         self.modulo_voce = modulo_voce
         self.nome = "Motore Ascolto"
         self.attivo = False
         self.thread = None
         self.wake_word = WakeWordJarvis()
+        self._ultimo_testo = None
+        self._ultimo_testo_timestamp = 0.0
+        self._duplicate_lock = threading.Lock()
 
     def avvia(self):
         if self.attivo:
             return True
         self.attivo = True
+        self._reset_duplicato()
         self.log("Motore ascolto Jarvis avviato.")
         self.thread = threading.Thread(target=self.ciclo, name="JarvisAudio", daemon=True)
         self.thread.start()
         return True
+
+    @staticmethod
+    def _normalizza_testo(testo):
+        return " ".join(str(testo or "").lower().strip().split())
+
+    def _e_duplicato_immediato(self, testo):
+        """Riconosce la stessa trascrizione ripetuta quasi subito."""
+        normalizzato = self._normalizza_testo(testo)
+        if not normalizzato:
+            return False
+
+        adesso = time.monotonic()
+        with self._duplicate_lock:
+            duplicato = (
+                normalizzato == self._ultimo_testo
+                and adesso - self._ultimo_testo_timestamp < self.DUPLICATO_TIMEOUT
+            )
+            self._ultimo_testo = normalizzato
+            self._ultimo_testo_timestamp = adesso
+            return duplicato
+
+    def _reset_duplicato(self):
+        with self._duplicate_lock:
+            self._ultimo_testo = None
+            self._ultimo_testo_timestamp = 0.0
 
     def ciclo(self):
         while self.attivo and getattr(self.modulo_voce, "ascolto_attivo", False):
@@ -30,6 +64,13 @@ class MotoreAscolto:
                 if not testo:
                     time.sleep(0.1)
                     continue
+
+                # Ignora soltanto una ripetizione identica e ravvicinata.
+                # Un comando diverso, anche se pronunciato subito dopo, passa normalmente.
+                if self._e_duplicato_immediato(testo):
+                    self.log(f"Trascrizione duplicata ignorata: {self._normalizza_testo(testo)}")
+                    continue
+
                 risultato = self.wake_word.controlla(testo)
                 if not risultato or not risultato.get("attivato", False):
                     continue
@@ -49,6 +90,7 @@ class MotoreAscolto:
     def ferma(self):
         self.attivo = False
         self.wake_word.disattiva()
+        self._reset_duplicato()
         if self.thread:
             self.thread.join(timeout=2)
             self.thread = None
