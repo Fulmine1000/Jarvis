@@ -154,7 +154,7 @@ class GestoreComandi:
             risposta_ai = k.dialogo.rispondi(c)
             if risposta_ai:
                 return risposta_ai
-        return self.personalita.non_capito(c) if self.personalita and hasattr(self.personalita, "non_capito") else "Non ho trovato un comando compatibile."
+        return "Non ho trovato un comando compatibile."
 
     def ferma(self):
         """Arresta il gestore senza perdere i comandi personalizzati."""
