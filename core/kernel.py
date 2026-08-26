@@ -13,6 +13,7 @@ from core.stato import StatoJarvis
 from core.sicurezza import SicurezzaJarvis
 from core.aggiornamenti import AggiornamentiJarvis
 from core.portabilita import GestorePortabilitaIA
+from intelligenza.cervello import CervelloJarvis
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
 from memoria.contesto import ContestoJarvis
@@ -49,6 +50,7 @@ class KernelJarvis:
         self.aggiornamenti = AggiornamentiJarvis()
         self.capacita = CapacitaJarvis(self.logger)
         self.dialogo = DialogoJarvis(self.logger)
+        self.intelligenza = CervelloJarvis(self)
         self.automazioni = AutomazioniJarvis(self.logger)
         self.pianificatore = PianificatoreJarvis(self.logger)
         self.visione = VisioneJarvis(self.logger)
@@ -66,6 +68,7 @@ class KernelJarvis:
         self.stato = "Avvio"
         self.arresto_richiesto = False
         self.avvio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        self.intelligenza.avvia()
         self.automazioni.avvia()
         self.pianificatore.avvia()
         moduli = {"Memoria": self.memoria, "Dispositivi": self.modulo_dispositivi, "Comandi": self.modulo_comandi, "Voce": self.modulo_voce}
@@ -114,13 +117,14 @@ class KernelJarvis:
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "portabilita_ia": self.portabilita_ia.stato(), "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
             return True
         self.logger.info("Arresto Jarvis...")
         self.arresto_richiesto = True
+        self.intelligenza.ferma()
         self.portabilita_ia.disattiva()
         self.automazioni.ferma()
         self.pianificatore.ferma()
