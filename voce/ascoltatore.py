@@ -1,13 +1,11 @@
-import queue
+from __future__ import annotations
 
-try:
-    import sounddevice as sd
-except (ImportError, OSError):
-    sd = None
+import importlib.util
+import queue
 
 
 class AscoltatoreVoce:
-    """Acquisisce audio dal microfono con fallback sicuro in modalità testo."""
+    """Acquisisce audio dal microfono con import nativo ritardato e fallback testo."""
 
     def __init__(self, frequenza=16000, blocksize=8000):
         self.nome = "Ascoltatore Voce"
@@ -16,8 +14,30 @@ class AscoltatoreVoce:
         self.audio = queue.Queue(maxsize=40)
         self.attivo = False
         self.stream = None
-        self.disponibile = sd is not None
+        self.disponibile = self._sounddevice_disponibile()
         self.ultimo_errore = None
+        self._sd = None
+
+    @staticmethod
+    def _sounddevice_disponibile():
+        """Controlla la presenza del modulo senza inizializzare PortAudio."""
+        try:
+            return importlib.util.find_spec("sounddevice") is not None
+        except (ImportError, OSError, ValueError):
+            return False
+
+    def _carica_sounddevice(self):
+        if self._sd is not None:
+            return True
+        try:
+            import sounddevice as sd
+        except (ImportError, OSError, RuntimeError) as errore:
+            self.disponibile = False
+            self.ultimo_errore = str(errore)
+            return False
+        self._sd = sd
+        self.disponibile = True
+        return True
 
     def callback(self, ingresso, frames, tempo, stato):
         if stato:
@@ -34,13 +54,18 @@ class AscoltatoreVoce:
     def avvia(self):
         if self.attivo:
             return True
-        if not self.disponibile:
+        if not self.disponibile or not self._sounddevice_disponibile():
             self.attivo = False
+            self.disponibile = False
             self.ultimo_errore = "sounddevice/PortAudio non disponibile"
             return False
+        if not self._carica_sounddevice():
+            self.attivo = False
+            return False
+
         try:
             self.pulisci_buffer()
-            self.stream = sd.RawInputStream(
+            self.stream = self._sd.RawInputStream(
                 samplerate=self.frequenza,
                 blocksize=self.blocksize,
                 dtype="int16",
