@@ -45,7 +45,9 @@ class JarvisOS:
                 print("Errore durante l'avvio del kernel.")
                 return False
 
-            self.hud = HUDJarvis(kernel=self.kernel, width=1500, height=900)
+            # HUD volutamente più compatto: mantiene proporzioni e funzionalità
+            # dell'interfaccia precedente senza occupare quasi tutto lo schermo.
+            self.hud = HUDJarvis(kernel=self.kernel, width=1050, height=650)
             self.kernel.hud = self.hud
             self.hud.collega_kernel(self.kernel)
             self.hud.aggiorna_kernel()
