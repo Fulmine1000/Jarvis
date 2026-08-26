@@ -1,0 +1,9 @@
+{
+    "versione": "definitiva",
+    "nome": "J.A.R.V.I.S.",
+    "stato": "operativo",
+    "data": "23/08/2026",
+    "principio": "Unica versione definitiva del progetto Jarvis",
+    "entry_point": "jarvis.py",
+    "kernel": "core/kernel.py"
+}
