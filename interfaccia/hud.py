@@ -39,16 +39,29 @@ class HUDJarvis:
         self.canvas = None
 
     def avvia(self):
+        """Avvia l'HUD quando viene usato come modulo autonomo.
+
+        Il launcher ufficiale jarvis.py usa invece _run_tk() direttamente
+        dal Main Thread, necessario per Tkinter/AppKit su macOS.
+        """
         if self.attivo:
             return True
-        self.attivo = True
         self._stop.clear()
+        self._ready.clear()
         self._thread = threading.Thread(target=self._run_tk, name="JarvisHUD", daemon=True)
         self._thread.start()
         self._ready.wait(timeout=3)
         return self.finestra is not None
 
     def _run_tk(self):
+        """Crea e gestisce Tkinter nel thread chiamante.
+
+        Con jarvis.py questo metodo viene chiamato dal Main Thread.
+        Non deve quindi creare un ulteriore thread: Tkinter/AppKit richiede
+        che il proprio event loop rimanga nel Main Thread su macOS.
+        """
+        self.attivo = True
+        self._stop.clear()
         try:
             self.finestra = tk.Tk()
             self.finestra.title("J.A.R.V.I.S. — HUD")
@@ -66,6 +79,7 @@ class HUDJarvis:
             self._ready.set()
         finally:
             self.attivo = False
+            self._stop.set()
             self.finestra = None
             self.canvas = None
 
@@ -123,7 +137,11 @@ class HUDJarvis:
             self.pulse *= 0.90
             if self.pulse < 1:
                 self.pulse = 0
-        self.finestra.after(33, self._animazione)
+        try:
+            if self.finestra and self.attivo and not self._stop.is_set():
+                self.finestra.after(33, self._animazione)
+        except Exception:
+            pass
 
     def _disegna(self):
         c = self.canvas
@@ -265,14 +283,18 @@ class HUDJarvis:
             c.create_text((x1+x2)/2, (y1+y2)/2, text=name, fill=self.CYAN, font=("Helvetica", 8, "bold"))
 
     def _griglia(self, c, w, h):
-        for x in range(0, int(w), 45): c.create_line(x, 0, x, h, fill=self.GRID)
-        for y in range(0, int(h), 45): c.create_line(0, y, w, y, fill=self.GRID)
-        for i in range(-int(h), int(w), 140): c.create_line(i, 0, i+h, h, fill="#071B25")
+        for x in range(0, int(w), 45):
+            c.create_line(x, 0, x, h, fill=self.GRID)
+        for y in range(0, int(h), 45):
+            c.create_line(0, y, w, y, fill=self.GRID)
+        for i in range(-int(h), int(w), 140):
+            c.create_line(i, 0, i+h, h, fill="#071B25")
 
     def _segment_ring(self, c, cx, cy, r, count, rotation, color):
         step = 2*math.pi/count
         for i in range(count):
-            if i % 3 == 1: continue
+            if i % 3 == 1:
+                continue
             a = rotation + i*step
             c.create_arc(cx-r, cy-r, cx+r, cy+r, start=math.degrees(a), extent=math.degrees(step*.62), style="arc", outline=color, width=2)
 
@@ -310,4 +332,5 @@ class HUDJarvis:
 if __name__ == "__main__":
     hud = HUDJarvis()
     hud.avvia()
-    hud._thread.join()
+    if hud._thread:
+        hud._thread.join()
