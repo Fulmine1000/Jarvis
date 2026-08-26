@@ -3,6 +3,10 @@
 ``python jarvis.py`` avvia l'intero sistema: kernel, voce e HUD.
 La gestione dell'ascolto vocale resta nel ModuloVoce/MotoreAscolto; questo
 launcher non crea un secondo ciclo input che possa competere con il microfono.
+
+Il codice grafico Tkinter viene eseguito esclusivamente nel Main Thread,
+come richiesto da macOS/AppKit. L'ascolto vocale e la supervisione del kernel
+restano invece in background.
 """
 
 from __future__ import annotations
@@ -26,7 +30,7 @@ class JarvisOS:
         self._chiusura = threading.Event()
 
     def avvia(self) -> bool:
-        """Avvia kernel, voce e HUD senza creare un secondo ascoltatore."""
+        """Avvia kernel, voce e HUD nel corretto contesto di esecuzione."""
         print("=" * 64)
         print("                    J.A.R.V.I.S.")
         print("             Assistente Intelligente Personale")
@@ -57,11 +61,13 @@ class JarvisOS:
                 print("Modalità solo-testo attiva. Digita un comando nella console.")
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
-            self.hud.avvia()
-            if self.hud.finestra:
-                self.hud.finestra.after(100, self._controlla_chiusura)
-                while self.hud.attivo and not self._chiusura.is_set():
-                    time.sleep(0.1)
+
+            # Tkinter/AppKit deve essere creato e gestito dal Main Thread su macOS.
+            self.hud._run_tk()
+
+            self._chiusura.set()
+            if self.kernel and not self.kernel.arresto_richiesto:
+                self.kernel.richiedi_arresto()
 
             return True
 
@@ -78,12 +84,20 @@ class JarvisOS:
         try:
             while not self._chiusura.is_set():
                 if self.kernel and self.kernel.arresto_richiesto:
+                    # Il thread non modifica direttamente Tk: accoda la chiusura
+                    # al Main Thread tramite after().
+                    if self.hud and self.hud.finestra:
+                        try:
+                            self.hud.finestra.after(0, self.hud.ferma)
+                        except Exception:
+                            pass
                     break
                 time.sleep(0.25)
         finally:
             self._chiusura.set()
 
     def _controlla_chiusura(self) -> None:
+        """Compatibilità con il precedente launcher."""
         if self._chiusura.is_set() or (
             self.kernel and self.kernel.arresto_richiesto
         ):
@@ -102,7 +116,10 @@ class JarvisOS:
         self._chiusura.set()
 
         if self.kernel:
-            self.kernel.richiedi_arresto()
+            try:
+                self.kernel.richiedi_arresto()
+            except Exception:
+                pass
 
         if self.hud and self.hud.attivo:
             try:
