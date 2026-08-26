@@ -5,9 +5,10 @@ from voce.wake_word import WakeWordJarvis
 
 
 class MotoreAscolto:
-    """Ascolto continuo: wake word -> comando -> risposta, senza doppia sintesi."""
+    """Ascolto continuo: wake word -> comando -> risposta."""
 
     DUPLICATO_TIMEOUT = 1.5
+    RISPOSTE_ECO = {"sono qui", "sono qui.", "sono qui!"}
 
     def __init__(self, modulo_voce):
         self.modulo_voce = modulo_voce
@@ -34,11 +35,9 @@ class MotoreAscolto:
         return " ".join(str(testo or "").lower().strip().split())
 
     def _e_duplicato_immediato(self, testo):
-        """Riconosce la stessa trascrizione ripetuta quasi subito."""
         normalizzato = self._normalizza_testo(testo)
         if not normalizzato:
             return False
-
         adesso = time.monotonic()
         with self._duplicate_lock:
             duplicato = (
@@ -54,6 +53,10 @@ class MotoreAscolto:
             self._ultimo_testo = None
             self._ultimo_testo_timestamp = 0.0
 
+    def _e_eco_jarvis(self, testo):
+        """Ignora la frase prodotta da Jarvis e riascoltata dal microfono."""
+        return self._normalizza_testo(testo) in self.RISPOSTE_ECO
+
     def ciclo(self):
         while self.attivo and getattr(self.modulo_voce, "ascolto_attivo", False):
             try:
@@ -62,20 +65,36 @@ class MotoreAscolto:
                     time.sleep(0.1)
                     continue
 
-                if self._e_duplicato_immediato(testo):
-                    self.log(f"Trascrizione duplicata ignorata: {self._normalizza_testo(testo)}")
+                normalizzato = self._normalizza_testo(testo)
+
+                # Dopo "Jarvis" Jarvis dice "Sono qui.". Il microfono puo'
+                # catturare la propria voce e trasformarla in un falso comando.
+                # La ignoriamo lasciando attiva la finestra per il comando reale.
+                if self._e_eco_jarvis(normalizzato):
+                    self.log("Eco della risposta Jarvis ignorata: Sono qui.")
+                    self._reset_duplicato()
                     continue
 
-                risultato = self.wake_word.controlla(testo)
+                if self._e_duplicato_immediato(normalizzato):
+                    self.log(f"Trascrizione duplicata ignorata: {normalizzato}")
+                    continue
+
+                risultato = self.wake_word.controlla(normalizzato)
                 if not risultato or not risultato.get("attivato", False):
                     continue
+
                 comando = risultato.get("comando", "").strip()
                 if not comando:
                     self.modulo_voce.rispondi("Sono qui.")
+                    # Mantiene la wake word attiva per il comando successivo:
+                    # "Jarvis" -> "Sono qui" -> "che ore sono".
                     continue
+
                 self.log(f"Comando ricevuto: {comando}")
                 self.modulo_voce.kernel.esegui_comando(comando)
                 self.wake_word.disattiva()
+                self._reset_duplicato()
+
             except Exception as errore:
                 self.log(f"Errore motore ascolto: {errore}")
                 time.sleep(1)
