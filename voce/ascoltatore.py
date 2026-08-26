@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import queue
+import sys
 
 
 class AscoltatoreVoce:
-    """Acquisisce audio dal microfono con import nativo ritardato e fallback testo."""
+    """Acquisisce audio dal microfono senza inizializzare PortAudio in modalita testo."""
 
     def __init__(self, frequenza=16000, blocksize=8000):
         self.nome = "Ascoltatore Voce"
@@ -20,18 +21,24 @@ class AscoltatoreVoce:
 
     @staticmethod
     def _sounddevice_disponibile():
-        """Controlla la presenza del modulo senza inizializzare PortAudio."""
+        """Verifica sounddevice rispettando anche i test che bloccano il modulo."""
+        if "sounddevice" in sys.modules and sys.modules["sounddevice"] is None:
+            return False
         try:
             return importlib.util.find_spec("sounddevice") is not None
-        except (ImportError, OSError, ValueError):
+        except (ImportError, ModuleNotFoundError, OSError, ValueError):
             return False
 
     def _carica_sounddevice(self):
         if self._sd is not None:
             return True
+        if not self._sounddevice_disponibile():
+            self.disponibile = False
+            self.ultimo_errore = "sounddevice/PortAudio non disponibile"
+            return False
         try:
             import sounddevice as sd
-        except (ImportError, OSError, RuntimeError) as errore:
+        except (ImportError, ModuleNotFoundError, OSError, RuntimeError) as errore:
             self.disponibile = False
             self.ultimo_errore = str(errore)
             return False
