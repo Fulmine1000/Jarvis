@@ -1,6 +1,6 @@
 # DEPRECATO — mantenuto per riferimento storico.
 # Usare il modulo ufficiale `voce/` (ascoltatore + riconoscimento).
-# Non usato dal kernel 3.0.
+# Non usato dal kernel corrente.
 import json
 
 try:
