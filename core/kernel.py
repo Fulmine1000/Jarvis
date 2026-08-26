@@ -12,6 +12,7 @@ from core.diagnostica import DiagnosticaJarvis
 from core.stato import StatoJarvis
 from core.sicurezza import SicurezzaJarvis
 from core.aggiornamenti import AggiornamentiJarvis
+from core.portabilita import GestorePortabilitaIA
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
 from memoria.contesto import ContestoJarvis
@@ -55,6 +56,7 @@ class KernelJarvis:
         self.modulo_dispositivi = ModuloDispositivi(self)
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
+        self.portabilita_ia = GestorePortabilitaIA(self, self.logger)
         self.voce_disponibile = False
 
     def avvia(self):
@@ -87,7 +89,10 @@ class KernelJarvis:
         return True
 
     def parla(self, testo):
-        return self.modulo_voce.rispondi(testo)
+        risposta = self.modulo_voce.rispondi(testo)
+        if risposta:
+            self.portabilita_ia.invia(risposta)
+        return risposta
 
     def esegui_comando(self, comando):
         risposta = self.modulo_comandi.esegui(comando)
@@ -95,18 +100,28 @@ class KernelJarvis:
             self.parla(risposta)
         return risposta
 
+    def registra_host_ia(self, adapter):
+        """Registra un robot/dispositivo IA senza legarlo al Core."""
+        self.portabilita_ia.registra(adapter)
+        return True
+
+    def trasferisci_su_host_ia(self, device_id):
+        """Attiva l'identità di Jarvis su un host IA compatibile."""
+        return self.portabilita_ia.trasferisci(device_id)
+
     def richiedi_arresto(self):
         self.arresto_richiesto = True
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "portabilita_ia": self.portabilita_ia.stato(), "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
             return True
         self.logger.info("Arresto Jarvis...")
         self.arresto_richiesto = True
+        self.portabilita_ia.disattiva()
         self.automazioni.ferma()
         self.pianificatore.ferma()
         try:
