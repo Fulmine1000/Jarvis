@@ -5,7 +5,7 @@
     <key>Label</key>
     <string>com.fulmine1000.jarvis</string>
 
-    <!-- Avvia solo il guardiano wake-word, NON l'interfaccia completa di Jarvis. -->
+    <!-- Guardiano vocale: ascolta la wake word senza avviare l'HUD all'accesso. -->
     <key>ProgramArguments</key>
     <array>
         <string>__JARVIS_PYTHON__</string>
@@ -15,14 +15,22 @@
     <key>WorkingDirectory</key>
     <string>__JARVIS_ROOT__</string>
 
+    <!-- Solo nella sessione grafica dell'utente, non durante il boot di sistema. -->
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+
     <key>RunAtLoad</key>
     <true/>
 
     <key>KeepAlive</key>
     <true/>
 
+    <!-- Il guardiano deve poter interagire con la sessione macOS quando apre l'HUD. -->
     <key>ProcessType</key>
-    <string>Background</string>
+    <string>Interactive</string>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
 
     <key>StandardOutPath</key>
     <string>__JARVIS_ROOT__/logs/guardiano_wake.log</string>
