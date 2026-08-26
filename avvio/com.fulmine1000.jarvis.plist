@@ -5,10 +5,11 @@
     <key>Label</key>
     <string>com.fulmine1000.jarvis</string>
 
+    <!-- Avvia solo il guardiano wake-word, NON l'interfaccia completa di Jarvis. -->
     <key>ProgramArguments</key>
     <array>
         <string>__JARVIS_PYTHON__</string>
-        <string>__JARVIS_ROOT__/jarvis.py</string>
+        <string>__JARVIS_ROOT__/avvio/guardiano_wake.py</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -21,12 +22,12 @@
     <true/>
 
     <key>ProcessType</key>
-    <string>Interactive</string>
+    <string>Background</string>
 
     <key>StandardOutPath</key>
-    <string>__JARVIS_ROOT__/logs/avvio_mac.log</string>
+    <string>__JARVIS_ROOT__/logs/guardiano_wake.log</string>
 
     <key>StandardErrorPath</key>
-    <string>__JARVIS_ROOT__/logs/avvio_mac_error.log</string>
+    <string>__JARVIS_ROOT__/logs/guardiano_wake_error.log</string>
 </dict>
 </plist>
