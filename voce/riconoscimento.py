@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import sys
 from typing import Any
 
 
@@ -34,19 +35,25 @@ class RiconoscitoreVoce:
 
     @staticmethod
     def _vosk_disponibile():
-        """Controlla la presenza del pacchetto senza caricare la libreria nativa."""
+        """Verifica Vosk rispettando anche i test che bloccano il modulo."""
+        if "vosk" in sys.modules and sys.modules["vosk"] is None:
+            return False
         try:
             return importlib.util.find_spec("vosk") is not None
-        except (ImportError, OSError, ValueError):
+        except (ImportError, ModuleNotFoundError, OSError, ValueError):
             return False
 
     def _carica_vosk(self):
         """Carica Vosk solo quando serve realmente il riconoscimento."""
         if self._Model is not None and self._KaldiRecognizer is not None:
             return True
+        if not self._vosk_disponibile():
+            self.disponibile = False
+            self.ultimo_errore = "Vosk non disponibile"
+            return False
         try:
             from vosk import KaldiRecognizer, Model
-        except (ImportError, OSError, RuntimeError) as errore:
+        except (ImportError, ModuleNotFoundError, OSError, RuntimeError) as errore:
             self.disponibile = False
             self.ultimo_errore = str(errore)
             return False
