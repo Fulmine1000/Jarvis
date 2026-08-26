@@ -50,6 +50,7 @@ class GestoreComandi:
     def _esegui_raw(self, c):
         k = self.kernel
         cap = getattr(k, "capacita", None) if k else None
+        d = self.dispositivi
         if c in ("ciao", "salve", "ehi jarvis", "hey jarvis", "buongiorno", "buon pomeriggio", "buonasera"):
             return self.personalita.saluto() if self.personalita else "Salve. Tutti i sistemi sono pronti. Come posso assisterla?"
         if any(x in c for x in ("come stai", "come va", "tutto bene")):
@@ -76,10 +77,37 @@ class GestoreComandi:
             return str(k.automazioni.stato()) if k else "Automazioni non disponibili."
         if c in ("stato visione", "stato camera"):
             return str(k.visione.stato()) if k else "Visione non disponibile."
+
+        # Gestione avanzata dei dispositivi.
         if c in ("stato dispositivi", "stato dispositivi casa"):
-            return str(self.dispositivi.stato_tutti()) if self.dispositivi else "Gestore dispositivi non disponibile."
-        if c in ("quali dispositivi", "elenca dispositivi"):
-            return str(self.dispositivi.elenco()) if self.dispositivi else "Nessun dispositivo registrato."
+            return str(d.stato_tutti()) if d else "Gestore dispositivi non disponibile."
+        if c in ("quali dispositivi", "elenca dispositivi", "lista dispositivi"):
+            return str(d.elenco()) if d else "Nessun dispositivo registrato."
+        if c in ("rapporto dispositivi", "rapporto dispositivi casa"):
+            return str(d.rapporto()) if d else "Gestore dispositivi non disponibile."
+        m = re.match(r"(?:che cosa sa fare|cosa sa fare|capacità di|capacita di|funzioni di)\s+(.+)$", c)
+        if m and d:
+            nome = m.group(1).strip()
+            dispositivo = d.cerca(nome)
+            if not dispositivo:
+                return "Dispositivo non trovato."
+            capacita = d.capacita_dispositivo(nome)
+            return f"{nome} supporta: {', '.join(capacita)}." if capacita else f"Non risultano capacità operative esposte per {nome}."
+        m = re.match(r"(?:connetti|collega)\s+(.+)$", c)
+        if m and d:
+            return d.connetti(m.group(1).strip())
+        m = re.match(r"(?:disconnetti|scollega)\s+(.+)$", c)
+        if m and d:
+            return d.disconnetti(m.group(1).strip())
+        m = re.match(r"sincronizza\s+(.+)$", c)
+        if m and d:
+            return d.sincronizza(m.group(1).strip())
+        if c in ("sincronizza tutto", "sincronizza dispositivi", "sincronizza casa") and d:
+            risultati = []
+            for nome in d.elenco():
+                risultati.append(f"{nome}: {d.sincronizza(nome)}")
+            return "Sincronizzazione completata. " + " ".join(risultati)
+
         if c in ("stato computer", "stato del computer", "informazioni computer"):
             return str(cap.sistema()) if cap else "Informazioni di sistema non disponibili."
         if c.startswith("ricorda "):
@@ -124,9 +152,9 @@ class GestoreComandi:
                 if telefono_principale:
                     return telefono_principale.apri_app(app)
                 return "Nessun telefono principale attivo."
-        if c.startswith("apri cartella",):
+        if c.startswith("apri cartella"):
             return cap.apri_cartella() if cap else "Gestione cartelle non disponibile."
-        if c in ("apri finder",):
+        if c == "apri finder":
             return cap.apri_cartella() if cap else "Gestione cartelle non disponibile."
         if c.startswith("chiudi "):
             app = c[7:].strip()
@@ -173,7 +201,6 @@ class GestoreComandi:
         return "Non ho trovato un comando compatibile."
 
     def _telefono_principale(self):
-        """Restituisce il telefono attualmente impostato come principale, se presente."""
         if not self.dispositivi:
             return None
         for dispositivo in self.dispositivi.dispositivi.values():
@@ -182,7 +209,6 @@ class GestoreComandi:
         return None
 
     def ferma(self):
-        """Arresta il gestore senza perdere i comandi personalizzati."""
         self.attivo = False
         if self.logger:
             self.logger.info("Gestore comandi Jarvis fermato.")
