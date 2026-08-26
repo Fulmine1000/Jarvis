@@ -71,7 +71,7 @@ class GestoreComandi:
         if c in ("stato voce", "stato audio"):
             return str(k.modulo_voce.stato()) if k else "Voce non disponibile."
         if c in ("stato ai", "stato intelligenza artificiale"):
-            return str(k.dialogo.stato()) if k else "AI non disponibile."
+            return str(k.intelligenza.stato()) if k and hasattr(k, "intelligenza") else "AI non disponibile."
         if c in ("stato automazioni", "stato automazione"):
             return str(k.automazioni.stato()) if k else "Automazioni non disponibili."
         if c in ("stato visione", "stato camera"):
@@ -166,8 +166,8 @@ class GestoreComandi:
         for nome, funzione in self.comandi_personalizzati.items():
             if nome in c:
                 return funzione()
-        if k and hasattr(k, "dialogo"):
-            risposta_ai = k.dialogo.rispondi(c)
+        if k and hasattr(k, "intelligenza"):
+            risposta_ai = k.intelligenza.rispondi(c)
             if risposta_ai:
                 return risposta_ai
         return "Non ho trovato un comando compatibile."
