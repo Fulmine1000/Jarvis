@@ -6,8 +6,10 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 
 - HUD desktop futuristico animato.
 - Kernel centrale con gestione moduli, eventi, configurazione e log.
+- **Cervello cognitivo IA** separato dal router operativo.
 - Conversazione in italiano e personalità formale/elegante.
-- AI locale opzionale tramite Ollama.
+- AI locale tramite Ollama, con funzionamento degradato sicuro se il motore locale non è disponibile.
+- Contesto reale del sistema fornito al cervello senza inventare stato o azioni.
 - Wake word `Jarvis`, `Hey Jarvis`, `Ehi Jarvis` e riconoscimento Vosk opzionale.
 - Sintesi vocale Piper opzionale con fallback macOS `say`, Linux `espeak` e terminale.
 - Memoria persistente, profilo, ricordi e contesto.
@@ -33,6 +35,8 @@ oppure:
 ./scripts/avvia_jarvis.sh
 ```
 
+Per la conversazione IA locale, Jarvis utilizza Ollama quando disponibile. Il modello predefinito è `llama3.2:3b`; endpoint e modello possono essere configurati tramite `JARVIS_OLLAMA_URL` e `JARVIS_OLLAMA_MODEL`.
+
 ## Test
 
 ```bash
@@ -44,6 +48,7 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 
 - `jarvis.py` — unico punto di ingresso ufficiale.
 - `core/` — kernel e servizi fondamentali.
+- `intelligenza/` — cervello cognitivo e orchestrazione della conversazione IA.
 - `comandi/` — gestione ed esecuzione dei comandi.
 - `voce/` — ascolto, wake word, riconoscimento e sintesi vocale.
 - `interfaccia/` — HUD grafico.
