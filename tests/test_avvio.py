@@ -11,12 +11,13 @@ from core.kernel import KernelJarvis
 
 
 class TestAvvio(unittest.TestCase):
+
     def setUp(self):
         self.kernel = KernelJarvis()
 
     def test_costruzione_kernel(self):
         self.assertIsNotNone(self.kernel)
-        self.assertEqual(self.kernel.nome, "Jarvis")
+        self.assertEqual(self.kernel.nome, "J.A.R.V.I.S.")
         self.assertEqual(self.kernel.versione, "definitiva")
 
     def test_avvio_kernel(self):
@@ -24,13 +25,29 @@ class TestAvvio(unittest.TestCase):
         self.assertEqual(self.kernel.stato, "Operativo")
 
     def test_moduli_cablati(self):
-        for attributo in ("personalita", "preferenze", "contesto", "sicurezza", "stato_sistema_modulo", "aggiornamenti"):
+        for attributo in (
+            "personalita",
+            "preferenze",
+            "contesto",
+            "sicurezza",
+            "stato_sistema_modulo",
+            "aggiornamenti",
+        ):
             self.assertIsNotNone(getattr(self.kernel, attributo))
 
     def test_stato_sistema(self):
         self.kernel.avvia()
         stato = self.kernel.stato_sistema()
-        for chiave in ("nome", "versione", "memoria", "voce", "comandi", "dispositivi", "plugin", "sistema"):
+        for chiave in (
+            "nome",
+            "versione",
+            "memoria",
+            "voce",
+            "comandi",
+            "dispositivi",
+            "plugin",
+            "sistema",
+        ):
             self.assertIn(chiave, stato)
 
     def test_arresto(self):
@@ -46,6 +63,7 @@ class TestAvvio(unittest.TestCase):
 
 
 class TestImportModuli(unittest.TestCase):
+
     def test_import_moduli_ufficiali(self):
         moduli = [
             "core.kernel", "core.config", "core.logger", "core.event_bus", "core.manager",
