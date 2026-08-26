@@ -51,6 +51,7 @@ class GestoreComandi:
         k = self.kernel
         cap = getattr(k, "capacita", None) if k else None
         d = self.dispositivi
+        t = getattr(k, "trasferimento", None) if k else None
         if c in ("ciao", "salve", "ehi jarvis", "hey jarvis", "buongiorno", "buon pomeriggio", "buonasera"):
             return self.personalita.saluto() if self.personalita else "Salve. Tutti i sistemi sono pronti. Come posso assisterla?"
         if any(x in c for x in ("come stai", "come va", "tutto bene")):
@@ -78,7 +79,23 @@ class GestoreComandi:
         if c in ("stato visione", "stato camera"):
             return str(k.visione.stato()) if k else "Visione non disponibile."
 
-        # Gestione avanzata dei dispositivi.
+        # Livello multi-dispositivo e trasferimento portatile.
+        if c in ("stato trasferimento", "stato multi dispositivo", "stato multidispositivo"):
+            return str(t.stato()) if t else "Modulo trasferimento non disponibile."
+        if c in ("informazioni dispositivo", "info dispositivo", "questo dispositivo"):
+            return str(t.dispositivo()) if t else "Informazioni dispositivo non disponibili."
+        if c in ("supporto dispositivi", "dispositivi supportati", "supporto multi dispositivo"):
+            return str(t.supporto()) if t else "Supporto multi-dispositivo non disponibile."
+        if c in ("trasferisci jarvis", "prepara trasferimento", "prepara jarvis al trasferimento", "esporta jarvis"):
+            return t.crea_pacchetto(d) if t else "Trasferimento non disponibile."
+        if c in ("crea pacchetto jarvis", "crea pacchetto trasferimento"):
+            return t.crea_pacchetto(d) if t else "Trasferimento non disponibile."
+        if c in ("genera codice associazione", "codice associazione", "associa dispositivo"):
+            return t.codice_associazione() if t else "Associazione dispositivi non disponibile."
+        m = re.match(r"(?:importa|carica) pacchetto jarvis\s+(.+)$", c)
+        if m and t:
+            return t.importa_pacchetto(m.group(1).strip())
+
         if c in ("stato dispositivi", "stato dispositivi casa"):
             return str(d.stato_tutti()) if d else "Gestore dispositivi non disponibile."
         if c in ("quali dispositivi", "elenca dispositivi", "lista dispositivi"):
