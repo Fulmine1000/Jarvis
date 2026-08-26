@@ -9,4 +9,4 @@ if [ -f "venv/bin/activate" ]; then
     . "venv/bin/activate"
 fi
 
-exec python3 main.py
+exec python3 jarvis.py
