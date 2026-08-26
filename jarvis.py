@@ -1,63 +1,153 @@
-"""Launcher compatibile di Jarvis.
+"""J.A.R.V.I.S. — punto di ingresso ufficiale.
 
-Il punto di ingresso ufficiale resta ``main.py``; questo launcher mantiene
-la compatibilità con gli avvii precedenti senza riferimenti a versioni legacy.
+``python jarvis.py`` avvia l'intero sistema: kernel, voce e HUD.
+La gestione dell'ascolto vocale resta nel ModuloVoce/MotoreAscolto; questo
+launcher non crea un secondo ciclo input che possa competere con il microfono.
 """
 
+from __future__ import annotations
+
+import signal
+import threading
 import time
+import traceback
 
 from core.kernel import KernelJarvis
 from interfaccia.hud import HUDJarvis
 
 
 class JarvisOS:
-    """Avvia e gestisce una sessione completa di Jarvis."""
+    """Gestisce una sessione completa di J.A.R.V.I.S."""
 
     def __init__(self):
-        self.kernel = KernelJarvis()
-        self.hud = HUDJarvis()
+        self.kernel: KernelJarvis | None = None
+        self.hud: HUDJarvis | None = None
+        self._worker: threading.Thread | None = None
+        self._chiusura = threading.Event()
 
-    def avvia(self):
-        print("""
-================================
-        J.A.R.V.I.S.
-        VERSIONE DEFINITIVA
-================================
-""")
+    def avvia(self) -> bool:
+        """Avvia kernel, voce e HUD senza creare un secondo ascoltatore."""
+        print("=" * 64)
+        print("                    J.A.R.V.I.S.")
+        print("             Assistente Intelligente Personale")
+        print("                  VERSIONE DEFINITIVA")
+        print("=" * 64)
 
-        risultato = self.kernel.avvia()
-        if not risultato:
-            print("Errore durante l'avvio.")
+        try:
+            self.kernel = KernelJarvis()
+            if not self.kernel.avvia():
+                print("Errore durante l'avvio del kernel.")
+                return False
+
+            self.hud = HUDJarvis(kernel=self.kernel, width=1500, height=900)
+            self.kernel.hud = self.hud
+            self.hud.collega_kernel(self.kernel)
+            self.hud.aggiorna_kernel()
+
+            self._worker = threading.Thread(
+                target=self._attesa_sessione,
+                name="JarvisCore",
+                daemon=True,
+            )
+            self._worker.start()
+
+            if self.kernel.voce_disponibile:
+                print("Modalità vocale attiva. Pronuncia 'Jarvis', 'Hey Jarvis' o 'Ehi Jarvis'.")
+            else:
+                print("Modalità solo-testo attiva. Digita un comando nella console.")
+
+            print("Avvio HUD J.A.R.V.I.S. animato...")
+            self.hud.avvia()
+            if self.hud.finestra:
+                self.hud.finestra.after(100, self._controlla_chiusura)
+                while self.hud.attivo and not self._chiusura.is_set():
+                    time.sleep(0.1)
+
+            return True
+
+        except KeyboardInterrupt:
+            self.arresta()
+            return True
+        except Exception:
+            traceback.print_exc()
+            self.arresta()
             return False
 
-        self.hud.collega_kernel(self.kernel)
-        self.hud.avvia()
-        self.hud.aggiorna_kernel()
-        self.hud.mostra()
-        print("J.A.R.V.I.S. operativo.")
+    def _attesa_sessione(self) -> None:
+        """Mantiene viva la sessione; l'ascolto è gestito dal ModuloVoce."""
+        try:
+            while not self._chiusura.is_set():
+                if self.kernel and self.kernel.arresto_richiesto:
+                    break
+                time.sleep(0.25)
+        finally:
+            self._chiusura.set()
+
+    def _controlla_chiusura(self) -> None:
+        if self._chiusura.is_set() or (
+            self.kernel and self.kernel.arresto_richiesto
+        ):
+            if self.hud and self.hud.attivo:
+                self.hud.ferma()
+            return
+
+        if self.hud and self.hud.finestra:
+            try:
+                self.hud.finestra.after(100, self._controlla_chiusura)
+            except Exception:
+                pass
+
+    def arresta(self) -> bool:
+        """Arresta ordinatamente HUD, voce e kernel."""
+        self._chiusura.set()
+
+        if self.kernel:
+            self.kernel.richiedi_arresto()
+
+        if self.hud and self.hud.attivo:
+            try:
+                self.hud.ferma()
+            except Exception:
+                pass
+
+        if self._worker and self._worker.is_alive():
+            self._worker.join(timeout=1.5)
+
+        if self.kernel:
+            try:
+                self.kernel.arresta()
+            except Exception as errore:
+                print(f"Errore durante l'arresto: {errore}")
+
         return True
 
-    def esegui(self):
-        while True:
-            try:
-                comando = input("\nTu: ").strip()
-                if comando.lower() in {"esci", "chiudi", "stop"}:
-                    self.arresta()
-                    break
-                risposta = self.kernel.esegui_comando(comando)
-                print("\nJ.A.R.V.I.S.:", risposta or "Comando non riconosciuto.")
-            except KeyboardInterrupt:
-                self.arresta()
-                break
+    def esegui(self) -> bool:
+        """Alias storico: l'esecuzione principale è già gestita da avvia()."""
+        if self.kernel and self.kernel.stato == "Operativo":
+            self._attesa_sessione()
+            return True
+        return False
 
-    def arresta(self):
-        self.hud.ferma()
-        self.kernel.arresta()
-        print("J.A.R.V.I.S. spento.")
+
+def main() -> int:
+    jarvis = JarvisOS()
+
+    def chiusura(signum=None, frame=None):
+        jarvis.arresta()
+
+    try:
+        signal.signal(signal.SIGINT, chiusura)
+        signal.signal(signal.SIGTERM, chiusura)
+    except (ValueError, OSError):
+        pass
+
+    try:
+        jarvis.avvia()
+        return 0
+    except KeyboardInterrupt:
+        jarvis.arresta()
+        return 0
 
 
 if __name__ == "__main__":
-    jarvis = JarvisOS()
-    if jarvis.avvia():
-        time.sleep(1)
-        jarvis.esegui()
+    raise SystemExit(main())
