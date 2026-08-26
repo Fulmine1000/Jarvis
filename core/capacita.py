@@ -181,9 +181,30 @@ class CapacitaJarvis:
             return "Non riesco a recuperare il meteo in questo momento."
 
     def ora(self):
-        """Restituisce l'ora in una forma naturale per la risposta vocale."""
+        """Restituisce l'ora in una forma naturale e chiara per la voce."""
         adesso = dt.datetime.now()
-        return f"Sono le {adesso.hour:02d} e {adesso.minute:02d}."
+        ore = adesso.hour
+        minuti = adesso.minute
+
+        numeri = {
+            0: "zero", 1: "uno", 2: "due", 3: "tre", 4: "quattro",
+            5: "cinque", 6: "sei", 7: "sette", 8: "otto", 9: "nove",
+            10: "dieci", 11: "undici", 12: "dodici", 13: "tredici",
+            14: "quattordici", 15: "quindici", 16: "sedici", 17: "diciassette",
+            18: "diciotto", 19: "diciannove", 20: "venti", 21: "ventuno",
+            22: "ventidue", 23: "ventitré", 24: "ventiquattro", 25: "venticinque",
+            26: "ventisei", 27: "ventisette", 28: "ventotto", 29: "ventinove",
+            30: "trenta", 31: "trentuno", 32: "trentadue", 33: "trentatré",
+            34: "trentaquattro", 35: "trentacinque", 36: "trentasei", 37: "trentasette",
+            38: "trentotto", 39: "trentanove", 40: "quaranta", 41: "quarantuno",
+            42: "quarantadue", 43: "quarantatré", 44: "quarantaquattro", 45: "quarantacinque",
+            46: "quarantasei", 47: "quarantasette", 48: "quarantotto", 49: "quarantanove",
+            50: "cinquanta", 51: "cinquantuno", 52: "cinquantadue", 53: "cinquantatré",
+            54: "cinquantaquattro", 55: "cinquantacinque", 56: "cinquantasei", 57: "cinquantasette",
+            58: "cinquantotto", 59: "cinquantanove",
+        }
+
+        return f"Sono le {numeri[ore]} e {numeri[minuti]}."
 
     def data(self):
         giorni = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
