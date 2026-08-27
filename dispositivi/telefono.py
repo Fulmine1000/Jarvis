@@ -5,16 +5,16 @@ import json
 import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 from dispositivi.identita import IdentitaDispositivo
 
 
 class TelefonoJarvis:
-    """Dispositivo telefono di Jarvis.
+    """Gestione telefono e sessione web di Jarvis.
 
-    Gestisce connessione, sessione e, quando richiesto, un server web locale
-    temporaneo per permettere a un telefono di usare Jarvis senza trasferire
-    il Core. Il Core resta sul Mac.
+    Il Core resta sul dispositivo principale. Il telefono può collegarsi come
+    terminale remoto tramite un browser moderno o molto vecchio.
     """
 
     def __init__(self, nome, modello="Sconosciuto", base=False, logger=None, gestore_comandi=None):
@@ -93,6 +93,9 @@ class TelefonoJarvis:
             except Exception:
                 return "127.0.0.1"
 
+    def _pagina(self, risposta=""):
+        return '''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>J.A.R.V.I.S.</title><style>body{margin:0;background:#050b14;color:#eaf6ff;font-family:Arial,sans-serif;text-align:center}main{width:92%;max-width:520px;margin:40px auto}input,button{box-sizing:border-box;width:100%;font-size:18px;padding:14px;margin:8px 0;border-radius:10px}input{background:#101b27;color:#fff;border:1px solid #426985}button{background:#173650;color:#fff;border:1px solid #5a84a3}#r{margin-top:20px;padding:14px;min-height:24px}</style></head><body><main><h1>J.A.R.V.I.S.</h1><p>Sessione telefono attiva</p><form method="post" action="/api/comando"><input name="comando" type="text" placeholder="Scrivi un comando" autocomplete="off"><button type="submit">Invia a Jarvis</button></form><div id="r">''' + str(risposta) + '''</div></main></body></html>'''
+
     def avvia_server(self, gestore_comandi=None, porta=8765):
         """Avvia il server web di sessione senza trasferire il Core."""
         if self.server is not None:
@@ -115,26 +118,33 @@ class TelefonoJarvis:
 
             def do_GET(self):
                 if self.path == "/api/stato":
-                    self.risposta(200, json.dumps(dispositivo.stato(), ensure_ascii=False))
+                    self.resposta(200, json.dumps(dispositivo.stato(), ensure_ascii=False))
                     return
                 if self.path in ("/", "/index.html"):
-                    html = '''<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>J.A.R.V.I.S.</title><style>body{margin:0;background:#050b14;color:#eaf6ff;font-family:system-ui;min-height:100vh;display:flex;align-items:center;justify-content:center}main{width:min(92%,520px);text-align:center}input,button{box-sizing:border-box;width:100%;font-size:18px;padding:14px;border-radius:12px;margin-top:10px}input{background:#0b1520;color:#fff;border:1px solid #31506b}button{background:#12304a;color:#fff;border:1px solid #426985}#r{margin-top:20px;min-height:30px}</style></head><body><main><h1>J.A.R.V.I.S.</h1><p>Sessione telefono attiva</p><input id="q" placeholder="Parla con Jarvis..." autofocus><button onclick="invia()">Invia</button><div id="r"></div><script>async function invia(){const q=document.getElementById('q').value.trim();if(!q)return;const r=await fetch('/api/comando',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comando:q})});const d=await r.json();document.getElementById('r').textContent=d.risposta||d.errore||'Nessuna risposta';}</script></main></body></html>'''
-                    self.risposta(200, html, "text/html; charset=utf-8")
+                    self.resposta(200, dispositivo._pagina(), "text/html; charset=utf-8")
                     return
-                self.risposta(404, json.dumps({"errore": "Risorsa non trovata"}))
+                self.resposta(404, json.dumps({"errore": "Risorsa non trovata"}))
 
             def do_POST(self):
                 if self.path != "/api/comando":
-                    self.risposta(404, json.dumps({"errore": "Endpoint non trovato"}))
+                    self.resposta(404, json.dumps({"errore": "Endpoint non trovato"}))
                     return
                 try:
                     lunghezza = int(self.headers.get("Content-Length", "0"))
-                    dati = json.loads(self.rfile.read(lunghezza).decode("utf-8"))
-                    comando = str(dati.get("comando", "")).strip()
+                    corpo = self.rfile.read(lunghezza).decode("utf-8")
+                    if self.headers.get("Content-Type", "").startswith("application/json"):
+                        dati = json.loads(corpo)
+                        comando = str(dati.get("comando", "")).strip()
+                    else:
+                        dati = parse_qs(corpo)
+                        comando = str(dati.get("comando", [""])[0]).strip()
                     if not comando:
                         raise ValueError("Comando vuoto")
                     risposta = callback(comando) if callback else "Server telefono attivo, ma il gestore comandi non è collegato."
-                    self.risposta(200, json.dumps({"risposta": str(risposta)}, ensure_ascii=False))
+                    if self.headers.get("Content-Type", "").startswith("application/json"):
+                        self.risposta(200, json.dumps({"risposta": str(risposta)}, ensure_ascii=False))
+                    else:
+                        self.risposta(200, dispositivo._pagina(str(risposta)), "text/html; charset=utf-8")
                 except Exception as exc:
                     self.risposta(400, json.dumps({"errore": str(exc)}, ensure_ascii=False))
 
