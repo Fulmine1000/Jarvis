@@ -59,6 +59,7 @@ class KernelJarvis:
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
         self.portabilita_ia = GestorePortabilitaIA(self, self.logger)
+        self.trasferimento = None
         self.voce_disponibile = False
 
     def avvia(self):
@@ -76,6 +77,11 @@ class KernelJarvis:
             self.manager.registra(nome, modulo)
         for nome in moduli:
             self.manager.avvia(nome)
+
+        # Il modulo Dispositivi possiede il gestore della sessione di
+        # trasferimento. Lo esponiamo al Kernel per i comandi vocali.
+        self.trasferimento = self.modulo_dispositivi.get_trasferimento()
+
         self.voce_disponibile = bool(getattr(self.modulo_voce, "ascolto_attivo", False))
         try:
             self.plugin_manager.carica_plugin()
@@ -104,12 +110,10 @@ class KernelJarvis:
         return risposta
 
     def registra_host_ia(self, adapter):
-        """Registra un robot/dispositivo IA senza legarlo al Core."""
         self.portabilita_ia.registra(adapter)
         return True
 
     def trasferisci_su_host_ia(self, device_id):
-        """Attiva l'identità di Jarvis su un host IA compatibile."""
         return self.portabilita_ia.trasferisci(device_id)
 
     def richiedi_arresto(self):
@@ -117,7 +121,7 @@ class KernelJarvis:
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
@@ -136,6 +140,7 @@ class KernelJarvis:
             self.manager.ferma_tutti()
         except Exception as errore:
             self.logger.warning(f"Errore arresto moduli: {errore}")
+        self.trasferimento = None
         self.voce_disponibile = False
         self.stato = "Spento"
         self.logger.info("Jarvis arrestato.")
