@@ -1,9 +1,8 @@
 """J.A.R.V.I.S. — punto di ingresso ufficiale.
 
-``python jarvis.py`` avvia l'intero sistema: kernel, voce e HUD.
-Quando viene attivato dal guardiano tramite la wake word, l'HUD viene mostrato
-immediatamente. Se invece viene avviato manualmente, parte in standby in attesa
-della wake word.
+``python jarvis.py`` avvia l'intero sistema: kernel, voce, HUD e il server
+telefono locale. Il server permette ai telefoni compatibili di collegarsi
+temporaneamente a Jarvis senza trasferire il Core.
 
 Il codice grafico Tkinter viene eseguito esclusivamente nel Main Thread,
 come richiesto da macOS/AppKit. L'ascolto vocale e la supervisione del kernel
@@ -19,6 +18,7 @@ import time
 import traceback
 
 from core.kernel import KernelJarvis
+from dispositivi.telefono import TelefonoJarvis
 from interfaccia.hud import HUDJarvis
 
 
@@ -28,11 +28,13 @@ class JarvisOS:
     def __init__(self):
         self.kernel: KernelJarvis | None = None
         self.hud: HUDJarvis | None = None
+        self.telefono: TelefonoJarvis | None = None
+        self.indirizzo_telefono: str | None = None
         self._worker: threading.Thread | None = None
         self._chiusura = threading.Event()
 
     def avvia(self) -> bool:
-        """Avvia kernel, voce e HUD nel corretto contesto di esecuzione."""
+        """Avvia kernel, voce, server telefono e HUD nel corretto contesto."""
         print("=" * 64)
         print("                    J.A.R.V.I.S.")
         print("             Assistente Intelligente Personale")
@@ -44,6 +46,31 @@ class JarvisOS:
             if not self.kernel.avvia():
                 print("Errore durante l'avvio del kernel.")
                 return False
+
+            # Server telefono: il Core rimane sul Mac; il telefono diventa
+            # soltanto un terminale remoto temporaneo della sessione.
+            try:
+                self.telefono = TelefonoJarvis(
+                    "Telefono remoto",
+                    "Client web Jarvis",
+                    logger=self.kernel.logger,
+                    gestore_comandi=self.kernel.esegui_comando,
+                )
+                self.indirizzo_telefono = self.telefono.avvia_server(
+                    gestore_comandi=self.kernel.esegui_comando,
+                    porta=8765,
+                )
+                print(f"Server telefono Jarvis attivo: {self.indirizzo_telefono}")
+                self.kernel.logger.info(
+                    f"Server telefono attivo: {self.indirizzo_telefono}"
+                )
+            except Exception as errore:
+                self.telefono = None
+                self.indirizzo_telefono = None
+                self.kernel.logger.error(
+                    f"Server telefono non disponibile: {errore}"
+                )
+                print(f"Avviso: server telefono non disponibile: {errore}")
 
             # HUD volutamente più compatto: mantiene proporzioni e funzionalità
             # dell'interfaccia precedente senza occupare quasi tutto lo schermo.
@@ -63,6 +90,9 @@ class JarvisOS:
                 print("Modalità vocale attiva. Pronuncia 'Jarvis', 'Hey Jarvis' o 'Ehi Jarvis'.")
             else:
                 print("Modalità solo-testo attiva. Digita un comando nella console.")
+
+            if self.indirizzo_telefono:
+                print(f"Collega un telefono alla stessa Wi-Fi e apri: {self.indirizzo_telefono}")
 
             print("Avvio HUD J.A.R.V.I.S. animato...")
 
@@ -139,8 +169,14 @@ class JarvisOS:
                 pass
 
     def arresta(self) -> bool:
-        """Arresta ordinatamente HUD, voce e kernel."""
+        """Arresta ordinatamente server telefono, HUD, voce e kernel."""
         self._chiusura.set()
+
+        if self.telefono:
+            try:
+                self.telefono.ferma_server()
+            except Exception:
+                pass
 
         if self.kernel:
             try:
