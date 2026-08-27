@@ -79,7 +79,6 @@ class GestoreComandi:
         if c in ("stato visione", "stato camera"):
             return str(k.visione.stato()) if k else "Visione non disponibile."
 
-        # Livello multi-dispositivo e trasferimento portatile.
         if c in ("stato trasferimento", "stato multi dispositivo", "stato multidispositivo"):
             return str(t.stato()) if t else "Modulo trasferimento non disponibile."
         if c in ("informazioni dispositivo", "info dispositivo", "questo dispositivo"):
@@ -92,6 +91,37 @@ class GestoreComandi:
             return t.crea_pacchetto(d) if t else "Trasferimento non disponibile."
         if c in ("genera codice associazione", "codice associazione", "associa dispositivo"):
             return t.codice_associazione() if t else "Associazione dispositivi non disponibile."
+        if c in ("rileva telefoni usb", "cerca telefono usb", "trova telefoni usb") and t:
+            return str(t.rileva_usb())
+        m = re.match(r"associa(?:\s+via\s+usb)?\s+(.+)$", c)
+        if m and t:
+            nome = m.group(1).strip()
+            return str(t.primo_collegamento_usb(nome, nome))
+        m = re.match(r"(?:trasferisciti|trasferisci jarvis)\s+(?:sul|su)\s+(.+)$", c)
+        if m and t:
+            nome = m.group(1).strip()
+            risultato = t.trasferisci_sessione(nome=nome)
+            if risultato.get("ok"):
+                return f"Trasferimento temporaneo verso {nome} completato."
+            if risultato.get("richiede_agente"):
+                return f"{nome} è associato, ma deve avere l'Agente Jarvis attivo per completare il trasferimento senza cavo."
+            return risultato.get("errore", "Trasferimento non completato.")
+        if c in ("ritorna sul mac", "ritorna al mac", "torna sul mac", "torna al mac"):
+            risultato = t.ritorna_al_mac() if t else {"ok": False, "errore": "Trasferimento non disponibile."}
+            if risultato.get("ok"):
+                return "Jarvis è tornato sul Mac."
+            if risultato.get("richiede_usb"):
+                return "Collega il telefono al Mac tramite USB per completare il ritorno."
+            return risultato.get("errore", "Ritorno al Mac non completato.")
+        m = re.match(r"(?:ritorna|torna)\s+(?:da|dal)\s+(.+)$", c)
+        if m and t:
+            nome = m.group(1).strip()
+            risultato = t.ritorna_al_mac(nome=nome)
+            if risultato.get("ok"):
+                return f"Jarvis è tornato sul Mac da {nome}."
+            if risultato.get("richiede_usb"):
+                return f"{nome} è un dispositivo legacy. Collegalo al Mac tramite USB per completare il ritorno."
+            return risultato.get("errore", "Ritorno al Mac non completato.")
         m = re.match(r"(?:importa|carica) pacchetto jarvis\s+(.+)$", c)
         if m and t:
             return t.importa_pacchetto(m.group(1).strip())
