@@ -1,0 +1,5 @@
+plugins { id 'com.android.application' }
+
+android { namespace 'com.fulmine1000.jarvis.agent'; compileSdk 35
+    defaultConfig { applicationId 'com.fulmine1000.jarvis.agent'; minSdk 14; targetSdk 28; versionCode 1; versionName '1.0.0' }
+}
