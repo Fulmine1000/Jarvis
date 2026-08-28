@@ -255,8 +255,14 @@ class HUDJarvis:
             activity = 0.94
         elif comando:
             activity = 0.55
+
+        # IMPORTANTE: lo stato generale del sistema e lo stato del microfono
+        # sono due informazioni diverse. "SYSTEM ONLINE" rimane stabile;
+        # LISTENING/SPEAKING vengono mostrati esclusivamente nel canale voce.
+        # In precedenza "state" cambiava ogni volta che ascolto/parlato
+        # cambiavano, facendo lampeggiare l'header dell'HUD.
         return {
-            "state": "LISTENING" if self.ascolto else "SPEAKING" if self.parlando else "SYSTEM ONLINE",
+            "state": "SYSTEM ONLINE",
             "command": comando or "Awaiting command...",
             "response": risposta or "Neural core standing by.",
             "clock": datetime.datetime.now().strftime("%H:%M:%S"),
@@ -266,7 +272,10 @@ class HUDJarvis:
             "memory_state": "ONLINE" if memoria else "READY",
             "devices": self._dispositivi_testo(dispositivi),
             "kernel": str(sistema.get("stato", "OPERATIONAL")).upper(),
-            "events": eventi, "listening": self.ascolto, "speaking": self.parlando, "activity": activity,
+            "events": eventi,
+            "listening": self.ascolto,
+            "speaking": self.parlando,
+            "activity": activity,
         }
 
     @staticmethod
