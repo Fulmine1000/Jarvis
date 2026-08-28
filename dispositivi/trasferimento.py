@@ -9,21 +9,27 @@ import secrets
 import shutil
 import socket
 import subprocess
+import threading
+import time
 import urllib.request
 from pathlib import Path
 
 
 class TrasferimentoJarvis:
-    """Gestisce sessioni Jarvis su dispositivi remoti.
+    """Gestisce il trasferimento della sessione Jarvis tramite USB/ADB.
 
-    Il Core non viene copiato: il dispositivo esegue un piccolo agente che
-    espone una sessione locale e inoltra i comandi al Core rimasto sul Mac.
+    Il Core Python resta sul Mac. Il telefono riceve la sessione operativa e
+    una HUD locale; quando il cavo viene scollegato la sessione locale rimane
+    attiva e può continuare a funzionare offline. Al ricollegamento USB il
+    bridge viene ripristinato automaticamente.
     """
 
     PROTOCOLLO = "JARVIS-MULTIDEVICE/2"
-    VERSIONE = 4
+    VERSIONE = 5
     MODERNO = "moderno"
     LEGACY = "legacy"
+    HOST_PORTA_TELEFONO = 18765
+    PORTA_REVERSE_MAC = 8766
 
     def __init__(self, logger=None, root=None):
         self.logger = logger
@@ -35,6 +41,9 @@ class TrasferimentoJarvis:
         self.identita = self._carica_identita()
         self.dispositivi_associati = self._carica_dispositivi()
         self.host_attivo = None
+        self._monitor_attivo = False
+        self._monitor_thread = None
+        self._ultimo_usb = None
 
     def _log(self, livello, messaggio):
         if self.logger and hasattr(self.logger, livello):
@@ -131,29 +140,57 @@ class TrasferimentoJarvis:
         if not adb:
             return False
         try:
-            risultato = subprocess.run([adb, "-s", device_id, "forward", f"tcp:{porta}", f"tcp:{porta}"], capture_output=True, text=True, timeout=8, check=False)
-            return risultato.returncode == 0
-        except Exception:
+            risultato = subprocess.run([adb, "-s", device_id, "forward", f"tcp:{self.HOST_PORTA_TELEFONO}", f"tcp:{porta}"], capture_output=True, text=True, timeout=8, check=False)
+            if risultato.returncode != 0:
+                self._log("warning", f"ADB forward fallito: {risultato.stderr.strip()}")
+                return False
+            return True
+        except Exception as errore:
+            self._log("warning", f"ADB forward non disponibile: {errore}")
             return False
+
+    def _reverse_usb(self, device_id, porta_mac=8765):
+        adb = shutil.which("adb")
+        if not adb:
+            return False
+        try:
+            risultato = subprocess.run([adb, "-s", device_id, "reverse", f"tcp:{self.PORTA_REVERSE_MAC}", f"tcp:{porta_mac}"], capture_output=True, text=True, timeout=8, check=False)
+            if risultato.returncode != 0:
+                self._log("warning", f"ADB reverse fallito: {risultato.stderr.strip()}")
+                return False
+            return True
+        except Exception as errore:
+            self._log("warning", f"ADB reverse non disponibile: {errore}")
+            return False
+
+    def _prepara_bridge_usb(self, dispositivo, porta_mac=8765):
+        device_id = dispositivo["id"]
+        forward = self._forward_usb(device_id, porta_mac)
+        reverse = self._reverse_usb(device_id, porta_mac)
+        return forward and reverse
 
     def _url_dispositivo(self, dispositivo, indirizzo=None, porta=8765):
         if indirizzo:
             return f"http://{indirizzo}:{int(porta)}"
-        if dispositivo.get("categoria") == self.LEGACY and self._forward_usb(dispositivo["id"], porta):
-            return f"http://127.0.0.1:{int(porta)}"
+        if self._forward_usb(dispositivo["id"], porta):
+            return f"http://127.0.0.1:{self.HOST_PORTA_TELEFONO}"
         return None
 
     def trasferisci_sessione(self, device_id=None, nome=None, indirizzo=None, porta=8765, core_endpoint=None):
         dispositivo = self.dispositivo_associato(device_id, nome)
         if not dispositivo:
             return {"ok": False, "errore": "Telefono non associato. Eseguire prima l'associazione USB."}
+        if not indirizzo and not self._prepara_bridge_usb(dispositivo, porta):
+            return {"ok": False, "richiede_usb": True, "errore": "Collegare il telefono al Mac tramite USB e autorizzare ADB."}
         base = self._url_dispositivo(dispositivo, indirizzo, porta)
         if not base:
-            return {"ok": False, "richiede_usb": dispositivo.get("categoria") == self.LEGACY, "errore": "Agente telefono non raggiungibile. Per questo dispositivo è necessario il collegamento previsto."}
+            return {"ok": False, "richiede_usb": True, "errore": "Bridge USB non disponibile."}
         handshake = self.verifica_host(base, timeout=5)
         if not handshake:
             return {"ok": False, "errore": "Agente Jarvis non raggiungibile sul telefono."}
-        payload = {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "sessione": True, "core_endpoint": core_endpoint, "origine": self.dispositivo(), "dispositivo": dispositivo}
+        if not indirizzo:
+            self._reverse_usb(dispositivo["id"], porta)
+        payload = {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "sessione": True, "modalita": "usb", "core_endpoint": core_endpoint, "reverse_endpoint": f"http://127.0.0.1:{self.PORTA_REVERSE_MAC}", "origine": self.dispositivo(), "dispositivo": dispositivo}
         raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         try:
             richiesta = urllib.request.Request(base + "/jarvis/sessione", data=raw, method="POST", headers={"Content-Type": "application/json"})
@@ -161,6 +198,7 @@ class TrasferimentoJarvis:
                 result = json.loads(risposta.read().decode("utf-8"))
             if result.get("ok"):
                 self.host_attivo = dispositivo["id"]
+                self._log("info", f"Sessione Jarvis trasferita via USB a {dispositivo.get('nome', dispositivo['id'])}.")
             return result
         except Exception as errore:
             return {"ok": False, "errore": str(errore)}
@@ -171,19 +209,76 @@ class TrasferimentoJarvis:
             return {"ok": False, "errore": "Telefono non associato."}
         base = self._url_dispositivo(dispositivo, indirizzo, porta)
         if not base:
-            return {"ok": False, "richiede_usb": True, "errore": "Collegare il telefono legacy al Mac per completare il ritorno."}
+            return {"ok": False, "richiede_usb": True, "errore": "Collegare il telefono al Mac tramite USB per completare il ritorno."}
         try:
             richiesta = urllib.request.Request(base + "/jarvis/ritorno", data=b"{}", method="POST", headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(richiesta, timeout=8) as risposta:
                 result = json.loads(risposta.read().decode("utf-8"))
             if result.get("ok"):
                 self.host_attivo = None
+                self._log("info", "Jarvis è tornato al Mac tramite USB.")
             return result
         except Exception as errore:
             return {"ok": False, "errore": str(errore)}
 
+    def _richiesta_ritorno_usb(self, dispositivo, porta=8765):
+        base = self._url_dispositivo(dispositivo, None, porta)
+        if not base:
+            return False
+        try:
+            with urllib.request.urlopen(base + "/jarvis/ritorno_richiesto", timeout=2) as risposta:
+                dati = json.loads(risposta.read().decode("utf-8"))
+            return bool(dati.get("requested"))
+        except Exception:
+            return False
+
+    def _notifica_usb(self, dispositivo, collegato, porta=8765):
+        base = self._url_dispositivo(dispositivo, None, porta)
+        if not base:
+            return False
+        raw = json.dumps({"connected": bool(collegato), "transport": "usb"}).encode("utf-8")
+        try:
+            richiesta = urllib.request.Request(base + "/jarvis/usb", data=raw, method="POST", headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(richiesta, timeout=2) as risposta:
+                return json.loads(risposta.read().decode("utf-8")).get("ok", False)
+        except Exception:
+            return False
+
+    def avvia_monitor_usb(self, intervallo=2.0, porta=8765):
+        if self._monitor_attivo:
+            return
+        self._monitor_attivo = True
+        self._monitor_thread = threading.Thread(target=self._loop_monitor_usb, args=(float(intervallo), int(porta)), daemon=True, name="JarvisUSBMonitor")
+        self._monitor_thread.start()
+        self._log("info", "Monitor USB telefono attivo.")
+
+    def ferma_monitor_usb(self):
+        self._monitor_attivo = False
+
+    def _loop_monitor_usb(self, intervallo, porta):
+        while self._monitor_attivo:
+            try:
+                rilevati = self.rileva_usb()
+                ids = {d["id"] for d in rilevati}
+                if self.host_attivo and self.host_attivo not in ids:
+                    self._ultimo_usb = False
+                for device in rilevati:
+                    if device["id"] not in self.dispositivi_associati:
+                        continue
+                    if self._ultimo_usb is not True:
+                        self._prepara_bridge_usb(device, porta)
+                        self._notifica_usb(device, True, porta)
+                        self._ultimo_usb = True
+                        self._log("info", f"Telefono USB riconnesso: {device['id']}.")
+                    if self.host_attivo == device["id"] and self._richiesta_ritorno_usb(device, porta):
+                        self.ritorna_al_mac(device_id=device["id"], porta=porta)
+                time.sleep(intervallo)
+            except Exception as errore:
+                self._log("warning", f"Monitor USB: {errore}")
+                time.sleep(intervallo)
+
     def crea_pacchetto(self, gestore=None, destinazione=None):
-        pacchetto = {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "creato": dt.datetime.now().isoformat(timespec="seconds"), "origine": self.dispositivo(), "contenuto": {"tipo": "sessione", "core": "NON COPIATO", "memoria": "NON COPIATA", "credenziali": False}}
+        pacchetto = {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "creato": dt.datetime.now().isoformat(timespec="seconds"), "origine": self.dispositivo(), "contenuto": {"tipo": "sessione", "trasporto": "usb", "core": "NON COPIATO", "memoria": "NON COPIATA", "credenziali": False}}
         raw = json.dumps(pacchetto, ensure_ascii=False, indent=2).encode("utf-8")
         pacchetto["checksum_sha256"] = hashlib.sha256(raw).hexdigest()
         path = Path(destinazione) if destinazione else self.root / "jarvis_sessione.json"
@@ -214,7 +309,7 @@ class TrasferimentoJarvis:
         return f"Codice di associazione temporaneo: {secrets.token_urlsafe(12)}."
 
     def supporto(self):
-        return {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "sessione_senza_copia_core": True, "prima_associazione_usb": True, "wireless_moderni": True, "usb_legacy": True, "core_permanente_sul_mac": True}
+        return {"protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "sessione_senza_copia_core": True, "prima_associazione_usb": True, "trasporto_principale": "USB/ADB", "offline_sul_telefono": True, "ritorno_automatico_usb": True, "core_permanente_sul_mac": True}
 
     def stato(self):
-        return {"nome": "Sessione multi-dispositivo Jarvis", "stato": "attivo", "protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "host_attivo": self.host_attivo, "dispositivi_associati": self.dispositivi_associati, "sessione_temporanea": True, "core_sul_mac": True}
+        return {"nome": "Sessione multi-dispositivo Jarvis", "stato": "attivo", "protocollo": self.PROTOCOLLO, "versione": self.VERSIONE, "host_attivo": self.host_attivo, "dispositivi_associati": self.dispositivi_associati, "sessione_temporanea": True, "trasporto": "USB/ADB", "core_sul_mac": True}
