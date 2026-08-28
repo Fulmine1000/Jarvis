@@ -1,12 +1,7 @@
 """J.A.R.V.I.S. — punto di ingresso ufficiale.
 
-``python jarvis.py`` avvia l'intero sistema: kernel, voce, HUD e il server
-telefono locale. Il server permette ai telefoni compatibili di collegarsi
-temporaneamente a Jarvis senza trasferire il Core.
-
-Il codice grafico Tkinter viene eseguito esclusivamente nel Main Thread,
-come richiesto da macOS/AppKit. L'ascolto vocale e la supervisione del kernel
-restano invece in background.
+Avvia kernel, voce, HUD Qt Quick/QML e server telefono locale.
+L'interfaccia grafica vive nel Main Thread; voce e supervisione restano in background.
 """
 
 from __future__ import annotations
@@ -34,7 +29,7 @@ class JarvisOS:
         self._chiusura = threading.Event()
 
     def avvia(self) -> bool:
-        """Avvia kernel, voce, server telefono e HUD nel corretto contesto."""
+        """Avvia kernel, voce, server telefono e HUD Qt Quick."""
         print("=" * 64)
         print("                    J.A.R.V.I.S.")
         print("             Assistente Intelligente Personale")
@@ -47,8 +42,6 @@ class JarvisOS:
                 print("Errore durante l'avvio del kernel.")
                 return False
 
-            # Server telefono: il Core rimane sul Mac; il telefono diventa
-            # soltanto un terminale remoto temporaneo della sessione.
             try:
                 self.telefono = TelefonoJarvis(
                     "Telefono remoto",
@@ -72,8 +65,7 @@ class JarvisOS:
                 )
                 print(f"Avviso: server telefono non disponibile: {errore}")
 
-            # HUD volutamente più compatto: mantiene proporzioni e funzionalità
-            # dell'interfaccia precedente senza occupare quasi tutto lo schermo.
+            # HUD Qt Quick/QML: niente Tkinter e niente Canvas.
             self.hud = HUDJarvis(kernel=self.kernel, width=1050, height=650)
             self.kernel.hud = self.hud
             self.hud.collega_kernel(self.kernel)
@@ -94,40 +86,27 @@ class JarvisOS:
             if self.indirizzo_telefono:
                 print(f"Collega un telefono alla stessa Wi-Fi e apri: {self.indirizzo_telefono}")
 
-            print("Avvio HUD J.A.R.V.I.S. animato...")
+            print("Avvio HUD J.A.R.V.I.S. Qt Quick...")
 
             attivato_da_wake = os.environ.get("JARVIS_ATTIVATO_DA_WAKE") == "1"
             comando_iniziale = os.environ.get("JARVIS_COMANDO_INIZIALE", "").strip()
-
-            if not attivato_da_wake:
-                animazione_originale = self.hud._animazione
-                hud_nascosto = {"fatto": False}
-
-                def animazione_in_standby():
-                    animazione_originale()
-                    if not hud_nascosto["fatto"] and self.hud.finestra:
-                        try:
-                            self.hud.finestra.withdraw()
-                            self.hud.registra_evento("HUD in standby: in attesa della wake word")
-                            hud_nascosto["fatto"] = True
-                        except Exception:
-                            pass
-
-                self.hud._animazione = animazione_in_standby
-
             if attivato_da_wake and comando_iniziale:
                 try:
-                    self.hud.registra_evento(f"Comando iniziale: {comando_iniziale}")
+                    self.hud.registra_evento(
+                        f"Comando iniziale: {comando_iniziale}"
+                    )
                     self.kernel.esegui_comando(comando_iniziale)
                 except Exception as errore:
-                    self.kernel.logger.error(f"Errore comando iniziale: {errore}")
+                    self.kernel.logger.error(
+                        f"Errore comando iniziale: {errore}"
+                    )
 
-            self.hud._run_tk()
+            # Qt su macOS deve essere gestito dal thread principale.
+            self.hud._run_qt()
 
             self._chiusura.set()
             if self.kernel and not self.kernel.arresto_richiesto:
                 self.kernel.richiedi_arresto()
-
             return True
 
         except KeyboardInterrupt:
@@ -143,11 +122,8 @@ class JarvisOS:
         try:
             while not self._chiusura.is_set():
                 if self.kernel and self.kernel.arresto_richiesto:
-                    if self.hud and self.hud.finestra:
-                        try:
-                            self.hud.finestra.after(0, self.hud.ferma)
-                        except Exception:
-                            pass
+                    if self.hud and self.hud.attivo:
+                        self.hud.ferma()
                     break
                 time.sleep(0.25)
         finally:
@@ -160,13 +136,6 @@ class JarvisOS:
         ):
             if self.hud and self.hud.attivo:
                 self.hud.ferma()
-            return
-
-        if self.hud and self.hud.finestra:
-            try:
-                self.hud.finestra.after(100, self._controlla_chiusura)
-            except Exception:
-                pass
 
     def arresta(self) -> bool:
         """Arresta ordinatamente server telefono, HUD, voce e kernel."""
@@ -178,15 +147,15 @@ class JarvisOS:
             except Exception:
                 pass
 
-        if self.kernel:
-            try:
-                self.kernel.richiedi_arresto()
-            except Exception:
-                pass
-
         if self.hud and self.hud.attivo:
             try:
                 self.hud.ferma()
+            except Exception:
+                pass
+
+        if self.kernel:
+            try:
+                self.kernel.richiedi_arresto()
             except Exception:
                 pass
 
@@ -198,11 +167,9 @@ class JarvisOS:
                 self.kernel.arresta()
             except Exception as errore:
                 print(f"Errore durante l'arresto: {errore}")
-
         return True
 
     def esegui(self) -> bool:
-        """Alias storico: l'esecuzione principale è già gestita da avvia()."""
         if self.kernel and self.kernel.stato == "Operativo":
             self._attesa_sessione()
             return True
