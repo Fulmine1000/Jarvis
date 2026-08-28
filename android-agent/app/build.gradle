@@ -1,5 +1,75 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+}
 
-android { namespace 'com.fulmine1000.jarvis.agent'; compileSdk 35
-    defaultConfig { applicationId 'com.fulmine1000.jarvis.agent'; minSdk 14; targetSdk 28; versionCode 1; versionName '1.0.0' }
+android {
+    namespace 'com.fulmine1000.jarvis.agent'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.fulmine1000.jarvis.agent'
+        minSdk 21
+        targetSdk 28
+        versionCode 2
+        versionName '2.0.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/AL2.0', 'META-INF/LGPL2.1']
+        }
+    }
+
+    // Scarica automaticamente il modello italiano ufficiale Vosk durante la build.
+    // Il modello resta fuori da Git e viene inserito nell'APK come asset.
+    def modelDir = file('src/main/assets/vosk-model-small-it-0.22')
+    def modelZip = file("${buildDir}/downloads/vosk-model-small-it-0.22.zip")
+    def modelUrl = 'https://alphacephei.com/vosk/models/vosk-model-small-it-0.22.zip'
+
+    tasks.register('downloadVoskModel') {
+        outputs.dir(modelDir)
+        doLast {
+            if (modelDir.exists() && new File(modelDir, 'conf/model.conf').exists()) {
+                println('Vosk Italian model: already present')
+                return
+            }
+            modelDir.delete()
+            modelZip.parentFile.mkdirs()
+            println('Downloading Vosk Italian model...')
+            new URL(modelUrl).withInputStream { input ->
+                modelZip.withOutputStream { output -> output << input }
+            }
+            println('Extracting Vosk Italian model...')
+            def zip = new java.util.zip.ZipFile(modelZip)
+            zip.entries().each { entry ->
+                if (entry.isDirectory()) return
+                def name = entry.name
+                def prefix = 'vosk-model-small-it-0.22/'
+                if (!name.startsWith(prefix)) return
+                def relative = name.substring(prefix.length())
+                if (!relative) return
+                def target = new File(modelDir, relative)
+                target.parentFile.mkdirs()
+                zip.getInputStream(entry).withCloseable { input ->
+                    target.withOutputStream { output -> output << input }
+                }
+            }
+            zip.close()
+            modelZip.delete()
+        }
+    }
+
+    tasks.matching { it.name == 'preBuild' }.configureEach {
+        dependsOn tasks.named('downloadVoskModel')
+    }
+}
+
+dependencies {
+    implementation 'com.alphacephei:vosk-android:0.3.75@aar'
+    implementation 'net.java.dev.jna:jna:5.18.1@aar'
 }
