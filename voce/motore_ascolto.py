@@ -19,12 +19,14 @@ class MotoreAscolto:
         self._ultimo_testo = None
         self._ultimo_testo_timestamp = 0.0
         self._duplicate_lock = threading.Lock()
+        self._hud_listening = False
 
     def avvia(self):
         if self.attivo:
             return True
         self.attivo = True
         self._reset_duplicato()
+        self._imposta_hud_ascolto(False)
         self.log("Motore ascolto Jarvis avviato.")
         self.thread = threading.Thread(target=self.ciclo, name="JarvisAudio", daemon=True)
         self.thread.start()
@@ -57,31 +59,50 @@ class MotoreAscolto:
         """Ignora la frase prodotta da Jarvis e riascoltata dal microfono."""
         return self._normalizza_testo(testo) in self.RISPOSTE_ECO
 
+    def _imposta_hud_ascolto(self, attivo):
+        """Aggiorna LISTENING solo quando cambia realmente la sessione vocale.
+
+        Il microfono e sempre attivo per la wake word, quindi non dobbiamo
+        chiamare HUD.imposta_ascolto() per ogni blocco audio. LISTENING viene
+        mostrato soltanto dopo il rilevamento della wake word e resta stabile
+        fino alla disattivazione/timeout.
+        """
+        attivo = bool(attivo)
+        if attivo == self._hud_listening:
+            return
+        self._hud_listening = attivo
+        hud = getattr(self.modulo_voce.kernel, "hud", None)
+        if hud:
+            try:
+                hud.imposta_ascolto(attivo)
+            except Exception:
+                pass
+
+    def _sincronizza_hud_wake_word(self):
+        """Mantiene l'HUD sincronizzato con lo stato reale della wake word."""
+        attiva = bool(self.wake_word.verifica_timeout())
+        self._imposta_hud_ascolto(attiva)
+        return attiva
+
     def _mostra_hud(self):
-        """Porta l'HUD in primo piano dal Main Thread di Tkinter."""
+        """Porta l'HUD in primo piano quando viene rilevata la wake word."""
         hud = getattr(self.modulo_voce.kernel, "hud", None)
         if not hud or not getattr(hud, "finestra", None):
             return
         try:
-            hud.finestra.after(0, self._mostra_hud_main_thread, hud)
+            hud.mostra()
+            hud.registra_evento("Wake word rilevata: HUD attivato")
         except Exception as errore:
             self.log(f"Impossibile mostrare HUD: {errore}")
-
-    @staticmethod
-    def _mostra_hud_main_thread(hud):
-        try:
-            hud.finestra.deiconify()
-            hud.finestra.lift()
-            hud.finestra.attributes("-topmost", True)
-            hud.finestra.after(250, lambda: hud.finestra.attributes("-topmost", False))
-            hud.finestra.focus_force()
-            hud.registra_evento("Wake word rilevata: HUD attivato")
-        except Exception:
-            pass
 
     def ciclo(self):
         while self.attivo and getattr(self.modulo_voce, "ascolto_attivo", False):
             try:
+                # Prima di leggere il prossimo blocco audio, aggiorna lo stato
+                # visuale in base alla wake word, non in base al timeout del
+                # singolo blocco del microfono.
+                self._sincronizza_hud_wake_word()
+
                 testo = self.modulo_voce.ascolta_comando()
                 if not testo:
                     time.sleep(0.1)
@@ -100,10 +121,14 @@ class MotoreAscolto:
 
                 risultato = self.wake_word.controlla(normalizzato)
                 if not risultato or not risultato.get("attivato", False):
+                    # Se la wake word e scaduta, torna a STANDBY senza creare
+                    # una nuova transizione ad ogni blocco audio.
+                    self._sincronizza_hud_wake_word()
                     continue
 
-                # La finestra HUD viene mostrata quando viene riconosciuta
-                # la wake word, senza richiedere alcun comando nel terminale.
+                # Da questo momento la wake word e realmente attiva: l'HUD
+                # entra in LISTENING e vi rimane fino al timeout o al comando.
+                self._imposta_hud_ascolto(True)
                 self._mostra_hud()
 
                 comando = risultato.get("comando", "").strip()
@@ -115,9 +140,11 @@ class MotoreAscolto:
                 self.modulo_voce.kernel.esegui_comando(comando)
                 self.wake_word.disattiva()
                 self._reset_duplicato()
+                self._imposta_hud_ascolto(False)
 
             except Exception as errore:
                 self.log(f"Errore motore ascolto: {errore}")
+                self._imposta_hud_ascolto(False)
                 time.sleep(1)
             time.sleep(0.2)
 
@@ -125,6 +152,7 @@ class MotoreAscolto:
         self.attivo = False
         self.wake_word.disattiva()
         self._reset_duplicato()
+        self._imposta_hud_ascolto(False)
         if self.thread:
             self.thread.join(timeout=2)
             self.thread = None
