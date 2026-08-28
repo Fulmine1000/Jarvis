@@ -53,6 +53,12 @@ ApplicationWindow {
         activity = Math.max(0.08, Math.min(1.0, Number(data.activity || 0.18)))
     }
 
+    function voiceDisplay() {
+        if (root.speaking) return "SPEAKING"
+        if (root.listening) return "LISTENING"
+        return "STANDBY"
+    }
+
     Connections {
         target: bridge
         function onStateChanged(payload) { root.setState(JSON.parse(payload)) }
@@ -147,7 +153,7 @@ ApplicationWindow {
         DeviceRow { y: 193; label: "BLUETOOTH"; state: "READY" }
         Rectangle { x: 12; y: 242; width: parent.width - 24; height: 128; color: "#04151e"; border.color: "#0a3441" }
         Text { x: 22; y: 252; text: "VOICE CHANNEL"; color: "#4fa7b7"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 278; text: root.voiceText; color: root.listening ? "#54f4ff" : "#b7dce3"; font.pixelSize: 13; font.bold: true }
+        Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#54f4ff" : root.speaking ? "#28ee70" : "#b7dce3"; font.pixelSize: 13; font.bold: true }
         Rectangle { x: 22; y: 305; width: 188; height: 30; color: "#021018"; border.color: "#0a3c4b" }
         Repeater {
             model: 22
@@ -164,7 +170,6 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 204; height: parent.height - 440; text: root.eventsText; color: "#8ebfc8"; font.pixelSize: 8; wrapMode: Text.Wrap; lineHeight: 1.25; elide: Text.ElideLeft }
     }
 
-    // Central holographic reactor: the J.A.R.V.I.S. identity is integrated into the moving core.
     Item {
         id: core
         x: root.width / 2 - 215; y: 92; width: 430; height: 430
@@ -213,14 +218,13 @@ ApplicationWindow {
             color: "#eaffff"
             font.pixelSize: 18
             font.bold: true
-            font.letterSpacing: 1.8
             style: Text.Outline
             styleColor: "#087b98"
             opacity: root.listening || root.speaking ? 1.0 : 0.94
             scale: 1.0 + Math.sin(root.t * 5) * (root.listening || root.speaking ? 0.025 : 0.008)
         }
 
-        Text { anchors.horizontalCenter: parent.horizontalCenter; y: 322; text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "SYSTEM READY"; color: root.listening ? "#54f4ff" : "#b9eaf0"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; y: 322; text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "SYSTEM READY"; color: root.listening ? "#54f4ff" : "#b9eaf0"; font.pixelSize: 11; font.bold: true }
         Text { anchors.horizontalCenter: parent.horizontalCenter; y: 342; text: "NEURAL PROCESSING // " + Math.round(root.activity * 100) + "%"; color: "#4fa7b7"; font.pixelSize: 7 }
     }
 
