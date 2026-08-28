@@ -6,5 +6,7 @@ psutil>=5.9.0
 websocket-client>=1.8.0
 
 # HUD grafico definitivo: Qt Quick / QML.
-# Compatibile con Python 3.11 su macOS Intel 10.13+ tramite wheel ABI3.
-PySide2==5.15.2.1
+# PyQt5 5.15.5 fornisce wheel ABI3 compatibili con Python 3.11
+# e macOS 10.13+ Intel, mantenendo Qt Quick/QML senza Tkinter/Canvas.
+PyQt5==5.15.5
+PyQt5-Qt5==5.15.2

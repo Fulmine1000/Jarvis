@@ -22,15 +22,15 @@ from pathlib import Path
 
 try:
     import psutil
-except Exception:  # pragma: no cover - dipendenza opzionale
+except Exception:
     psutil = None
 
 try:
-    from PySide2.QtCore import QObject, QTimer, Signal, Slot, QUrl
-    from PySide2.QtGui import QGuiApplication
-    from PySide2.QtQml import QQmlApplicationEngine
-    PYSIDE2_DISPONIBILE = True
-except Exception:  # pragma: no cover - consente i test senza GUI
+    from PyQt5.QtCore import QObject, QTimer, pyqtSignal as Signal, pyqtSlot as Slot, QUrl
+    from PyQt5.QtGui import QGuiApplication
+    from PyQt5.QtQml import QQmlApplicationEngine
+    QT_DISPONIBILE = True
+except Exception:
     QObject = object
     QTimer = None
     Signal = None
@@ -38,18 +38,15 @@ except Exception:  # pragma: no cover - consente i test senza GUI
     QUrl = None
     QGuiApplication = None
     QQmlApplicationEngine = None
-    PYSIDE2_DISPONIBILE = False
+    QT_DISPONIBILE = False
 
+PYSIDE2_DISPONIBILE = QT_DISPONIBILE
 
 ROOT = Path(__file__).resolve().parent
 QML_FILE = ROOT / "hud.qml"
 
-
-if PYSIDE2_DISPONIBILE:
-
+if QT_DISPONIBILE:
     class HUDBridge(QObject):
-        """Ponte thread-safe tra il backend Python e QML."""
-
         stateChanged = Signal(str)
         hideRequested = Signal()
         showRequested = Signal()
@@ -72,13 +69,11 @@ class HUDJarvis:
         self.kernel = kernel
         self.width = width
         self.height = height
-
         self.attivo = False
         self.ascolto = False
         self.parlando = False
         self.dati = {}
         self.eventi = []
-
         self.finestra = None
         self.engine = None
         self.app = None
@@ -90,86 +85,60 @@ class HUDJarvis:
         self._pending_state = None
         self._avvio_timestamp = time.monotonic()
 
-    # ------------------------------------------------------------------
-    # Ciclo di vita
-    # ------------------------------------------------------------------
     def avvia(self):
-        """Compatibilità con il vecchio modulo HUD.
-
-        Qt/QML su macOS deve vivere nel thread principale, quindi il launcher
-        ufficiale chiama ``_run_qt()`` direttamente. Se avvia() viene chiamato
-        dal main thread, entra nel loop Qt; da un thread secondario non forza
-        un'applicazione GUI in un contesto non supportato.
-        """
         if self.attivo:
             return True
-
-        if not PYSIDE2_DISPONIBILE:
-            self.registra_evento("Qt Quick non disponibile: installare PySide2 5.15.2.1")
+        if not QT_DISPONIBILE:
+            self.registra_evento("Qt Quick non disponibile: installare PyQt5 5.15.5")
             return False
-
         if threading.current_thread() is not threading.main_thread():
             self.registra_evento("HUD Qt Quick richiesto dal main thread")
             return False
-
         return self._run_qt()
 
     def _run_qt(self):
-        """Avvia il runtime Qt Quick e mantiene la finestra nel main thread."""
-        if not PYSIDE2_DISPONIBILE:
+        if not QT_DISPONIBILE:
             self._ready.set()
             self.attivo = False
             return False
-
         if not QML_FILE.exists():
             self.registra_evento(f"QML HUD non trovato: {QML_FILE}")
             self._ready.set()
             return False
-
         self._stop.clear()
         self._ready.clear()
         self._avvio_timestamp = time.monotonic()
         self.attivo = True
-
         try:
             self.app = QGuiApplication.instance()
             owns_app = self.app is None
             if owns_app:
                 self.app = QGuiApplication([])
-
             self.engine = QQmlApplicationEngine()
             self.bridge = HUDBridge()
             self.engine.rootContext().setContextProperty("bridge", self.bridge)
-
             self.engine.load(QUrl.fromLocalFile(str(QML_FILE)))
             roots = self.engine.rootObjects()
             if not roots:
                 raise RuntimeError("Qt Quick non ha creato la finestra HUD")
-
             self.finestra = roots[0]
             self.finestra.setProperty("width", self.width)
             self.finestra.setProperty("height", self.height)
             self.finestra.setProperty("title", "J.A.R.V.I.S. — Neural Command Interface")
-
             self.timer = QTimer()
             self.timer.setInterval(750)
             self.timer.timeout.connect(self._tick)
             self.timer.start()
-
             self._ready.set()
             self.registra_evento("HUD Qt Quick operativo")
             self._emetti_stato()
-
             if owns_app:
                 self.app.exec_()
             else:
-                # Normalmente non viene raggiunto dal launcher ufficiale.
                 while self.attivo and not self._stop.is_set():
                     self.app.processEvents()
                     time.sleep(0.01)
-
             return True
-
         except Exception as errore:
             self.registra_evento(f"Errore HUD Qt Quick: {errore}")
             self._ready.set()
@@ -219,9 +188,6 @@ class HUDJarvis:
         except Exception:
             pass
 
-    # ------------------------------------------------------------------
-    # Collegamento al Core
-    # ------------------------------------------------------------------
     def collega_kernel(self, kernel):
         self.kernel = kernel
         self.registra_evento("Kernel collegato")
@@ -240,12 +206,7 @@ class HUDJarvis:
         self._emetti_stato()
 
     def registra_evento(self, messaggio):
-        self.eventi.append(
-            (
-                datetime.datetime.now().strftime("%H:%M:%S"),
-                str(messaggio),
-            )
-        )
+        self.eventi.append((datetime.datetime.now().strftime("%H:%M:%S"), str(messaggio)))
         self.eventi = self.eventi[-18:]
         self._emetti_stato()
 
@@ -260,9 +221,6 @@ class HUDJarvis:
     def parla(self):
         self.imposta_parlato(True)
 
-    # ------------------------------------------------------------------
-    # Stato visualizzato
-    # ------------------------------------------------------------------
     def _tick(self):
         if not self.attivo or self._stop.is_set():
             return
@@ -273,9 +231,7 @@ class HUDJarvis:
             self._pending_state = self._stato_hud()
             return
         try:
-            self.bridge.stateChanged.emit(
-                json.dumps(self._stato_hud(), ensure_ascii=False)
-            )
+            self.bridge.stateChanged.emit(json.dumps(self._stato_hud(), ensure_ascii=False))
         except Exception:
             pass
 
@@ -285,18 +241,13 @@ class HUDJarvis:
         memoria = stato.get("memoria") or {}
         dispositivi = stato.get("dispositivi") or {}
         voce = stato.get("voce") or {}
-
         cpu = self._percentuale_cpu()
         memoria_percent = self._percentuale_memoria()
         disco_percent = self._percentuale_disco()
         rete = self._rete_percentuale()
-
         comando = self._ultimo_comando(stato)
         risposta = self._ultima_risposta(stato)
-        eventi = "\n".join(
-            f"{ora}  {messaggio}" for ora, messaggio in reversed(self.eventi[-10:])
-        )
-
+        eventi = "\n".join(f"{ora}  {messaggio}" for ora, messaggio in reversed(self.eventi[-10:]))
         activity = 0.22
         if self.ascolto:
             activity = 0.82
@@ -304,61 +255,45 @@ class HUDJarvis:
             activity = 0.94
         elif comando:
             activity = 0.55
-
         return {
             "state": "LISTENING" if self.ascolto else "SPEAKING" if self.parlando else "SYSTEM ONLINE",
             "command": comando or "Awaiting command...",
             "response": risposta or "Neural core standing by.",
             "clock": datetime.datetime.now().strftime("%H:%M:%S"),
             "date": datetime.datetime.now().strftime("%Y-%m-%d"),
-            "cpu": str(cpu),
-            "memory": str(memoria_percent),
-            "disk": str(disco_percent),
-            "network": str(rete),
-            "voice": "LISTENING" if self.ascolto else "SPEAKING" if self.parlando else (
-                "READY" if voce else "STANDBY"
-            ),
+            "cpu": str(cpu), "memory": str(memoria_percent), "disk": str(disco_percent), "network": str(rete),
+            "voice": "LISTENING" if self.ascolto else "SPEAKING" if self.parlando else ("READY" if voce else "STANDBY"),
             "memory_state": "ONLINE" if memoria else "READY",
             "devices": self._dispositivi_testo(dispositivi),
             "kernel": str(sistema.get("stato", "OPERATIONAL")).upper(),
-            "events": eventi,
-            "listening": self.ascolto,
-            "speaking": self.parlando,
-            "activity": activity,
+            "events": eventi, "listening": self.ascolto, "speaking": self.parlando, "activity": activity,
         }
 
     @staticmethod
     def _percentuale_cpu():
-        if psutil is None:
-            return 0
-        try:
-            return max(0, min(100, int(psutil.cpu_percent(interval=None))))
-        except Exception:
-            return 0
+        if psutil is None: return 0
+        try: return max(0, min(100, int(psutil.cpu_percent(interval=None))))
+        except Exception: return 0
 
     @staticmethod
     def _percentuale_memoria():
-        if psutil is None:
-            return 0
-        try:
-            return max(0, min(100, int(psutil.virtual_memory().percent)))
-        except Exception:
-            return 0
+        if psutil is None: return 0
+        try: return max(0, min(100, int(psutil.virtual_memory().percent)))
+        except Exception: return 0
 
     @staticmethod
     def _percentuale_disco():
         try:
-            return max(0, min(100, int(shutil.disk_usage(os.path.expanduser("~")).used * 100 / shutil.disk_usage(os.path.expanduser("~")).total)))
-        except Exception:
-            return 0
+            usage = shutil.disk_usage(os.path.expanduser("~"))
+            return max(0, min(100, int(usage.used * 100 / usage.total)))
+        except Exception: return 0
 
     @staticmethod
     def _rete_percentuale():
         try:
             socket.gethostbyname(socket.gethostname())
             return 100
-        except Exception:
-            return 0
+        except Exception: return 0
 
     @staticmethod
     def _ultimo_comando(stato):
@@ -366,8 +301,7 @@ class HUDJarvis:
             valore = stato.get(chiave)
             if isinstance(valore, dict):
                 for nome in ("ultimo_comando", "ultimo", "comando"):
-                    if valore.get(nome):
-                        return str(valore[nome])
+                    if valore.get(nome): return str(valore[nome])
         return ""
 
     @staticmethod
@@ -376,23 +310,18 @@ class HUDJarvis:
             valore = stato.get(chiave)
             if isinstance(valore, dict):
                 for nome in ("ultima_risposta", "risposta"):
-                    if valore.get(nome):
-                        return str(valore[nome])
+                    if valore.get(nome): return str(valore[nome])
         return ""
 
     @staticmethod
     def _dispositivi_testo(dispositivi):
-        if not isinstance(dispositivi, dict):
-            return "0 / 0"
-        totale = len(dispositivi)
-        online = 0
+        if not isinstance(dispositivi, dict): return "0 / 0"
+        totale = len(dispositivi); online = 0
         for valore in dispositivi.values():
             if isinstance(valore, dict):
                 stato = str(valore.get("stato", valore.get("state", ""))).lower()
-                if stato in {"online", "connesso", "connessa", "attivo", "operativo"}:
-                    online += 1
-            elif valore:
-                online += 1
+                if stato in {"online", "connesso", "connessa", "attivo", "operativo"}: online += 1
+            elif valore: online += 1
         return f"{online} / {totale}"
 
 
