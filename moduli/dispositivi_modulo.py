@@ -56,8 +56,10 @@ class ModuloDispositivi:
             nome="Telefono", modello="Dispositivo Android", base=False, logger=logger
         )
         self.gestore.registra("telefono", telefono)
-        self.connessione.connetti("telefono")
+        # Il telefono non viene più considerato realmente collegato solo
+        # perché Jarvis è stato avviato: lo stato fisico viene rilevato da ADB.
 
+        self.trasferimento.avvia_monitor_usb()
         self.attivo = True
         logger.info("Modulo Dispositivi J.A.R.V.I.S. definitivo attivo.")
         return True
