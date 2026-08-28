@@ -13,18 +13,25 @@ class SmartHomeJarvis:
         self.dispositivi = []
         self.carica()
 
+    @staticmethod
+    def _percorso_file():
+        """Restituisce il percorso del file come Path, anche se sovrascritto come stringa nei test."""
+        return Path(FILE_DISPOSITIVI)
+
     def carica(self):
-        if FILE_DISPOSITIVI.exists():
+        percorso = self._percorso_file()
+        if percorso.exists():
             try:
-                with FILE_DISPOSITIVI.open("r", encoding="utf-8") as file:
+                with percorso.open("r", encoding="utf-8") as file:
                     dati = json.load(file)
                 self.dispositivi = dati if isinstance(dati, list) else []
             except (OSError, json.JSONDecodeError, TypeError):
                 self.dispositivi = []
 
     def salva(self):
-        FILE_DISPOSITIVI.parent.mkdir(parents=True, exist_ok=True)
-        with FILE_DISPOSITIVI.open("w", encoding="utf-8") as file:
+        percorso = self._percorso_file()
+        percorso.parent.mkdir(parents=True, exist_ok=True)
+        with percorso.open("w", encoding="utf-8") as file:
             json.dump(self.dispositivi, file, indent=4, ensure_ascii=False)
 
     def aggiungi_dispositivo(self, nome, tipo):
