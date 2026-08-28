@@ -228,7 +228,7 @@ ApplicationWindow {
         }
         Rectangle { anchors.centerIn: parent; width: 36; height: 36; radius: 18; color: "#eaffff"; opacity: 0.92 }
 
-        Text { anchors.horizontalCenter: parent.horizontalCenter; y: 322; text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "JARVIS CORE"; color: root.listening ? "#54f4ff" : "#b9eaf0"; font.pixelSize: 11; font.bold: true; letterSpacing: 2 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; y: 322; text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "JARVIS CORE"; color: root.listening ? "#54f4ff" : "#b9eaf0"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
         Text { anchors.horizontalCenter: parent.horizontalCenter; y: 342; text: "NEURAL PROCESSING // " + Math.round(root.activity * 100) + "%"; color: "#4fa7b7"; font.pixelSize: 7 }
     }
 
