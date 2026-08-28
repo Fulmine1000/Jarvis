@@ -1,179 +1,70 @@
 import json
-import os
+from pathlib import Path
 
 
-FILE_DISPOSITIVI = "smart_devices.json"
+FILE_DISPOSITIVI = Path(__file__).resolve().parent / "smart_devices.json"
 
 
 class SmartHomeJarvis:
-
+    """Gestione persistente dei dispositivi Smart Home di Jarvis."""
 
     def __init__(self):
-
         self.nome = "Smart Home"
-
         self.dispositivi = []
-
         self.carica()
 
-
-
     def carica(self):
-
-        if os.path.exists(FILE_DISPOSITIVI):
-
+        if FILE_DISPOSITIVI.exists():
             try:
-
-                with open(
-                    FILE_DISPOSITIVI,
-                    "r",
-                    encoding="utf-8"
-                ) as file:
-
-                    self.dispositivi = json.load(file)
-
-
-            except:
-
+                with FILE_DISPOSITIVI.open("r", encoding="utf-8") as file:
+                    dati = json.load(file)
+                self.dispositivi = dati if isinstance(dati, list) else []
+            except (OSError, json.JSONDecodeError, TypeError):
                 self.dispositivi = []
 
-
-
     def salva(self):
+        FILE_DISPOSITIVI.parent.mkdir(parents=True, exist_ok=True)
+        with FILE_DISPOSITIVI.open("w", encoding="utf-8") as file:
+            json.dump(self.dispositivi, file, indent=4, ensure_ascii=False)
 
-        with open(
-            FILE_DISPOSITIVI,
-            "w",
-            encoding="utf-8"
-        ) as file:
-
-            json.dump(
-                self.dispositivi,
-                file,
-                indent=4,
-                ensure_ascii=False
-            )
-
-
-
-    def aggiungi_dispositivo(
-        self,
-        nome,
-        tipo
-    ):
-
+    def aggiungi_dispositivo(self, nome, tipo):
         dispositivo = {
-
             "nome": nome,
-
             "tipo": tipo,
-
-            "stato": "spento"
-
+            "stato": "spento",
         }
-
-
-        self.dispositivi.append(
-            dispositivo
-        )
-
+        self.dispositivi.append(dispositivo)
         self.salva()
+        return f"{nome} aggiunto."
 
-
-        return (
-            f"{nome} aggiunto."
-        )
-
-
-
-    def accendi(
-        self,
-        nome
-    ):
-
+    def accendi(self, nome):
         for dispositivo in self.dispositivi:
-
-            if dispositivo["nome"].lower() == nome.lower():
-
+            if dispositivo.get("nome", "").lower() == nome.lower():
                 dispositivo["stato"] = "acceso"
-
                 self.salva()
+                return f"{nome} acceso."
+        return "Dispositivo non trovato."
 
-                return (
-                    f"{nome} acceso."
-                )
-
-
-        return (
-            "Dispositivo non trovato."
-        )
-
-
-
-    def spegni(
-        self,
-        nome
-    ):
-
+    def spegni(self, nome):
         for dispositivo in self.dispositivi:
-
-            if dispositivo["nome"].lower() == nome.lower():
-
+            if dispositivo.get("nome", "").lower() == nome.lower():
                 dispositivo["stato"] = "spento"
-
                 self.salva()
-
-                return (
-                    f"{nome} spento."
-                )
-
-
-        return (
-            "Dispositivo non trovato."
-        )
-
-
+                return f"{nome} spento."
+        return "Dispositivo non trovato."
 
     def lista(self):
-
         return self.dispositivi
 
-
-
     def stato(self):
-
         return {
-
             "sistema": self.nome,
-
-            "dispositivi": self.dispositivi
-
+            "dispositivi": self.dispositivi,
         }
-
-
 
 
 if __name__ == "__main__":
-
-
     casa = SmartHomeJarvis()
-
-
-    print(
-        casa.aggiungi_dispositivo(
-            "Luce soggiorno",
-            "lampada"
-        )
-    )
-
-
-    print(
-        casa.accendi(
-            "Luce soggiorno"
-        )
-    )
-
-
-    print(
-        casa.stato()
-    )
+    print(casa.aggiungi_dispositivo("Luce soggiorno", "lampada"))
+    print(casa.accendi("Luce soggiorno"))
+    print(casa.stato())
