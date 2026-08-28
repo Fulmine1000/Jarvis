@@ -4,3 +4,7 @@ vosk>=0.3.45
 sounddevice>=0.4.6
 psutil>=5.9.0
 websocket-client>=1.8.0
+
+# HUD grafico definitivo: Qt Quick / QML.
+# PySide2 5.15.2.1 dispone di wheel Intel macOS 10.13+ compatibili con Python 3.10+.
+PySide2==5.15.2.1
