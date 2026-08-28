@@ -77,19 +77,22 @@ class ModuloVoce:
             return True
 
     def ascolta_comando(self):
+        """Acquisisce audio senza modificare lo stato LISTENING dell'HUD.
+
+        Il microfono resta aperto continuamente per poter rilevare la wake word.
+        Per questo motivo ogni blocco audio NON deve essere rappresentato come
+        un nuovo ingresso/uscita dalla modalita LISTENING: lo stato visuale
+        viene gestito dal MotoreAscolto in base alla wake word.
+        """
         if not self.ascolto_attivo:
             return None
-        hud = getattr(self.kernel, "hud", None)
-        if hud:
-            hud.imposta_ascolto(True)
         try:
             audio = self.ascoltatore.ascolta()
             if not audio:
                 return None
             return self.riconoscitore.riconosci(audio)
-        finally:
-            if hud:
-                hud.imposta_ascolto(False)
+        except Exception:
+            return None
 
     def elabora_voce(self, testo):
         return self.assistente.elabora(testo)
