@@ -11,7 +11,7 @@ class SicurezzaJarvis:
     def __init__(self, file_log=FILE_LOG):
         self.nome = "Sicurezza Jarvis"
         self.protezione = True
-        self.utenti_autorizzati = ["Simone"]
+        self.utenti_autorizzati = ["Sir"]
         self.log = []
         self.file_log = file_log
         self.carica_log()
