@@ -14,11 +14,11 @@ class PersonalitaJarvis:
     def saluto(self):
         ora = datetime.now().hour
         if ora < 12:
-            apertura = ["Buongiorno.", "Buongiorno, Simone."]
+            apertura = ["Buongiorno.", "Buongiorno, Sir."]
         elif ora < 18:
-            apertura = ["Buon pomeriggio.", "Buon pomeriggio, Simone."]
+            apertura = ["Buon pomeriggio.", "Buon pomeriggio, Sir."]
         else:
-            apertura = ["Buonasera.", "Buonasera, Simone."]
+            apertura = ["Buonasera.", "Buonasera, Sir."]
         return random.choice(apertura) + " Tutti i sistemi sono pronti. Come posso assisterla?"
 
     def come_stai(self):
