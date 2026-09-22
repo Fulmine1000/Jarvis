@@ -235,7 +235,7 @@ if __name__ == "__main__":
     print(
         memoria.aggiungi(
             "colore",
-            "Il colore preferito di Simone è blu",
+            "Il colore preferito di Sir è blu",
             "preferenze",
             "alta"
         )
