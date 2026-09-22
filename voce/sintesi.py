@@ -15,7 +15,7 @@ class SintesiVocale:
         self.config = config
 
         self.motore = "piper"
-        self.modello = "voce/modelli/it_IT-jarvis.onnx"
+        self.modello = "voce/modelli/it_IT-riccardo-x_low.onnx"
         self.voce = "Jarvis"
         self.voce_sistema = None
         self.velocita = 1.0
@@ -182,7 +182,8 @@ class SintesiVocale:
 
         try:
             if prima:
-                self._parla_con_sistema(prima)
+                if not self._parla_con_piper(prima):
+                    self._parla_con_sistema(prima)
 
             subprocess.run(
                 ["say", "-v", voce, "-r", str(int(145 * self.velocita)), "Sir"],
@@ -190,7 +191,8 @@ class SintesiVocale:
             )
 
             if dopo:
-                self._parla_con_sistema(dopo)
+                if not self._parla_con_piper(dopo):
+                    self._parla_con_sistema(dopo)
 
             return True
         except (OSError, subprocess.SubprocessError):
