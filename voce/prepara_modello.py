@@ -175,6 +175,121 @@ def compila_espeak_high_sierra(temporanea, lib_destinazione):
 
     return True
 
+def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
+    """Ricompila ONNX Runtime 1.14.1 senza CoreML con target macOS 10.13."""
+    git = shutil.which("git")
+    if not git:
+        raise RuntimeError(
+            "Git non disponibile: per High Sierra serve Git per ricompilare "
+            "ONNX Runtime 1.14.1"
+        )
+
+    sorgente = os.path.join(temporanea, "onnxruntime-src")
+    build = os.path.join(temporanea, "onnxruntime-build")
+    url = "https://github.com/microsoft/onnxruntime.git"
+
+    print(
+        "High Sierra rilevato: ricompilo ONNX Runtime 1.14.1 "
+        "con deployment target 10.13 e CoreML disabilitato..."
+    )
+
+    if os.path.isdir(sorgente):
+        subprocess.run(["rm", "-rf", sorgente], check=False)
+
+    risultato = subprocess.run(
+        [
+            git,
+            "clone",
+            "--depth", "1",
+            "--branch", "v1.14.1",
+            "--recurse-submodules",
+            url,
+            sorgente,
+        ],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("clone dei sorgenti ONNX Runtime 1.14.1 fallito")
+
+    build_script = os.path.join(sorgente, "build.sh")
+    if not os.path.isfile(build_script):
+        raise RuntimeError("build.sh di ONNX Runtime non trovato")
+
+    os.makedirs(build, exist_ok=True)
+
+    configurazione = [
+        build_script,
+        "--config", "Release",
+        "--build_shared_lib",
+        "--parallel", "2",
+        "--skip_tests",
+        "--skip_submodule_sync",
+        "--apple_deploy_target", "10.13",
+        "--osx_arch", "x86_64",
+        "--cmake_extra_defines",
+        "CMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+        "CMAKE_OSX_ARCHITECTURES=x86_64",
+        "onnxruntime_USE_COREML=OFF",
+        "onnxruntime_BUILD_UNIT_TESTS=OFF",
+    ]
+
+    risultato = subprocess.run(
+        configurazione,
+        cwd=sorgente,
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("compilazione di ONNX Runtime 1.14.1 fallita")
+
+    libreria = None
+    for radice, _, file in os.walk(os.path.join(sorgente, "build")):
+        if "libonnxruntime.1.14.1.dylib" in file:
+            libreria = os.path.join(radice, "libonnxruntime.1.14.1.dylib")
+            break
+
+    if not libreria:
+        raise RuntimeError(
+            "libonnxruntime.1.14.1.dylib non trovata dopo la compilazione"
+        )
+
+    os.makedirs(lib_destinazione, exist_ok=True)
+    destinazione = os.path.join(
+        lib_destinazione, "libonnxruntime.1.14.1.dylib"
+    )
+    shutil.copy2(libreria, destinazione)
+
+    # Rende il nome installato indipendente dal percorso della build.
+    install_name_tool = shutil.which("install_name_tool")
+    if not install_name_tool:
+        raise RuntimeError("install_name_tool non disponibile")
+
+    subprocess.run(
+        [
+            install_name_tool,
+            "-id",
+            "@rpath/libonnxruntime.1.14.1.dylib",
+            destinazione,
+        ],
+        check=False,
+    )
+
+    # Controllo fondamentale: la libreria ricompilata non deve contenere
+    # riferimenti al CoreML moderno che ha causato il crash su High Sierra.
+    otool = shutil.which("otool")
+    if otool:
+        info = subprocess.run(
+            [otool, "-L", destinazione],
+            capture_output=True,
+            check=False,
+        )
+        dipendenze = info.stdout.decode("utf-8", errors="replace")
+        if "CoreML.framework" in dipendenze:
+            raise RuntimeError(
+                "ONNX Runtime ricompilato contiene ancora una dipendenza CoreML"
+            )
+
+    return True
+
 def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
     """Ricompila libpiper_phonemize con target macOS 10.13."""
     cmake = shutil.which("cmake")
@@ -466,6 +581,16 @@ def installa_piper():
         # con deployment target 10.13. Il suo CMake ufficiale usa ONNX
         # Runtime 1.14.1 ed eSpeak NG come dipendenze.
         if versione_macos.startswith("10.13."):
+            # Il pacchetto piper-phonemize 2023.11.14-4 porta ONNX Runtime
+            # 1.14.1 precompilato per macOS 10.14. Su High Sierra quel
+            # binario richiama MLModelConfiguration, assente in CoreML 10.13.
+            # Ricostruiamo quindi ONNX Runtime con target 10.13 e senza CoreML
+            # prima di compilare piper-phonemize, così entrambe le librerie
+            # restano compatibili con il sistema.
+            compila_onnxruntime_high_sierra(
+                temporanea,
+                lib_destinazione,
+            )
             compila_espeak_high_sierra(temporanea, lib_destinazione)
             compila_piper_phonemize_high_sierra(
                 temporanea,
