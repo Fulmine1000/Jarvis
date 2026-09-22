@@ -15,7 +15,7 @@ class ConfigJarvis:
                 "versione": "definitiva",
                 "stato": "operativo",
             },
-            "utente": {"nome": "Sir"},
+            "utente": {"nome": "Simone"},
             "base": {
                 "dispositivo": "Motorola",
                 "tipo": "Android",
