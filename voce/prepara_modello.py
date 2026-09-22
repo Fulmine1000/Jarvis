@@ -31,7 +31,7 @@ def scarica(url, destinazione):
 
     # Su macOS High Sierra il Python 3.11 installato può non avere
     # una catena CA aggiornata. curl usa invece il trust store di macOS.
-    curl = shutil.which("curl") if "shutil" in globals() else None
+    curl = shutil.which("curl")
     if curl:
         risultato = subprocess.run(
             [
@@ -89,14 +89,24 @@ def installa_piper():
         "https://github.com/rhasspy/piper/releases/download/"
         "2023.11.14-2/piper_macos_x64.tar.gz"
     )
+    phonemize_url = (
+        "https://github.com/rhasspy/piper-phonemize/releases/download/"
+        "2023.11.14-4/piper-phonemize_macos_x64.tar.gz"
+    )
     archivio = os.path.join(MODEL_DIR, "piper_macos_x64.tar.gz")
+    archivio_phonemize = os.path.join(
+        MODEL_DIR, "piper-phonemize_macos_x64.tar.gz"
+    )
     temporanea = os.path.join(MODEL_DIR, "_piper_extract")
+    lib_destinazione = os.path.join(destinazione, "piper-phonemize", "lib")
 
     print("Piper Python non è installabile su High Sierra perché manca una wheel compatibile di onnxruntime.")
-    print("Scarico invece il binario Piper macOS Intel ufficiale...")
+    print("Scarico invece il binario Piper macOS Intel ufficiale e le librerie runtime...")
 
     try:
         scarica(url, archivio)
+        scarica(phonemize_url, archivio_phonemize)
+
         if os.path.isdir(temporanea):
             subprocess.run(["rm", "-rf", temporanea], check=False)
         os.makedirs(temporanea, exist_ok=True)
@@ -108,6 +118,13 @@ def installa_piper():
         if risultato.returncode != 0:
             raise RuntimeError("estrazione del binario Piper fallita")
 
+        risultato = subprocess.run(
+            ["tar", "-xzf", archivio_phonemize, "-C", temporanea],
+            check=False,
+        )
+        if risultato.returncode != 0:
+            raise RuntimeError("estrazione delle librerie Piper fallita")
+
         trovato = None
         for radice, _, file in os.walk(temporanea):
             candidato = os.path.join(radice, "piper")
@@ -116,11 +133,62 @@ def installa_piper():
                 break
 
         if not trovato:
-            raise RuntimeError("binario Piper non trovato nell'archivio")
+            raise RuntimeError("binario Piper non trovato negli archivi")
+
+        lib_origine = None
+        for radice, directory, _ in os.walk(temporanea):
+            if os.path.basename(radice) == "lib" and os.path.basename(os.path.dirname(radice)) == "piper-phonemize":
+                lib_origine = radice
+                break
+
+        if not lib_origine:
+            raise RuntimeError("librerie piper-phonemize non trovate nell'archivio")
 
         os.makedirs(destinazione, exist_ok=True)
+        os.makedirs(lib_destinazione, exist_ok=True)
+
         shutil.copy2(trovato, piper_path)
         os.chmod(piper_path, 0o755)
+
+        for nome in os.listdir(lib_origine):
+            origine = os.path.join(lib_origine, nome)
+            destinazione_lib = os.path.join(lib_destinazione, nome)
+            if os.path.isfile(origine):
+                shutil.copy2(origine, destinazione_lib)
+
+        # Il binario ufficiale usa @rpath per le dylib. Aggiungiamo una
+        # rpath relativa al binario, così Jarvis resta portabile e non
+        # dipende dal percorso assoluto dell'utente.
+        install_name_tool = shutil.which("install_name_tool")
+        if install_name_tool:
+            risultato = subprocess.run(
+                [
+                    install_name_tool,
+                    "-add_rpath",
+                    "@executable_path/piper-phonemize/lib",
+                    piper_path,
+                ],
+                check=False,
+            )
+            if risultato.returncode != 0:
+                raise RuntimeError("configurazione della rpath di Piper fallita")
+        else:
+            raise RuntimeError("install_name_tool non disponibile")
+
+        # Controllo reale: non basta che il file esista; Piper deve poter
+        # essere avviato sul Mac prima di dichiararlo disponibile.
+        controllo = subprocess.run(
+            [piper_path, "--help"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if controllo.returncode != 0:
+            errore = controllo.stderr.decode("utf-8", errors="replace").strip()
+            raise RuntimeError(
+                "Piper installato ma non avviabile"
+                + (f": {errore}" if errore else "")
+            )
 
         print(f"Piper installato: {piper_path}")
         return True
@@ -131,8 +199,9 @@ def installa_piper():
         try:
             if os.path.isdir(temporanea):
                 subprocess.run(["rm", "-rf", temporanea], check=False)
-            if os.path.isfile(archivio):
-                os.remove(archivio)
+            for file_temporaneo in (archivio, archivio_phonemize):
+                if os.path.isfile(file_temporaneo):
+                    os.remove(file_temporaneo)
         except OSError:
             pass
 
