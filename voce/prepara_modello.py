@@ -249,12 +249,17 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
     # le parti del progetto; il CMake di piper-phonemize inoltra le opzioni
     # necessarie al progetto esterno eSpeak NG.
     os.makedirs(build, exist_ok=True)
+    # Su High Sierra il clang di sistema non fornisce <filesystem>.
+    # L'eseguibile di esempio piper_phonemize_exe non è necessario a Jarvis:
+    # ci serve esclusivamente la libreria condivisa usata dal binario Piper.
+    # Disabilitiamo quindi la costruzione dell'eseguibile e delle CLI di test.
     configurazione = [
         cmake, "-S", sorgente_reale, "-B", build,
         f"-DCMAKE_INSTALL_PREFIX={prefix}",
         "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
         "-DBUILD_SHARED_LIBS=ON",
         "-DBUILD_TESTING=OFF",
+        "-DBUILD_EXAMPLES=OFF",
     ]
     risultato = subprocess.run(configurazione, check=False)
     if risultato.returncode != 0:
