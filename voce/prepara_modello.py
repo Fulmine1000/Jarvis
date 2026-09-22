@@ -77,9 +77,9 @@ def installa_piper():
     destinazione = os.path.join(BASE, "voce", "bin")
     piper_path = os.path.join(destinazione, "piper")
 
-    if os.path.isfile(piper_path) and os.access(piper_path, os.X_OK):
-        print("Piper TTS già disponibile.")
-        return True
+    # Anche se il binario esiste, controlliamo e ripariamo le librerie
+    # dinamiche: il pacchetto Piper macOS può essere presente senza
+    # libespeak-ng.1.dylib.
 
     if sys.platform != "darwin" or os.uname().machine not in ("x86_64", "amd64"):
         print("AVVISO: installazione automatica del binario Piper prevista per macOS Intel.")
@@ -101,22 +101,25 @@ def installa_piper():
     lib_destinazione = os.path.join(destinazione, "piper-phonemize", "lib")
 
     print("Piper Python non è installabile su High Sierra perché manca una wheel compatibile di onnxruntime.")
-    print("Scarico invece il binario Piper macOS Intel ufficiale e le librerie runtime...")
+    print("Preparo il binario Piper macOS Intel e tutte le librerie runtime necessarie...")
 
     try:
-        scarica(url, archivio)
+        if not os.path.isfile(piper_path):
+            scarica(url, archivio)
+
         scarica(phonemize_url, archivio_phonemize)
 
         if os.path.isdir(temporanea):
             subprocess.run(["rm", "-rf", temporanea], check=False)
         os.makedirs(temporanea, exist_ok=True)
 
-        risultato = subprocess.run(
-            ["tar", "-xzf", archivio, "-C", temporanea],
-            check=False,
-        )
-        if risultato.returncode != 0:
-            raise RuntimeError("estrazione del binario Piper fallita")
+        if os.path.isfile(archivio):
+            risultato = subprocess.run(
+                ["tar", "-xzf", archivio, "-C", temporanea],
+                check=False,
+            )
+            if risultato.returncode != 0:
+                raise RuntimeError("estrazione del binario Piper fallita")
 
         risultato = subprocess.run(
             ["tar", "-xzf", archivio_phonemize, "-C", temporanea],
@@ -132,51 +135,51 @@ def installa_piper():
                 trovato = candidato
                 break
 
-        if not trovato:
-            raise RuntimeError("binario Piper non trovato negli archivi")
+        if trovato:
+            os.makedirs(destinazione, exist_ok=True)
+            shutil.copy2(trovato, piper_path)
+            os.chmod(piper_path, 0o755)
+        elif not os.path.isfile(piper_path):
+            raise RuntimeError("binario Piper non trovato nell'archivio")
 
-        lib_origine = None
-        for radice, directory, _ in os.walk(temporanea):
-            if os.path.basename(radice) == "lib" and os.path.basename(os.path.dirname(radice)) == "piper-phonemize":
-                lib_origine = radice
-                break
+        dylib_trovate = []
+        for radice, _, file in os.walk(temporanea):
+            for nome in file:
+                if nome.endswith(".dylib"):
+                    dylib_trovate.append(os.path.join(radice, nome))
 
-        if not lib_origine:
-            raise RuntimeError("librerie piper-phonemize non trovate nell'archivio")
+        if not dylib_trovate:
+            raise RuntimeError("nessuna libreria .dylib trovata nel pacchetto Piper")
 
-        os.makedirs(destinazione, exist_ok=True)
         os.makedirs(lib_destinazione, exist_ok=True)
+        for origine in dylib_trovate:
+            nome = os.path.basename(origine)
+            shutil.copy2(origine, os.path.join(lib_destinazione, nome))
 
-        shutil.copy2(trovato, piper_path)
-        os.chmod(piper_path, 0o755)
-
-        for nome in os.listdir(lib_origine):
-            origine = os.path.join(lib_origine, nome)
-            destinazione_lib = os.path.join(lib_destinazione, nome)
-            if os.path.isfile(origine):
-                shutil.copy2(origine, destinazione_lib)
-
-        # Il binario ufficiale usa @rpath per le dylib. Aggiungiamo una
-        # rpath relativa al binario, così Jarvis resta portabile e non
-        # dipende dal percorso assoluto dell'utente.
         install_name_tool = shutil.which("install_name_tool")
-        if install_name_tool:
+        if not install_name_tool:
+            raise RuntimeError("install_name_tool non disponibile")
+
+        otool = shutil.which("otool")
+        rpath = "@executable_path/piper-phonemize/lib"
+        ha_rpath = False
+        if otool:
+            info = subprocess.run(
+                [otool, "-l", piper_path],
+                capture_output=True,
+                check=False,
+            )
+            testo = info.stdout.decode("utf-8", errors="replace")
+            ha_rpath = rpath in testo
+
+        if not ha_rpath:
             risultato = subprocess.run(
-                [
-                    install_name_tool,
-                    "-add_rpath",
-                    "@executable_path/piper-phonemize/lib",
-                    piper_path,
-                ],
+                [install_name_tool, "-add_rpath", rpath, piper_path],
                 check=False,
             )
             if risultato.returncode != 0:
                 raise RuntimeError("configurazione della rpath di Piper fallita")
-        else:
-            raise RuntimeError("install_name_tool non disponibile")
 
-        # Controllo reale: non basta che il file esista; Piper deve poter
-        # essere avviato sul Mac prima di dichiararlo disponibile.
         controllo = subprocess.run(
             [piper_path, "--help"],
             stdout=subprocess.DEVNULL,
