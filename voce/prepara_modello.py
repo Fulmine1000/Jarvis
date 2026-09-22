@@ -72,6 +72,33 @@ def verifica_modello():
     return sha256.hexdigest() == MODEL_SHA256
 
 
+def installa_piper():
+    """Installa Piper nel virtualenv se il comando non è già disponibile."""
+    if shutil.which("piper"):
+        print("Piper TTS già disponibile.")
+        return True
+
+    pip = os.path.join(sys.prefix, "bin", "pip")
+    if not os.path.isfile(pip):
+        pip = shutil.which("pip")
+
+    if not pip:
+        print("AVVISO: pip non trovato nel virtualenv; Piper non può essere installato automaticamente.")
+        return False
+
+    print("Piper TTS non trovato: installazione di piper-tts==1.3.0...")
+    risultato = subprocess.run(
+        [pip, "install", "--only-binary=:all:", "piper-tts==1.3.0"],
+        check=False,
+    )
+
+    if risultato.returncode != 0:
+        print("AVVISO: installazione di Piper non riuscita.")
+        print("Il modello Riccardo è stato comunque preparato.")
+        return False
+
+    return shutil.which("piper") is not None
+
 def main():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -89,8 +116,14 @@ def main():
     if not os.path.isfile(CONFIG_PATH):
         scarica(CONFIG_URL, CONFIG_PATH)
 
+    piper_ok = installa_piper()
+
     print("Voce italiana maschile Riccardo installata.")
     print(f"Modello: {MODEL_PATH}")
+    if piper_ok:
+        print("Motore Piper TTS: disponibile.")
+    else:
+        print("Motore Piper TTS: NON disponibile; Jarvis userà temporaneamente la voce di sistema.")
     return 0
 
 
