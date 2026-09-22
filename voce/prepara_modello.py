@@ -271,6 +271,26 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
     if not os.path.isfile(build_script):
         raise RuntimeError("build.sh di ONNX Runtime non trovato")
 
+    # ONNX Runtime 1.14.1 individua CMake internamente tramite PATH.
+    # Su High Sierra forziamo esplicitamente il CMake locale appena
+    # preparato, evitando che build.py ricada su /usr/local/bin/cmake.
+    build_python = os.path.join(sorgente, "tools", "ci_build", "build.py")
+    if os.path.isfile(build_python):
+        with open(build_python, "r", encoding="utf-8") as file:
+            build_testo = file.read()
+        build_testo_originale = build_testo
+        build_testo = build_testo.replace(
+            'cmake_path = shutil.which("cmake")',
+            'cmake_path = os.environ.get("JARVIS_CMAKE") or shutil.which("cmake")',
+        )
+        build_testo = build_testo.replace(
+            'cmake = shutil.which("cmake")',
+            'cmake = os.environ.get("JARVIS_CMAKE") or shutil.which("cmake")',
+        )
+        if build_testo != build_testo_originale:
+            with open(build_python, "w", encoding="utf-8") as file:
+                file.write(build_testo)
+
     os.makedirs(build, exist_ok=True)
 
     configurazione = [
@@ -291,6 +311,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
 
     ambiente = os.environ.copy()
     ambiente["PATH"] = os.path.dirname(cmake) + os.pathsep + ambiente.get("PATH", "")
+    ambiente["JARVIS_CMAKE"] = cmake
 
     risultato = subprocess.run(
         configurazione,
