@@ -11,5 +11,4 @@ websocket-client>=1.8.0
 PyQt5==5.15.5
 PyQt5-Qt5==5.15.2
 
-# Sintesi vocale neurale italiana Riccardo tramite Piper.
-piper-tts==1.3.0
+# Piper viene installato come binario macOS Intel da voce/prepara_modello.py.
