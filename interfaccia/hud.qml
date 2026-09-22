@@ -115,7 +115,7 @@ ApplicationWindow {
         Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "J.A.R.V.I.S."; color: "#e7fbff"; font.pixelSize: 15; font.bold: true }
         Text { x: 110; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#4fa7b7"; font.pixelSize: 8; font.bold: true }
         Text { anchors.centerIn: parent; text: "●  " + root.stateText; color: root.listening ? "#54f4ff" : "#28ee70"; font.pixelSize: 9; font.bold: true }
-        Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "SIMONE  //  " + root.clockText; color: "#8ebfc8"; font.pixelSize: 9 }
+        Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "SIR  //  " + root.clockText; color: "#8ebfc8"; font.pixelSize: 9 }
     }
 
     // Left telemetry panel
