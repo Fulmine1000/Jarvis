@@ -4,7 +4,9 @@
 import hashlib
 import os
 import sys
+import subprocess
 import urllib.request
+import shutil
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE, "voce", "modelli")
@@ -24,8 +26,38 @@ MODEL_SHA256 = "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b
 
 
 def scarica(url, destinazione):
+    """Scarica il modello usando curl su macOS e urllib come fallback."""
     print(f"Download: {os.path.basename(destinazione)}")
-    urllib.request.urlretrieve(url, destinazione)
+
+    # Su macOS High Sierra il Python 3.11 installato può non avere
+    # una catena CA aggiornata. curl usa invece il trust store di macOS.
+    curl = shutil.which("curl") if "shutil" in globals() else None
+    if curl:
+        risultato = subprocess.run(
+            [
+                curl,
+                "--fail",
+                "--location",
+                "--silent",
+                "--show-error",
+                "--output",
+                destinazione,
+                url,
+            ],
+            check=False,
+        )
+        if risultato.returncode == 0:
+            return
+
+    try:
+        urllib.request.urlretrieve(url, destinazione)
+    except Exception:
+        try:
+            if os.path.exists(destinazione):
+                os.remove(destinazione)
+        except OSError:
+            pass
+        raise
 
 
 def verifica_modello():
