@@ -101,6 +101,15 @@ class SintesiVocale:
         if os.path.isfile(candidato) and os.access(candidato, os.X_OK):
             return candidato
 
+        locale = os.path.join(
+            self._base_dir,
+            "voce",
+            "bin",
+            "piper",
+        )
+        if os.path.isfile(locale) and os.access(locale, os.X_OK):
+            return locale
+
         return None
 
     def _piper_disponibile(self):
