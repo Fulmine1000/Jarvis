@@ -1,6 +1,6 @@
 """Compatibilità del modulo voce storico di Jarvis.
 
-Il sistema ufficiale usa ``moduli.voce_modulo``; questa classe mantiene
+Il sistema ufficiale usa il modulo moduli.voce_modulo; questa classe mantiene
 l'API precedente senza riferimenti a versioni legacy e senza avviare thread
 alla semplice importazione.
 """
@@ -8,6 +8,7 @@ alla semplice importazione.
 import os
 import platform
 import queue
+import re
 import shlex
 import subprocess
 import threading
@@ -55,17 +56,31 @@ class VoceJarvis:
             self.coda.put(str(testo))
         return True
 
+    @staticmethod
+    def _testo_per_voce(testo):
+        """Prepara il testo per il TTS senza modificare ciò che Jarvis mostra.
+
+        L'appellativo resta scritto Sir nell'interfaccia e nelle risposte.
+        Per la voce italiana di macOS viene passato in minuscolo, così il
+        motore italiano tratta il termine come parola italiana invece di
+        applicare la pronuncia inglese di Sir.
+        """
+        testo = str(testo)
+        return re.sub(r"(?<!\w)Sir(?!\w)", "sir", testo)
+
     def esegui(self, testo):
         self.parlando = True
         try:
             print("JARVIS:", testo)
+            testo_voce = self._testo_per_voce(testo)
+
             if self.sistema == "Darwin":
                 subprocess.run(
-                    ["say", "-v", self.voce, "-r", str(self.velocita), str(testo)],
+                    ["say", "-v", self.voce, "-r", str(self.velocita), testo_voce],
                     check=False,
                 )
             elif self.sistema == "Linux":
-                subprocess.run(["espeak", str(testo)], check=False)
+                subprocess.run(["espeak", testo_voce], check=False)
             elif self.sistema == "Windows":
                 return False
             return True
