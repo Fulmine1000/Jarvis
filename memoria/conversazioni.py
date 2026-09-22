@@ -171,7 +171,7 @@ if __name__ == "__main__":
     print(
         chat.salva_messaggio(
             "Ciao Jarvis",
-            "Buongiorno Simone, come posso aiutarti?"
+            "Buongiorno Sir, come posso aiutarti?"
         )
     )
 
