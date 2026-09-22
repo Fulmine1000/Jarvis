@@ -17,7 +17,7 @@ class FintaDialogo:
 
 class FintaPreferenze:
     def leggi(self, chiave):
-        return "Simone" if chiave == "nome_utente" else None
+        return "Sir" if chiave == "nome_utente" else None
 
 
 class FintoContesto:
@@ -43,7 +43,7 @@ class TestCervelloJarvis(unittest.TestCase):
 
         self.assertEqual(risposta, "Risposta IA")
         self.assertIn("Stato Jarvis: Operativo", kernel.dialogo.richiesta)
-        self.assertIn("Nome utente configurato: Simone", kernel.dialogo.richiesta)
+        self.assertIn("Nome utente configurato: Sir", kernel.dialogo.richiesta)
         self.assertIn("Raccontami qualcosa", kernel.dialogo.richiesta)
 
     def test_stato(self):
