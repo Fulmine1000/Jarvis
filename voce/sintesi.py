@@ -133,13 +133,12 @@ class SintesiVocale:
         return re.search(r"(?<!\w)Sir(?!\w)", str(testo)) is not None
 
     def _testo_con_pronuncia_sir(self, testo):
-        """Prepara 'Sir' con fonemi Apple, senza modificare il testo mostrato.
+        """Prepara 'Sir' con una resa fonetica compatibile con la voce italiana.
 
-        Il doppiaggio italiano di Jarvis usa una resa di 'Sir' più profonda
-        e allungata rispetto alla lettura italiana automatica. macOS dispone
-        di una modalità PHON che permette di fornire direttamente i fonemi.
-        Per il sistema fonetico italiano di Apple, '3:' rappresenta /ɜː/ e
-        'r' la consonante finale; quindi 's3:r' punta direttamente a /sɜːr/.
+        macOS non tratta in modo uniforme i comandi PHON tra le diverse voci;
+        alcune voci pronunciano letteralmente i simboli. Per questo usiamo
+        una grafia fonetica ASCII breve e controllabile. 'srr' evita sia la
+        lettura inglese di 'Sir' sia la trasformazione di 'sər' in 'seior'.
         """
         testo = str(testo)
 
@@ -148,7 +147,7 @@ class SintesiVocale:
 
         return re.sub(
             r"(?<!\w)Sir(?!\w)",
-            "[[inpt PHON]]s3:r[[inpt TEXT]]",
+            "srr",
             testo,
         )
 
