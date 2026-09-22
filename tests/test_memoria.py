@@ -99,8 +99,8 @@ class TestPreferenze(unittest.TestCase):
 
     def test_imposta_e_leggi(self):
         """imposta() e leggi() sono coerenti."""
-        self.pref.imposta("nome_utente", "Sir")
-        self.assertEqual(self.pref.leggi("nome_utente"), "Sir")
+        self.pref.imposta("nome_utente", "Simone")
+        self.assertEqual(self.pref.leggi("nome_utente"), "Simone")
 
     def test_predefinite(self):
         """Le preferenze hanno valori predefiniti."""
