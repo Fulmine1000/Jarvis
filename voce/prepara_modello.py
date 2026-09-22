@@ -73,31 +73,69 @@ def verifica_modello():
 
 
 def installa_piper():
-    """Installa Piper nel virtualenv se il comando non è già disponibile."""
-    if shutil.which("piper"):
+    """Installa il binario Piper macOS x86_64 senza dipendere da onnxruntime."""
+    destinazione = os.path.join(BASE, "voce", "bin")
+    piper_path = os.path.join(destinazione, "piper")
+
+    if os.path.isfile(piper_path) and os.access(piper_path, os.X_OK):
         print("Piper TTS già disponibile.")
         return True
 
-    pip = os.path.join(sys.prefix, "bin", "pip")
-    if not os.path.isfile(pip):
-        pip = shutil.which("pip")
-
-    if not pip:
-        print("AVVISO: pip non trovato nel virtualenv; Piper non può essere installato automaticamente.")
+    if sys.platform != "darwin" or os.uname().machine not in ("x86_64", "amd64"):
+        print("AVVISO: installazione automatica del binario Piper prevista per macOS Intel.")
         return False
 
-    print("Piper TTS non trovato: installazione di piper-tts==1.3.0...")
-    risultato = subprocess.run(
-        [pip, "install", "--only-binary=:all:", "piper-tts==1.3.0"],
-        check=False,
+    url = (
+        "https://github.com/rhasspy/piper/releases/download/"
+        "2023.11.14-2/piper_macos_x64.tar.gz"
     )
+    archivio = os.path.join(MODEL_DIR, "piper_macos_x64.tar.gz")
+    temporanea = os.path.join(MODEL_DIR, "_piper_extract")
 
-    if risultato.returncode != 0:
-        print("AVVISO: installazione di Piper non riuscita.")
-        print("Il modello Riccardo è stato comunque preparato.")
+    print("Piper Python non è installabile su High Sierra perché manca una wheel compatibile di onnxruntime.")
+    print("Scarico invece il binario Piper macOS Intel ufficiale...")
+
+    try:
+        scarica(url, archivio)
+        if os.path.isdir(temporanea):
+            subprocess.run(["rm", "-rf", temporanea], check=False)
+        os.makedirs(temporanea, exist_ok=True)
+
+        risultato = subprocess.run(
+            ["tar", "-xzf", archivio, "-C", temporanea],
+            check=False,
+        )
+        if risultato.returncode != 0:
+            raise RuntimeError("estrazione del binario Piper fallita")
+
+        trovato = None
+        for radice, _, file in os.walk(temporanea):
+            candidato = os.path.join(radice, "piper")
+            if os.path.isfile(candidato):
+                trovato = candidato
+                break
+
+        if not trovato:
+            raise RuntimeError("binario Piper non trovato nell'archivio")
+
+        os.makedirs(destinazione, exist_ok=True)
+        shutil.copy2(trovato, piper_path)
+        os.chmod(piper_path, 0o755)
+
+        print(f"Piper installato: {piper_path}")
+        return True
+    except Exception as errore:
+        print(f"AVVISO: installazione del binario Piper non riuscita: {errore}")
         return False
+    finally:
+        try:
+            if os.path.isdir(temporanea):
+                subprocess.run(["rm", "-rf", temporanea], check=False)
+            if os.path.isfile(archivio):
+                os.remove(archivio)
+        except OSError:
+            pass
 
-    return shutil.which("piper") is not None
 
 def main():
     os.makedirs(MODEL_DIR, exist_ok=True)
