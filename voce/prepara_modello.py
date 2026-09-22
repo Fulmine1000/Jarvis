@@ -244,6 +244,30 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         with open(header_uni_algo, "w", encoding="utf-8") as file:
             file.write(header)
 
+    # La release 2023.11.14-4 non offre un'opzione CMake per disabilitare
+    # la CLI/test. Su High Sierra <filesystem> non esiste nel libc++ di sistema,
+    # quindi rimuoviamo i due target che non servono al runtime di Jarvis.
+    cmake_lists = os.path.join(sorgente_reale, "CMakeLists.txt")
+    with open(cmake_lists, "r", encoding="utf-8") as file:
+        cmake_source = file.read()
+
+    blocco_cli = cmake_source.find("# ---- Declare executable ----")
+    blocco_test = cmake_source.find("# ---- Declare test ----")
+    blocco_install = cmake_source.find("# ---- Declare install targets ----")
+    if blocco_cli < 0 or blocco_test < 0 or blocco_install < 0:
+        raise RuntimeError("struttura CMake di piper-phonemize non riconosciuta")
+
+    cmake_source = (
+        cmake_source[:blocco_cli]
+        + "# ---- High Sierra: CLI e test disabilitati ----\\n\\n"
+        + cmake_source[blocco_install:]
+    )
+    cmake_source = cmake_source.replace(
+        "install(\n    TARGETS piper_phonemize_exe\n    ARCHIVE DESTINATION " + "${CMAKE_INSTALL_BINDIR}" + ")\n\n",
+        "",
+    )
+    with open(cmake_lists, "w", encoding="utf-8") as file:
+        file.write(cmake_source)
     # Il CMake ufficiale scarica automaticamente ONNX Runtime 1.14.1 e
     # ricompila eSpeak NG. Passiamo esplicitamente il target 10.13 a tutte
     # le parti del progetto; il CMake di piper-phonemize inoltra le opzioni
