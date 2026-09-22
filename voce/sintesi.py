@@ -257,6 +257,10 @@ class SintesiVocale:
                 platform.system() == "Darwin"
                 and self._contiene_appellativo_sir(testo)
             ):
+                # "Sir" viene pronunciato in inglese; il resto resta italiano.
+                if self._parla_sir_inglese(testo):
+                    return True
+                # Fallback alla voce italiana se non c'e una voce inglese.
                 if self._parla_con_sistema(testo):
                     return True
 
