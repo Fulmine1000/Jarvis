@@ -3,6 +3,7 @@ import platform
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -15,7 +16,13 @@ class SintesiVocale:
         self.config = config
 
         self.motore = "piper"
-        self.modello = "voce/modelli/it_IT-riccardo-x_low.onnx"
+        self._base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.modello = os.path.join(
+            self._base_dir,
+            "voce",
+            "modelli",
+            "it_IT-riccardo-x_low.onnx",
+        )
         self.voce = "Jarvis"
         self.voce_sistema = None
         self.velocita = 1.0
@@ -25,7 +32,8 @@ class SintesiVocale:
         if config:
             voce_config = config.sezione("voce")
             self.motore = voce_config.get("motore", self.motore)
-            self.modello = voce_config.get("modello", self.modello)
+            modello_config = voce_config.get("modello", self.modello)
+            self.modello = self._percorso_modello(modello_config)
             self.velocita = float(voce_config.get("velocita", self.velocita))
             self.volume = int(voce_config.get("volume", self.volume))
             self.stile = voce_config.get("stile", self.stile)
@@ -76,10 +84,29 @@ class SintesiVocale:
 
         return None
 
+    def _percorso_modello(self, modello):
+        """Rende assoluto il percorso del modello rispetto alla repository."""
+        percorso = os.path.expanduser(str(modello))
+        if os.path.isabs(percorso):
+            return percorso
+        return os.path.normpath(os.path.join(self._base_dir, percorso))
+
+    def _trova_piper(self):
+        """Trova Piper anche quando Jarvis viene avviato da un'altra cartella."""
+        trovato = shutil.which("piper")
+        if trovato:
+            return trovato
+
+        candidato = os.path.join(sys.prefix, "bin", "piper")
+        if os.path.isfile(candidato) and os.access(candidato, os.X_OK):
+            return candidato
+
+        return None
+
     def _piper_disponibile(self):
         return (
             self.motore.lower() == "piper"
-            and shutil.which("piper") is not None
+            and self._trova_piper() is not None
             and os.path.isfile(self.modello)
         )
 
@@ -105,8 +132,12 @@ class SintesiVocale:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as file_audio:
                 percorso = file_audio.name
 
+            piper = self._trova_piper()
+            if not piper:
+                return False
+
             processo = subprocess.run(
-                ["piper", "--model", self.modello, "--output_file", percorso],
+                [piper, "--model", self.modello, "--output_file", percorso],
                 input=testo,
                 text=True,
                 capture_output=True,
@@ -279,7 +310,7 @@ class SintesiVocale:
         return True
 
     def cambia_modello(self, modello):
-        self.modello = str(modello)
+        self.modello = self._percorso_modello(modello)
         return self.modello
 
     def cambia_velocita(self, velocita):
