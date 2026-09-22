@@ -200,7 +200,7 @@ class SintesiVocale:
         """Usa il motore vocale integrato nel sistema operativo."""
         if platform.system() == "Darwin" and shutil.which("say"):
             voce = self.voce_sistema
-            testo_voce = self._testo_con_pronuncia_sir(testo)
+            testo_voce = str(testo)
 
             if voce:
                 try:
