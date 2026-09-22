@@ -24,6 +24,61 @@ MODEL_PATH = os.path.join(MODEL_DIR, "it_IT-riccardo-x_low.onnx")
 CONFIG_PATH = os.path.join(MODEL_DIR, "it_IT-riccardo-x_low.onnx.json")
 MODEL_SHA256 = "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b"
 
+CMAKE_HIGH_SIERRA_URL = (
+    "https://github.com/Kitware/CMake/releases/download/v3.31.12/"
+    "cmake-3.31.12-macos10.10-universal.tar.gz"
+)
+
+
+def trova_cmake(temporanea):
+    """Restituisce CMake >= 3.24, scaricandone una copia locale su macOS vecchi."""
+    cmake = shutil.which("cmake")
+    if cmake:
+        versione = subprocess.run(
+            [cmake, "--version"],
+            capture_output=True,
+            check=False,
+        ).stdout.decode("utf-8", errors="replace")
+        try:
+            numero = versione.split()[2]
+            parti = tuple(int(x) for x in numero.split(".")[:2])
+        except (IndexError, ValueError):
+            parti = (0, 0)
+        if parti >= (3, 24):
+            return cmake
+
+    locale_dir = os.path.join(temporanea, "cmake-high-sierra")
+    locale_cmake = os.path.join(locale_dir, "cmake-3.31.12", "CMake.app", "Contents", "bin", "cmake")
+    if os.path.isfile(locale_cmake):
+        return locale_cmake
+
+    archivio = os.path.join(MODEL_DIR, "cmake-high-sierra.tar.gz")
+    print("CMake di sistema troppo vecchio: preparo CMake 3.31.12 compatibile con macOS 10.13...")
+    scarica(CMAKE_HIGH_SIERRA_URL, archivio)
+
+    if os.path.isdir(locale_dir):
+        subprocess.run(["rm", "-rf", locale_dir], check=False)
+    os.makedirs(locale_dir, exist_ok=True)
+    risultato = subprocess.run(
+        ["tar", "-xzf", archivio, "-C", locale_dir],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("estrazione di CMake 3.31.12 fallita")
+
+    if not os.path.isfile(locale_cmake):
+        candidati = []
+        for radice, _, file in os.walk(locale_dir):
+            if "cmake" in file and os.access(os.path.join(radice, "cmake"), os.X_OK):
+                candidati.append(os.path.join(radice, "cmake"))
+        if not candidati:
+            raise RuntimeError("eseguibile CMake 3.31.12 non trovato")
+        locale_cmake = candidati[0]
+
+    os.chmod(locale_cmake, 0o755)
+    return locale_cmake
+
+
 # Il runtime espeak-ng distribuito con piper-phonemize 2023.11.14-4
 # usa un formato Mach-O che High Sierra 10.13 non sa caricare. Per
 # questa versione di macOS ricostruiamo espeak-ng dallo stesso commit
@@ -84,7 +139,7 @@ def verifica_modello():
 
 def compila_espeak_high_sierra(temporanea, lib_destinazione):
     """Costruisce eSpeak NG con target macOS 10.13 per evitare dylib incompatibili."""
-    cmake = shutil.which("cmake")
+    cmake = trova_cmake(temporanea)
     if not cmake:
         raise RuntimeError(
             "CMake non disponibile: per High Sierra serve CMake per ricostruire "
@@ -186,6 +241,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
 
     sorgente = os.path.join(temporanea, "onnxruntime-src")
     build = os.path.join(temporanea, "onnxruntime-build")
+    cmake = trova_cmake(temporanea)
     url = "https://github.com/microsoft/onnxruntime.git"
 
     print(
@@ -648,6 +704,7 @@ def installa_piper():
                 archivio_phonemize,
                 os.path.join(MODEL_DIR, "espeak-ng-high-sierra.zip"),
                 os.path.join(MODEL_DIR, "piper-phonemize-high-sierra.zip"),
+                os.path.join(MODEL_DIR, "cmake-high-sierra.tar.gz"),
             ):
                 if os.path.isfile(file_temporaneo):
                     os.remove(file_temporaneo)
