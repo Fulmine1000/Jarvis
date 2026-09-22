@@ -95,7 +95,7 @@ class SintesiVocale:
         return False
 
     def _parla_con_piper(self, testo):
-        """Sintetizza e riproduci il testo tramite Piper."""
+        """Sintetizza e riproduce il testo tramite Piper."""
         if not self._piper_disponibile():
             return False
 
@@ -133,24 +133,22 @@ class SintesiVocale:
         return re.search(r"(?<!\w)Sir(?!\w)", str(testo)) is not None
 
     def _testo_con_pronuncia_sir(self, testo):
-        """Prepara 'Sir' con la resa italiana cinematografica da maggiordomo.
+        """Prepara 'Sir' con fonemi Apple, senza modificare il testo mostrato.
 
-        Il testo visualizzato resta sempre 'Sir'. Per la sintesi, la parola
-        viene sostituita soltanto nel testo inviato al motore vocale con una
-        resa fonetica italiana pensata per ottenere il suono breve e profondo
-        da maggiordomo del doppiaggio italiano di Jarvis in Iron Man.
+        Il doppiaggio italiano di Jarvis usa una resa di 'Sir' più profonda
+        e allungata rispetto alla lettura italiana automatica. macOS dispone
+        di una modalità PHON che permette di fornire direttamente i fonemi.
+        Per il sistema fonetico italiano di Apple, '3:' rappresenta /ɜː/ e
+        'r' la consonante finale; quindi 's3:r' punta direttamente a /sɜːr/.
         """
         testo = str(testo)
 
         if platform.system() != "Darwin":
             return testo
 
-        # La grafia pronunciata dal motore italiano è volutamente diversa
-        # dalla grafia mostrata all'utente. Il carattere "ə" evita la lettura
-        # "sìr" e punta a una vocale centrale, breve, da maggiordomo.
         return re.sub(
             r"(?<!\w)Sir(?!\w)",
-            "sər",
+            "[[inpt PHON]]s3:r[[inpt TEXT]]",
             testo,
         )
 
@@ -211,8 +209,6 @@ class SintesiVocale:
         testo = str(testo).strip()
 
         try:
-            # Se la frase contiene "Sir", passiamo direttamente al TTS di
-            # sistema per poter alterare solo la pronuncia dell'appellativo.
             if (
                 platform.system() == "Darwin"
                 and self._contiene_appellativo_sir(testo)
