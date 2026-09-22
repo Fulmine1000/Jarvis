@@ -95,7 +95,7 @@ class SintesiVocale:
         return False
 
     def _parla_con_piper(self, testo):
-        """Sintetizza e riproduce il testo tramite Piper."""
+        """Sintetizza e riproduci il testo tramite Piper."""
         if not self._piper_disponibile():
             return False
 
@@ -130,27 +130,27 @@ class SintesiVocale:
 
     def _contiene_appellativo_sir(self, testo):
         """Rileva la parola intera 'Sir' senza toccare parole più lunghe."""
-        return re.search(r"(?<!\\w)Sir(?!\\w)", str(testo)) is not None
+        return re.search(r"(?<!\w)Sir(?!\w)", str(testo)) is not None
 
     def _testo_con_pronuncia_sir(self, testo):
-        """Prepara 'Sir' per la pronuncia britannica da maggiordomo.
+        """Prepara 'Sir' con la resa italiana cinematografica da maggiordomo.
 
-        Il testo resta visivamente 'Sir'. Su macOS, la sola parola 'Sir'
-        viene pronunciata dalla voce inglese britannica Daniel (/sɜːr/),
-        mentre il resto della frase rimane sulla voce italiana configurata.
+        Il testo visualizzato resta sempre 'Sir'. Per la sintesi, la parola
+        viene sostituita soltanto nel testo inviato al motore vocale con una
+        resa fonetica italiana pensata per ottenere il suono breve e profondo
+        da maggiordomo del doppiaggio italiano di Jarvis in Iron Man.
         """
         testo = str(testo)
 
         if platform.system() != "Darwin":
             return testo
 
-        voce_italiana = self.voce_sistema
-        if not voce_italiana:
-            return testo
-
+        # La grafia pronunciata dal motore italiano è volutamente diversa
+        # dalla grafia mostrata all'utente. Il carattere "ə" evita la lettura
+        # "sìr" e punta a una vocale centrale, breve, da maggiordomo.
         return re.sub(
-            r"(?<!\\w)Sir(?!\\w)",
-            f"[[voice:Daniel]]Sir[[voice:{voce_italiana}]]",
+            r"(?<!\w)Sir(?!\w)",
+            "sər",
             testo,
         )
 
@@ -211,9 +211,8 @@ class SintesiVocale:
         testo = str(testo).strip()
 
         try:
-            # Quando Jarvis deve dire "Sir", usiamo direttamente il motore
-            # vocale di macOS: così possiamo cambiare voce solo per quella
-            # parola e ottenere la pronuncia britannica /sɜːr/.
+            # Se la frase contiene "Sir", passiamo direttamente al TTS di
+            # sistema per poter alterare solo la pronuncia dell'appellativo.
             if (
                 platform.system() == "Darwin"
                 and self._contiene_appellativo_sir(testo)
