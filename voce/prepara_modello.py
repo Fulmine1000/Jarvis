@@ -24,6 +24,16 @@ MODEL_PATH = os.path.join(MODEL_DIR, "it_IT-riccardo-x_low.onnx")
 CONFIG_PATH = os.path.join(MODEL_DIR, "it_IT-riccardo-x_low.onnx.json")
 MODEL_SHA256 = "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b"
 
+# Il runtime espeak-ng distribuito con piper-phonemize 2023.11.14-4
+# usa un formato Mach-O che High Sierra 10.13 non sa caricare. Per
+# questa versione di macOS ricostruiamo espeak-ng dallo stesso commit
+# usato dal progetto Piper, impostando il deployment target 10.13.
+ESPEAK_COMMIT = "0f65aa301e0d6bae5e172cc74197d32a6182200f"
+ESPEAK_URL = (
+    "https://github.com/rhasspy/espeak-ng/archive/"
+    f"{ESPEAK_COMMIT}.zip"
+)
+
 
 def scarica(url, destinazione):
     """Scarica il modello usando curl su macOS e urllib come fallback."""
@@ -71,6 +81,99 @@ def verifica_modello():
 
     return sha256.hexdigest() == MODEL_SHA256
 
+
+def compila_espeak_high_sierra(temporanea, lib_destinazione):
+    """Costruisce eSpeak NG con target macOS 10.13 per evitare dylib incompatibili."""
+    cmake = shutil.which("cmake")
+    if not cmake:
+        raise RuntimeError(
+            "CMake non disponibile: per High Sierra serve CMake per ricostruire "
+            "espeak-ng con deployment target 10.13"
+        )
+
+    sorgente_zip = os.path.join(MODEL_DIR, "espeak-ng-high-sierra.zip")
+    sorgente = os.path.join(temporanea, "espeak-ng-src")
+    build = os.path.join(temporanea, "espeak-ng-build")
+    prefix = os.path.join(temporanea, "espeak-ng-install")
+
+    print("High Sierra rilevato: ricompilo eSpeak NG con deployment target 10.13...")
+    scarica(ESPEAK_URL, sorgente_zip)
+
+    os.makedirs(sorgente, exist_ok=True)
+    risultato = subprocess.run(
+        ["unzip", "-q", sorgente_zip, "-d", sorgente],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("estrazione dei sorgenti eSpeak NG fallita")
+
+    cartelle = [
+        os.path.join(sorgente, nome)
+        for nome in os.listdir(sorgente)
+        if os.path.isdir(os.path.join(sorgente, nome))
+    ]
+    if not cartelle:
+        raise RuntimeError("sorgenti eSpeak NG non trovati")
+    sorgente_reale = cartelle[0]
+
+    os.makedirs(build, exist_ok=True)
+    configurazione = [
+        cmake, "-S", sorgente_reale, "-B", build,
+        f"-DCMAKE_INSTALL_PREFIX={prefix}",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+        "-DBUILD_SHARED_LIBS=ON",
+        "-DUSE_ASYNC=OFF",
+        "-DUSE_MBROLA=OFF",
+        "-DUSE_LIBSONIC=OFF",
+        "-DUSE_LIBPCAUDIO=OFF",
+        "-DUSE_KLATT=OFF",
+        "-DUSE_SPEECHPLAYER=OFF",
+        "-DEXTRA_cmn=ON",
+        "-DEXTRA_ru=ON",
+        "-DCMAKE_C_FLAGS=-D_FILE_OFFSET_BITS=64",
+    ]
+    risultato = subprocess.run(configurazione, check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("configurazione CMake di eSpeak NG fallita")
+
+    risultato = subprocess.run(
+        [cmake, "--build", build, "--config", "Release"],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("compilazione di eSpeak NG fallita")
+
+    risultato = subprocess.run([cmake, "--install", build], check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("installazione locale di eSpeak NG fallita")
+
+    libreria = None
+    dati = None
+    for radice, _, file in os.walk(prefix):
+        if "libespeak-ng.1.dylib" in file:
+            libreria = os.path.join(radice, "libespeak-ng.1.dylib")
+        if os.path.basename(radice) == "espeak-ng-data":
+            dati = radice
+
+    if not libreria:
+        raise RuntimeError("libespeak-ng.1.dylib non trovata dopo la compilazione")
+
+    os.makedirs(lib_destinazione, exist_ok=True)
+    shutil.copy2(
+        libreria,
+        os.path.join(lib_destinazione, "libespeak-ng.1.dylib"),
+    )
+
+    if dati:
+        dati_destinazione = os.path.join(
+            os.path.dirname(lib_destinazione),
+            "espeak-ng-data",
+        )
+        if os.path.isdir(dati_destinazione):
+            subprocess.run(["rm", "-rf", dati_destinazione], check=False)
+        shutil.copytree(dati, dati_destinazione)
+
+    return True
 
 def installa_piper():
     """Installa il binario Piper macOS x86_64 senza dipendere da onnxruntime."""
@@ -156,6 +259,14 @@ def installa_piper():
             nome = os.path.basename(origine)
             shutil.copy2(origine, os.path.join(lib_destinazione, nome))
 
+        versione_macos = subprocess.run(
+            ["sw_vers", "-productVersion"],
+            capture_output=True,
+            check=False,
+        ).stdout.decode("utf-8", errors="replace").strip()
+        if versione_macos.startswith("10.13."):
+            compila_espeak_high_sierra(temporanea, lib_destinazione)
+
         install_name_tool = shutil.which("install_name_tool")
         if not install_name_tool:
             raise RuntimeError("install_name_tool non disponibile")
@@ -202,7 +313,11 @@ def installa_piper():
         try:
             if os.path.isdir(temporanea):
                 subprocess.run(["rm", "-rf", temporanea], check=False)
-            for file_temporaneo in (archivio, archivio_phonemize):
+            for file_temporaneo in (
+                archivio,
+                archivio_phonemize,
+                os.path.join(MODEL_DIR, "espeak-ng-high-sierra.zip"),
+            ):
                 if os.path.isfile(file_temporaneo):
                     os.remove(file_temporaneo)
         except OSError:
