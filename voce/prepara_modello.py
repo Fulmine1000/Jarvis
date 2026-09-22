@@ -289,9 +289,13 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         "onnxruntime_BUILD_UNIT_TESTS=OFF",
     ]
 
+    ambiente = os.environ.copy()
+    ambiente["PATH"] = os.path.dirname(cmake) + os.pathsep + ambiente.get("PATH", "")
+
     risultato = subprocess.run(
         configurazione,
         cwd=sorgente,
+        env=ambiente,
         check=False,
     )
     if risultato.returncode != 0:
