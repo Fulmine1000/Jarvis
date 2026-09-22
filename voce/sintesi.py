@@ -133,12 +133,12 @@ class SintesiVocale:
         return re.search(r"(?<!\w)Sir(?!\w)", str(testo)) is not None
 
     def _testo_con_pronuncia_sir(self, testo):
-        """Prepara 'Sir' con una resa fonetica compatibile con la voce italiana.
+        """Prepara 'Sir' con una resa fonetica adatta alla voce italiana.
 
-        macOS non tratta in modo uniforme i comandi PHON tra le diverse voci;
-        alcune voci pronunciano letteralmente i simboli. Per questo usiamo
-        una grafia fonetica ASCII breve e controllabile. 'srr' evita sia la
-        lettura inglese di 'Sir' sia la trasformazione di 'sər' in 'seior'.
+        Evitiamo sia la pronuncia inglese di 'Sir' sia le trascrizioni
+        fonetiche che alcune versioni di macOS leggono letteralmente.
+        La grafia italiana 'sèr' porta la voce verso il suono del
+        doppiaggio italiano di Jarvis.
         """
         testo = str(testo)
 
@@ -147,7 +147,7 @@ class SintesiVocale:
 
         return re.sub(
             r"(?<!\w)Sir(?!\w)",
-            "srr",
+            "sèr",
             testo,
         )
 
