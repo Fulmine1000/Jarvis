@@ -175,6 +175,107 @@ def compila_espeak_high_sierra(temporanea, lib_destinazione):
 
     return True
 
+def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
+    """Ricompila libpiper_phonemize con target macOS 10.13."""
+    cmake = shutil.which("cmake")
+    if not cmake:
+        raise RuntimeError(
+            "CMake non disponibile: per High Sierra serve CMake per "
+            "ricostruire piper-phonemize con deployment target 10.13"
+        )
+
+    sorgente_zip = os.path.join(
+        MODEL_DIR, "piper-phonemize-high-sierra.zip"
+    )
+    sorgente = os.path.join(temporanea, "piper-phonemize-src")
+    build = os.path.join(temporanea, "piper-phonemize-build")
+    prefix = os.path.join(temporanea, "piper-phonemize-install")
+
+    url = (
+        "https://github.com/rhasspy/piper-phonemize/archive/"
+        "refs/tags/2023.11.14-4.zip"
+    )
+
+    print(
+        "High Sierra rilevato: ricompilo piper-phonemize "
+        "con deployment target 10.13..."
+    )
+    scarica(url, sorgente_zip)
+
+    os.makedirs(sorgente, exist_ok=True)
+    risultato = subprocess.run(
+        ["unzip", "-q", sorgente_zip, "-d", sorgente],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("estrazione dei sorgenti piper-phonemize fallita")
+
+    cartelle = [
+        os.path.join(sorgente, nome)
+        for nome in os.listdir(sorgente)
+        if os.path.isdir(os.path.join(sorgente, nome))
+    ]
+    if not cartelle:
+        raise RuntimeError("sorgenti piper-phonemize non trovati")
+    sorgente_reale = cartelle[0]
+
+    # Il CMake ufficiale scarica automaticamente ONNX Runtime 1.14.1 e
+    # ricompila eSpeak NG. Passiamo esplicitamente il target 10.13 a tutte
+    # le parti del progetto; il CMake di piper-phonemize inoltra le opzioni
+    # necessarie al progetto esterno eSpeak NG.
+    os.makedirs(build, exist_ok=True)
+    configurazione = [
+        cmake, "-S", sorgente_reale, "-B", build,
+        f"-DCMAKE_INSTALL_PREFIX={prefix}",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+        "-DBUILD_SHARED_LIBS=ON",
+        "-DBUILD_TESTING=OFF",
+    ]
+    risultato = subprocess.run(configurazione, check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("configurazione CMake di piper-phonemize fallita")
+
+    risultato = subprocess.run(
+        [cmake, "--build", build, "--config", "Release"],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("compilazione di piper-phonemize fallita")
+
+    risultato = subprocess.run([cmake, "--install", build], check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("installazione locale di piper-phonemize fallita")
+
+    libreria = None
+    for radice, _, file in os.walk(prefix):
+        if "libpiper_phonemize.1.dylib" in file:
+            libreria = os.path.join(radice, "libpiper_phonemize.1.dylib")
+            break
+
+    if not libreria:
+        raise RuntimeError(
+            "libpiper_phonemize.1.dylib non trovata dopo la compilazione"
+        )
+
+    os.makedirs(lib_destinazione, exist_ok=True)
+    shutil.copy2(
+        libreria,
+        os.path.join(lib_destinazione, "libpiper_phonemize.1.dylib"),
+    )
+
+    # Copia anche l'eventuale nome senza versione, se generato dal linker.
+    for nome in ("libpiper_phonemize.dylib", "libpiper_phonemize.1.2.0.dylib"):
+        candidato = None
+        for radice, _, file in os.walk(prefix):
+            if nome in file:
+                candidato = os.path.join(radice, nome)
+                break
+        if candidato:
+            shutil.copy2(candidato, os.path.join(lib_destinazione, nome))
+
+    return True
+
+
 def installa_piper():
     """Installa il binario Piper macOS x86_64 senza dipendere da onnxruntime."""
     destinazione = os.path.join(BASE, "voce", "bin")
@@ -264,8 +365,18 @@ def installa_piper():
             capture_output=True,
             check=False,
         ).stdout.decode("utf-8", errors="replace").strip()
+
+        # High Sierra non riesce a caricare la libpiper_phonemize precompilata
+        # del pacchetto 2023.11.14-4 (load command 0x80000034). Non basta
+        # ricostruire eSpeak NG: anche piper-phonemize deve essere compilato
+        # con deployment target 10.13. Il suo CMake ufficiale usa ONNX
+        # Runtime 1.14.1 ed eSpeak NG come dipendenze.
         if versione_macos.startswith("10.13."):
             compila_espeak_high_sierra(temporanea, lib_destinazione)
+            compila_piper_phonemize_high_sierra(
+                temporanea,
+                lib_destinazione,
+            )
 
         install_name_tool = shutil.which("install_name_tool")
         if not install_name_tool:
@@ -317,6 +428,7 @@ def installa_piper():
                 archivio,
                 archivio_phonemize,
                 os.path.join(MODEL_DIR, "espeak-ng-high-sierra.zip"),
+                os.path.join(MODEL_DIR, "piper-phonemize-high-sierra.zip"),
             ):
                 if os.path.isfile(file_temporaneo):
                     os.remove(file_temporaneo)
