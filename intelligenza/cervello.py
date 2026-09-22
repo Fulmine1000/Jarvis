@@ -45,7 +45,7 @@ class CervelloJarvis:
         try:
             nome = self.kernel.preferenze.leggi("nome_utente")
             if nome:
-                parti.append(f"Nome utente configurato: {nome}")
+                parti.append(f"Nome utente configurato: {nome}")\n                parti.append("Appellativo da usare nelle risposte: Sir")
         except Exception:
             pass
         try:
