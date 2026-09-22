@@ -327,6 +327,37 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         if candidato:
             shutil.copy2(candidato, os.path.join(lib_destinazione, nome))
 
+    # libpiper_phonemize deve usare la libreria eSpeak NG ricompilata per
+    # High Sierra, non una copia precompilata proveniente dall'archivio.
+    espeak_compilato = os.path.join(
+        lib_destinazione, "libespeak-ng.1.dylib"
+    )
+    if not os.path.isfile(espeak_compilato):
+        raise RuntimeError(
+            "libespeak-ng.1.dylib compilata per High Sierra non trovata"
+        )
+
+    install_name_tool = shutil.which("install_name_tool")
+    if not install_name_tool:
+        raise RuntimeError("install_name_tool non disponibile")
+
+    # Il binario compilato da eSpeak può esportare il nome versionato;
+    # rendiamo il riferimento usato da piper-phonemize esplicito e locale.
+    piper_lib = os.path.join(
+        lib_destinazione, "libpiper_phonemize.1.dylib"
+    )
+    if os.path.isfile(piper_lib):
+        subprocess.run(
+            [
+                install_name_tool,
+                "-change",
+                "@rpath/libespeak-ng.dylib",
+                "@rpath/libespeak-ng.1.dylib",
+                piper_lib,
+            ],
+            check=False,
+        )
+
     return True
 
 
