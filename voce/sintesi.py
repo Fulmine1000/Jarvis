@@ -132,24 +132,69 @@ class SintesiVocale:
         """Rileva la parola intera 'Sir' senza toccare parole più lunghe."""
         return re.search(r"(?<!\w)Sir(?!\w)", str(testo)) is not None
 
-    def _testo_con_pronuncia_sir(self, testo):
-        """Prepara 'Sir' con una resa fonetica adatta alla voce italiana.
+    def _parla_sir_inglese(self, testo):
+        """Pronuncia 'Sir' con una voce inglese, lasciando il resto in italiano.
 
-        Evitiamo sia la pronuncia inglese di 'Sir' sia le trascrizioni
-        fonetiche che alcune versioni di macOS leggono letteralmente.
-        La grafia italiana 'sèr' porta la voce verso il suono del
-        doppiaggio italiano di Jarvis.
+        Questa modalità serve a ottenere la pronuncia inglese del campione
+        originale di Jarvis. La voce inglese viene usata solo per la parola
+        'Sir'; il resto della frase continua con la voce italiana.
         """
-        testo = str(testo)
+        if platform.system() != "Darwin" or not shutil.which("say"):
+            return False
 
-        if platform.system() != "Darwin":
-            return testo
+        match = re.search(r"(?<!\w)Sir(?!\w)", str(testo))
+        if not match:
+            return False
 
-        return re.sub(
-            r"(?<!\w)Sir(?!\w)",
-            "sèr",
-            testo,
-        )
+        voci_inglesi = []
+        try:
+            risultato = subprocess.run(
+                ["say", "-v", "?"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if risultato.returncode == 0:
+                for riga in risultato.stdout.splitlines():
+                    parti = riga.strip().split()
+                    if not parti:
+                        continue
+                    nome = parti[0]
+                    if "en_GB" in riga:
+                        voci_inglesi.append(nome)
+
+                for preferita in ("Daniel", "Oliver", "Arthur"):
+                    if preferita in voci_inglesi:
+                        voce = preferita
+                        break
+                else:
+                    voce = voci_inglesi[0] if voci_inglesi else None
+            else:
+                voce = None
+        except (OSError, subprocess.SubprocessError):
+            voce = None
+
+        if not voce:
+            return False
+
+        prima = str(testo)[:match.start()].strip()
+        dopo = str(testo)[match.end():].strip()
+
+        try:
+            if prima:
+                self._parla_con_sistema(prima)
+
+            subprocess.run(
+                ["say", "-v", voce, "-r", str(int(145 * self.velocita)), "Sir"],
+                check=False,
+            )
+
+            if dopo:
+                self._parla_con_sistema(dopo)
+
+            return True
+        except (OSError, subprocess.SubprocessError):
+            return False
 
     def _parla_con_sistema(self, testo):
         """Usa il motore vocale integrato nel sistema operativo."""
