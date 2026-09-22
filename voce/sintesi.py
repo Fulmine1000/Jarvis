@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -127,13 +128,38 @@ class SintesiVocale:
                 except OSError:
                     pass
 
+    def _contiene_appellativo_sir(self, testo):
+        """Rileva la parola intera 'Sir' senza toccare parole più lunghe."""
+        return re.search(r"(?<!\\w)Sir(?!\\w)", str(testo)) is not None
+
+    def _testo_con_pronuncia_sir(self, testo):
+        """Prepara 'Sir' per la pronuncia britannica da maggiordomo.
+
+        Il testo resta visivamente 'Sir'. Su macOS, la sola parola 'Sir'
+        viene pronunciata dalla voce inglese britannica Daniel (/sɜːr/),
+        mentre il resto della frase rimane sulla voce italiana configurata.
+        """
+        testo = str(testo)
+
+        if platform.system() != "Darwin":
+            return testo
+
+        voce_italiana = self.voce_sistema
+        if not voce_italiana:
+            return testo
+
+        return re.sub(
+            r"(?<!\\w)Sir(?!\\w)",
+            f"[[voice:Daniel]]Sir[[voice:{voce_italiana}]]",
+            testo,
+        )
+
     def _parla_con_sistema(self, testo):
         """Usa il motore vocale integrato nel sistema operativo."""
         if platform.system() == "Darwin" and shutil.which("say"):
             voce = self.voce_sistema
+            testo_voce = self._testo_con_pronuncia_sir(testo)
 
-            # Usa la voce italiana rilevata quando disponibile. Se non è
-            # disponibile, non tenta di invocare una voce inesistente.
             if voce:
                 try:
                     risultato = subprocess.run(
@@ -143,7 +169,7 @@ class SintesiVocale:
                             voce,
                             "-r",
                             str(int(170 * self.velocita)),
-                            testo,
+                            testo_voce,
                         ],
                         check=False,
                     )
@@ -152,14 +178,13 @@ class SintesiVocale:
                 except (OSError, subprocess.SubprocessError):
                     pass
 
-            # Ultimo fallback: voce predefinita di macOS.
             try:
                 risultato = subprocess.run(
                     [
                         "say",
                         "-r",
                         str(int(170 * self.velocita)),
-                        testo,
+                        testo_voce,
                     ],
                     check=False,
                 )
@@ -186,6 +211,16 @@ class SintesiVocale:
         testo = str(testo).strip()
 
         try:
+            # Quando Jarvis deve dire "Sir", usiamo direttamente il motore
+            # vocale di macOS: così possiamo cambiare voce solo per quella
+            # parola e ottenere la pronuncia britannica /sɜːr/.
+            if (
+                platform.system() == "Darwin"
+                and self._contiene_appellativo_sir(testo)
+            ):
+                if self._parla_con_sistema(testo):
+                    return True
+
             if self._parla_con_piper(testo):
                 return True
 
@@ -195,8 +230,6 @@ class SintesiVocale:
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
 
-        # Il fallback testuale è una modalità valida: parla() deve comunque
-        # segnalare che la richiesta è stata gestita anche senza audio.
         print(f"[JARVIS] {testo}")
         return True
 
