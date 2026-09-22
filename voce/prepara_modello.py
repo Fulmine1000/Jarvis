@@ -219,6 +219,31 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         raise RuntimeError("sorgenti piper-phonemize non trovati")
     sorgente_reale = cartelle[0]
 
+    # Clang incluso in High Sierra non digerisce correttamente alcune
+    # dichiarazioni constexpr generate da uni-algo nella release 2023.11.14-4.
+    # Dopo l'estrazione applichiamo una correzione compatibile che mantiene
+    # identico il comportamento, inizializzando esplicitamente i due piccoli
+    # wrapper di locale.
+    header_uni_algo = os.path.join(sorgente_reale, "src", "uni_algo.h")
+    if os.path.isfile(header_uni_algo):
+        with open(header_uni_algo, "r", encoding="utf-8") as file:
+            header = file.read()
+        header_originale = header
+        header = header.replace(
+            "constexpr region() noexcept = default;",
+            "constexpr region() noexcept : value(0) {}",
+        )
+        header = header.replace(
+            "constexpr script() noexcept = default;",
+            "constexpr script() noexcept : value(0) {}",
+        )
+        if header == header_originale:
+            raise RuntimeError(
+                "correzione High Sierra di uni_algo.h non applicata"
+            )
+        with open(header_uni_algo, "w", encoding="utf-8") as file:
+            file.write(header)
+
     # Il CMake ufficiale scarica automaticamente ONNX Runtime 1.14.1 e
     # ricompila eSpeak NG. Passiamo esplicitamente il target 10.13 a tutte
     # le parti del progetto; il CMake di piper-phonemize inoltra le opzioni
