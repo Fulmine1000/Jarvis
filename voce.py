@@ -56,17 +56,29 @@ class VoceJarvis:
             self.coda.put(str(testo))
         return True
 
-    @staticmethod
-    def _testo_per_voce(testo):
+    def _testo_per_voce(self, testo):
         """Prepara il testo per il TTS senza modificare ciò che Jarvis mostra.
 
-        L'appellativo resta scritto Sir nell'interfaccia e nelle risposte.
-        Per la voce italiana di macOS viene passato in minuscolo, così il
-        motore italiano tratta il termine come parola italiana invece di
-        applicare la pronuncia inglese di Sir.
+        L'appellativo resta scritto "Sir" in memoria, interfaccia e testo
+        visualizzato. Sul Mac la singola parola viene affidata alla voce
+        inglese britannica Daniel, per ottenere la pronuncia /sɜːr/. Subito
+        dopo viene ripristinata la voce italiana configurata.
         """
         testo = str(testo)
-        return re.sub(r"(?<!\w)Sir(?!\w)", "sir", testo)
+
+        if self.sistema != "Darwin":
+            return testo
+
+        voce = self.voce.replace("]", "")
+        sostituzione = (
+            f"[[voice:Daniel]]Sir[[voice:{voce}]]"
+        )
+
+        return re.sub(
+            r"(?<!\w)Sir(?!\w)",
+            sostituzione,
+            testo,
+        )
 
     def esegui(self, testo):
         self.parlando = True
