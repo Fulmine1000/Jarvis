@@ -400,14 +400,23 @@ def installa_piper():
         elif not os.path.isfile(piper_path):
             raise RuntimeError("binario Piper non trovato nell'archivio")
 
+        # Gli archivi Piper possono contenere anche i file di debug dSYM.
+        # Un dSYM può avere estensione .dylib ma NON è una libreria caricabile:
+        # copiarlo dopo la libreria reale la sovrascriverebbe e produrrebbe
+        # l'errore "mach-o, but wrong filetype" su High Sierra.
         dylib_trovate = []
         for radice, _, file in os.walk(temporanea):
+            # Non attraversiamo directory dSYM: contengono companion file
+            # Mach-O di tipo DSYM, non dylib eseguibili.
+            parti = radice.split(os.sep)
+            if any(parte.endswith(".dSYM") for parte in parti):
+                continue
             for nome in file:
                 if nome.endswith(".dylib"):
                     dylib_trovate.append(os.path.join(radice, nome))
 
         if not dylib_trovate:
-            raise RuntimeError("nessuna libreria .dylib trovata nel pacchetto Piper")
+            raise RuntimeError("nessuna libreria .dylib caricabile trovata nel pacchetto Piper")
 
         os.makedirs(lib_destinazione, exist_ok=True)
         for origine in dylib_trovate:
