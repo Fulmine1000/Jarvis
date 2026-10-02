@@ -289,6 +289,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         "--cmake_extra_defines",
         "CMAKE_OSX_DEPLOYMENT_TARGET=10.13",
         "CMAKE_OSX_ARCHITECTURES=x86_64",
+        "CMAKE_CXX_FLAGS=-D_LIBCPP_DISABLE_AVAILABILITY",
         "onnxruntime_USE_COREML=OFF",
         "onnxruntime_BUILD_UNIT_TESTS=OFF",
     ]
