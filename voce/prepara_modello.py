@@ -298,7 +298,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
                         pos = dopo
                         continue
                     match = re.match(
-                        r"std::array\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\{",
+                        r"std::array\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{",
                         source[indice:],
                     )
                     if not match:
@@ -362,7 +362,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
                     # Includiamo "const" se e immediatamente prima della
                     # dichiarazione. Il tipo viene dedotto dal primo elemento.
                     prefisso = source[pos:indice]
-                    match_const = re.search(r"const\\s+$", prefisso)
+                    match_const = re.search(r"const\s+$", prefisso)
                     if match_const:
                         output.append(source[pos:pos + match_const.start()])
                         output.append("const std::array<")
