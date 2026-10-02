@@ -455,22 +455,12 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
     os.makedirs(os.path.join(onnx_dir, "include"), exist_ok=True)
     os.makedirs(os.path.join(onnx_dir, "lib"), exist_ok=True)
 
-    header_sorgente = None
-    for candidato in (
-        os.path.join(sorgente, "build", "MacOS", "Release", "onnxruntime"),
-        os.path.join(sorgente, "include"),
-    ):
-        if os.path.isfile(os.path.join(candidato, "onnxruntime_c_api.h")):
-            header_sorgente = candidato
-            break
-    if not header_sorgente:
-        for radice, _, file in os.walk(os.path.join(sorgente, "build")):
-            if "onnxruntime_c_api.h" in file:
-                header_sorgente = radice
-                break
-    if not header_sorgente:
-        raise RuntimeError("header ONNX Runtime non trovato dopo la compilazione")
+    header_sorgente = os.path.join(sorgente, "include")
+    if not os.path.isdir(header_sorgente):
+        raise RuntimeError("directory include di ONNX Runtime non trovata")
 
+    # Manteniamo la struttura originale include/onnxruntime/... richiesta
+    # dagli header pubblici di ONNX Runtime.
     for radice, _, file in os.walk(header_sorgente):
         relativa = os.path.relpath(radice, header_sorgente)
         destinazione_dir = (
@@ -480,7 +470,10 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         )
         os.makedirs(destinazione_dir, exist_ok=True)
         for nome in file:
-            shutil.copy2(os.path.join(radice, nome), os.path.join(destinazione_dir, nome))
+            shutil.copy2(
+                os.path.join(radice, nome),
+                os.path.join(destinazione_dir, nome),
+            )
 
     shutil.copy2(
         os.path.join(lib_destinazione, "libonnxruntime.1.14.1.dylib"),
