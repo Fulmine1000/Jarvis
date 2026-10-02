@@ -7,6 +7,7 @@ import sys
 import subprocess
 import urllib.request
 import shutil
+import re
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE, "voce", "modelli")
@@ -268,48 +269,120 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         raise RuntimeError("clone dei sorgenti ONNX Runtime 1.14.1 fallito")
 
     # Il clang/libc++ di High Sierra non supporta il class template argument
-    # deduction usato da ONNX Runtime 1.14.1 per std::array. Il sorgente
-    # contiene 15 elementi base e altri 2 quando i contrib ops sono abilitati.
-    # Rendiamo quindi espliciti tipo e dimensione, mantenendo entrambe le
-    # configurazioni possibili.
-    header_layout = os.path.join(
-        sorgente,
-        "onnxruntime",
-        "core",
-        "optimizer",
-        "transpose_optimizer",
-        "layout_transformation_potentially_added_ops.h",
-    )
-    if not os.path.isfile(header_layout):
-        raise RuntimeError(
-            "header layout_transformation_potentially_added_ops.h non trovato"
-        )
+    # deduction (CTAD) usato da ONNX Runtime 1.14.1 per std::array. Il problema
+    # non riguarda una sola dichiarazione: possono comparire molte std::array
+    # locali, mentre la libc++ di macOS 10.13 non possiede le deduction guide.
+    # Convertiamo quindi automaticamente le dichiarazioni std::array con CTAD
+    # in dichiarazioni esplicite, senza modificare le std::array gia tipizzate.
+    def patch_std_array_ctad(root):
+        estensioni = {".h", ".hpp", ".cc", ".cpp", ".cxx"}
+        modificati = 0
+        for radice, _, nomi in os.walk(root):
+            for nome in nomi:
+                if os.path.splitext(nome)[1] not in estensioni:
+                    continue
+                percorso = os.path.join(radice, nome)
+                with open(percorso, "r", encoding="utf-8") as file:
+                    source = file.read()
+                output = []
+                pos = 0
+                file_modificato = False
+                while True:
+                    indice = source.find("std::array", pos)
+                    if indice < 0:
+                        output.append(source[pos:])
+                        break
+                    dopo = indice + len("std::array")
+                    if dopo < len(source) and source[dopo] == "<":
+                        output.append(source[pos:dopo])
+                        pos = dopo
+                        continue
+                    match = re.match(
+                        r"std::array\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\{",
+                        source[indice:],
+                    )
+                    if not match:
+                        output.append(source[pos:dopo])
+                        pos = dopo
+                        continue
+                    apertura = indice + match.end() - 1
+                    profondita = 0
+                    fine = None
+                    i = apertura
+                    while i < len(source):
+                        if source[i] == "{":
+                            profondita += 1
+                        elif source[i] == "}":
+                            profondita -= 1
+                            if profondita == 0:
+                                fine = i
+                                break
+                        i += 1
+                    if fine is None:
+                        output.append(source[pos:])
+                        break
+                    inizializzatore = source[apertura + 1:fine]
+                    elementi = []
+                    ultimo = 0
+                    tonde = quadre = graffe = 0
+                    stringa = None
+                    escape = False
+                    for j, carattere in enumerate(inizializzatore):
+                        if stringa is not None:
+                            if escape:
+                                escape = False
+                            elif carattere == "\\\\":
+                                escape = True
+                            elif carattere == stringa:
+                                stringa = None
+                            continue
+                        if carattere in ('"', "'"):
+                            stringa = carattere
+                        elif carattere == "(":
+                            tonde += 1
+                        elif carattere == ")":
+                            tonde -= 1
+                        elif carattere == "[":
+                            quadre += 1
+                        elif carattere == "]":
+                            quadre -= 1
+                        elif carattere == "{":
+                            graffe += 1
+                        elif carattere == "}":
+                            graffe -= 1
+                        elif carattere == "," and tonde == 0 and quadre == 0 and graffe == 0:
+                            elementi.append(inizializzatore[ultimo:j])
+                            ultimo = j + 1
+                    elementi.append(inizializzatore[ultimo:])
+                    elementi = [x.strip() for x in elementi if x.strip()]
+                    if not elementi:
+                        output.append(source[pos:fine + 1])
+                        pos = fine + 1
+                        continue
+                    # Includiamo "const" se e immediatamente prima della
+                    # dichiarazione. Il tipo viene dedotto dal primo elemento.
+                    prefisso = source[pos:indice]
+                    match_const = re.search(r"const\\s+$", prefisso)
+                    if match_const:
+                        output.append(source[pos:pos + match_const.start()])
+                        output.append("const std::array<")
+                    else:
+                        output.append(source[pos:indice])
+                        output.append("std::array<")
+                    primo = elementi[0]
+                    output.append("typename std::decay<decltype(" + primo + ")>::type")
+                    output.append(", " + str(len(elementi)) + "> ")
+                    output.append(match.group(1))
+                    output.append(source[apertura:fine + 1])
+                    pos = fine + 1
+                    file_modificato = True
+                if file_modificato:
+                    with open(percorso, "w", encoding="utf-8") as file:
+                        file.write("".join(output))
+                    modificati += 1
+        print("Compatibilita std::array High Sierra: " + str(modificati) + " file modificati.")
 
-    with open(header_layout, "r", encoding="utf-8") as file:
-        layout_source = file.read()
-
-    dichiarazione_auto = (
-        "inline constexpr std::array kLayoutTransformationPotentiallyAddedOps = {"
-    )
-    dichiarazione_compatibile = """#if defined(DISABLE_CONTRIB_OPS)
-inline constexpr std::array<OpIdentifierWithStringViews, 15> kLayoutTransformationPotentiallyAddedOps = {
-#else
-inline constexpr std::array<OpIdentifierWithStringViews, 17> kLayoutTransformationPotentiallyAddedOps = {
-#endif"""
-    if dichiarazione_auto not in layout_source:
-        raise RuntimeError(
-            "dichiarazione std::array di ONNX Runtime 1.14.1 non riconosciuta"
-        )
-
-    layout_source = layout_source.replace(
-        dichiarazione_auto,
-        dichiarazione_compatibile,
-        1,
-    )
-
-    with open(header_layout, "w", encoding="utf-8") as file:
-        file.write(layout_source)
-
+    patch_std_array_ctad(sorgente)
     build_script = os.path.join(sorgente, "build.sh")
     if not os.path.isfile(build_script):
         raise RuntimeError("build.sh di ONNX Runtime non trovato")
