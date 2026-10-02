@@ -267,6 +267,49 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
     if risultato.returncode != 0:
         raise RuntimeError("clone dei sorgenti ONNX Runtime 1.14.1 fallito")
 
+    # Il clang/libc++ di High Sierra non supporta il class template argument
+    # deduction usato da ONNX Runtime 1.14.1 per std::array. Il sorgente
+    # contiene 15 elementi base e altri 2 quando i contrib ops sono abilitati.
+    # Rendiamo quindi espliciti tipo e dimensione, mantenendo entrambe le
+    # configurazioni possibili.
+    header_layout = os.path.join(
+        sorgente,
+        "onnxruntime",
+        "core",
+        "optimizer",
+        "transpose_optimizer",
+        "layout_transformation_potentially_added_ops.h",
+    )
+    if not os.path.isfile(header_layout):
+        raise RuntimeError(
+            "header layout_transformation_potentially_added_ops.h non trovato"
+        )
+
+    with open(header_layout, "r", encoding="utf-8") as file:
+        layout_source = file.read()
+
+    dichiarazione_auto = (
+        "inline constexpr std::array kLayoutTransformationPotentiallyAddedOps = {"
+    )
+    dichiarazione_compatibile = """#if defined(DISABLE_CONTRIB_OPS)
+inline constexpr std::array<OpIdentifierWithStringViews, 15> kLayoutTransformationPotentiallyAddedOps = {
+#else
+inline constexpr std::array<OpIdentifierWithStringViews, 17> kLayoutTransformationPotentiallyAddedOps = {
+#endif"""
+    if dichiarazione_auto not in layout_source:
+        raise RuntimeError(
+            "dichiarazione std::array di ONNX Runtime 1.14.1 non riconosciuta"
+        )
+
+    layout_source = layout_source.replace(
+        dichiarazione_auto,
+        dichiarazione_compatibile,
+        1,
+    )
+
+    with open(header_layout, "w", encoding="utf-8") as file:
+        file.write(layout_source)
+
     build_script = os.path.join(sorgente, "build.sh")
     if not os.path.isfile(build_script):
         raise RuntimeError("build.sh di ONNX Runtime non trovato")
