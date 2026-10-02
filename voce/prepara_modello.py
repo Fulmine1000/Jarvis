@@ -274,23 +274,6 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
     # ONNX Runtime 1.14.1 individua CMake internamente tramite PATH.
     # Su High Sierra forziamo esplicitamente il CMake locale appena
     # preparato, evitando che build.py ricada su /usr/local/bin/cmake.
-    build_python = os.path.join(sorgente, "tools", "ci_build", "build.py")
-    if os.path.isfile(build_python):
-        with open(build_python, "r", encoding="utf-8") as file:
-            build_testo = file.read()
-        build_testo_originale = build_testo
-        build_testo = build_testo.replace(
-            'cmake_path = shutil.which("cmake")',
-            'cmake_path = os.environ.get("JARVIS_CMAKE") or shutil.which("cmake")',
-        )
-        build_testo = build_testo.replace(
-            'cmake = shutil.which("cmake")',
-            'cmake = os.environ.get("JARVIS_CMAKE") or shutil.which("cmake")',
-        )
-        if build_testo != build_testo_originale:
-            with open(build_python, "w", encoding="utf-8") as file:
-                file.write(build_testo)
-
     os.makedirs(build, exist_ok=True)
 
     configurazione = [
@@ -300,6 +283,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         "--parallel", "2",
         "--skip_tests",
         "--skip_submodule_sync",
+        "--cmake_path", cmake,
         "--apple_deploy_target", "10.13",
         "--osx_arch", "x86_64",
         "--cmake_extra_defines",
@@ -311,7 +295,6 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
 
     ambiente = os.environ.copy()
     ambiente["PATH"] = os.path.dirname(cmake) + os.pathsep + ambiente.get("PATH", "")
-    ambiente["JARVIS_CMAKE"] = cmake
 
     risultato = subprocess.run(
         configurazione,
@@ -373,7 +356,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
 
 def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
     """Ricompila libpiper_phonemize con target macOS 10.13."""
-    cmake = shutil.which("cmake")
+    cmake = trova_cmake(temporanea)
     if not cmake:
         raise RuntimeError(
             "CMake non disponibile: per High Sierra serve CMake per "
@@ -464,10 +447,48 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
     )
     with open(cmake_lists, "w", encoding="utf-8") as file:
         file.write(cmake_source)
-    # Il CMake ufficiale scarica automaticamente ONNX Runtime 1.14.1 e
-    # ricompila eSpeak NG. Passiamo esplicitamente il target 10.13 a tutte
-    # le parti del progetto; il CMake di piper-phonemize inoltra le opzioni
-    # necessarie al progetto esterno eSpeak NG.
+    # Usiamo le librerie già ricompilate per High Sierra invece delle build
+    # precompilate scaricate automaticamente da piper-phonemize.
+    onnx_dir = os.path.join(temporanea, "onnxruntime-local")
+    espeak_dir = os.path.join(temporanea, "espeak-ng-install")
+    os.makedirs(onnx_dir, exist_ok=True)
+    os.makedirs(os.path.join(onnx_dir, "include"), exist_ok=True)
+    os.makedirs(os.path.join(onnx_dir, "lib"), exist_ok=True)
+
+    header_sorgente = None
+    for candidato in (
+        os.path.join(sorgente, "build", "MacOS", "Release", "onnxruntime"),
+        os.path.join(sorgente, "include"),
+    ):
+        if os.path.isfile(os.path.join(candidato, "onnxruntime_c_api.h")):
+            header_sorgente = candidato
+            break
+    if not header_sorgente:
+        for radice, _, file in os.walk(os.path.join(sorgente, "build")):
+            if "onnxruntime_c_api.h" in file:
+                header_sorgente = radice
+                break
+    if not header_sorgente:
+        raise RuntimeError("header ONNX Runtime non trovato dopo la compilazione")
+
+    for radice, _, file in os.walk(header_sorgente):
+        relativa = os.path.relpath(radice, header_sorgente)
+        destinazione_dir = (
+            os.path.join(onnx_dir, "include")
+            if relativa == "."
+            else os.path.join(onnx_dir, "include", relativa)
+        )
+        os.makedirs(destinazione_dir, exist_ok=True)
+        for nome in file:
+            shutil.copy2(os.path.join(radice, nome), os.path.join(destinazione_dir, nome))
+
+    shutil.copy2(
+        os.path.join(lib_destinazione, "libonnxruntime.1.14.1.dylib"),
+        os.path.join(onnx_dir, "lib", "libonnxruntime.1.14.1.dylib"),
+    )
+
+    if not os.path.isdir(espeak_dir):
+        raise RuntimeError("installazione locale di eSpeak NG non trovata")
     os.makedirs(build, exist_ok=True)
     # Su High Sierra il clang di sistema non fornisce <filesystem>.
     # L'eseguibile di esempio piper_phonemize_exe non è necessario a Jarvis:
@@ -480,6 +501,8 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         "-DBUILD_SHARED_LIBS=ON",
         "-DBUILD_TESTING=OFF",
         "-DBUILD_EXAMPLES=OFF",
+        f"-DONNXRUNTIME_DIR={onnx_dir}",
+        f"-DESPEAK_NG_DIR={espeak_dir}",
     ]
     risultato = subprocess.run(configurazione, check=False)
     if risultato.returncode != 0:
