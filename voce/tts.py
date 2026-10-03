@@ -18,12 +18,28 @@ import subprocess
 import tempfile
 from typing import Optional
 
-try:
-    from TTS.api import TTS
-    HAS_TTS = True
-except ImportError:
-    TTS = None
-    HAS_TTS = False
+TTS = None
+HAS_TTS = None
+
+
+def _carica_coqui():
+    """Carica Coqui TTS solo quando la voce clonata viene realmente usata.
+
+    L'import di Coqui/XTTS è pesante su macOS meno recenti e non deve rallentare
+    l'avvio del Kernel, del riconoscimento Vosk o dell'HUD.
+    """
+    global TTS, HAS_TTS
+    if HAS_TTS is not None:
+        return bool(HAS_TTS)
+    try:
+        from TTS.api import TTS as CoquiTTS
+        TTS = CoquiTTS
+        HAS_TTS = True
+    except Exception as errore:
+        TTS = None
+        HAS_TTS = False
+        print(f"⚠️ Coqui TTS non disponibile: {errore}")
+    return bool(HAS_TTS)
 
 try:
     import pyttsx3
