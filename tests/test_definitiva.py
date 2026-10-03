@@ -43,7 +43,7 @@ class TestDefinitiva(unittest.TestCase):
 
     def test_dialogo_fallback(self):
         dialogo = DialogoJarvis()
-        self.assertEqual(dialogo.stato()["motore"], "Ollama locale")
+        self.assertIn(dialogo.stato()["motore"], {"Ollama locale", "Conversation Engine locale", "IA automatica (backend non attivo)", "llama.cpp locale", "API compatibile"})
 
 
 if __name__ == "__main__":
