@@ -21,7 +21,7 @@ SpeechRecognition==3.10.0
 # HTTP/configurazione usati dai componenti del progetto e dal Voice Pack.
 requests==2.31.0
 python-dotenv==1.0.0
-PyYAML==6.0
+PyYAML==6.0.2
 
 # Piper viene installato come binario macOS Intel da voce/prepara_modello.py.
 
