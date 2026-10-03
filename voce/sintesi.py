@@ -8,6 +8,11 @@ import tempfile
 
 from voce.elevenlabs import ElevenLabsVoce
 
+try:
+    from voce.tts import TextToSpeech
+except ImportError:
+    TextToSpeech = None
+
 
 class SintesiVocale:
     """Motore vocale ufficiale di Jarvis con Piper e fallback di sistema."""
@@ -19,6 +24,8 @@ class SintesiVocale:
 
         self.motore = os.environ.get("JARVIS_VOICE_PROVIDER", "piper").strip().lower()
         self.voce_clonata = ElevenLabsVoce()
+        self._voicepack_tts = None
+        self._voicepack_tts_attempted = False
         self._base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.modello = os.path.join(
             self._base_dir,
@@ -152,6 +159,38 @@ class SintesiVocale:
                 except OSError:
                     pass
         except (OSError, ValueError, RuntimeError):
+            return False
+
+    def _parla_con_voicepack(self, testo):
+        """Usa il motore TTS locale del Voice Pack con il campione WAV.
+
+        Il motore viene inizializzato solo quando serve, così la presenza del
+        modulo non rallenta l'avvio di Jarvis su macOS meno recenti.
+        """
+        if TextToSpeech is None:
+            return False
+
+        if self._voicepack_tts_attempted and self._voicepack_tts is None:
+            return False
+
+        if self._voicepack_tts is None:
+            self._voicepack_tts_attempted = True
+            try:
+                riferimento = os.environ.get("JARVIS_VOICE_REFERENCE", "").strip() or None
+                self._voicepack_tts = TextToSpeech(
+                    language="it_IT",
+                    speed=self.velocita,
+                    pitch=0.8,
+                    reference_wav=riferimento,
+                    use_voice_clone=True,
+                )
+            except Exception:
+                self._voicepack_tts = None
+                return False
+
+        try:
+            return bool(self._voicepack_tts.synthesize_and_play(testo))
+        except Exception:
             return False
 
     def _parla_con_piper(self, testo):
@@ -338,6 +377,11 @@ class SintesiVocale:
             if self._parla_con_piper(testo):
                 return True
 
+            # Se Piper non è disponibile, prova il Voice Pack locale con il
+            # campione WAV prima di ricorrere alla voce di sistema.
+            if self._parla_con_voicepack(testo):
+                return True
+
             if self._parla_con_sistema(testo):
                 return True
 
@@ -380,4 +424,20 @@ class SintesiVocale:
             "stile": self.stile,
             "piper_disponibile": self._piper_disponibile(),
             "voce_clonata_disponibile": self.voce_clonata.disponibile(),
+            "voicepack_tts_disponibile": TextToSpeech is not None,
+            "voicepack_tts_inizializzato": self._voicepack_tts is not None,
+            "campione_voce_locale": bool(
+                os.environ.get("JARVIS_VOICE_REFERENCE")
+                or os.path.isfile(os.path.join(
+                    self._base_dir,
+                    "voce",
+                    "campioni",
+                    "jarvis-are-you-there-at-your-service-sir.wav",
+                ))
+                or os.path.isfile(os.path.join(
+                    os.path.expanduser("~"),
+                    "Desktop",
+                    "jarvis-are-you-there-at-your-service-sir.wav",
+                ))
+            ),
         }
