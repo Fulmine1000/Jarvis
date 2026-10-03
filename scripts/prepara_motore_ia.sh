@@ -26,11 +26,17 @@ fi
 
 cd "$SRC_DIR"
 
-# Le versioni recenti di llama.cpp hanno alzato la compatibilita minima
-# di macOS; il commit precedente a 3420909 e scelto per il target High Sierra.
+# Dal commit 3420909 llama.cpp usa std::filesystem in punti che
+# richiedono macOS 10.15. High Sierra 10.13 non puo compilare quella
+# versione con AppleClang 10. Scarichiamo quindi la storia completa e
+# fissiamo il sorgente al commit immediatamente precedente al primo
+# commit incompatibile.
+git fetch --unshallow >/dev/null 2>&1 || true
 if git cat-file -e 3420909^ 2>/dev/null; then
-  git fetch --unshallow >/dev/null 2>&1 || true
-  git checkout 3420909^
+  git checkout --detach 3420909^
+else
+  echo "ERRORE: non riesco a recuperare il commit compatibile di llama.cpp."
+  exit 3
 fi
 
 export MACOSX_DEPLOYMENT_TARGET=10.13
