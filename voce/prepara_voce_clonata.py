@@ -1,20 +1,36 @@
 #!/usr/bin/env python3
-"""Prepara il motore locale di clonazione vocale Jarvis.
+"""Prepara il motore locale XTTS v2 per Jarvis su Mac Intel / High Sierra.
 
-Profilo mirato: Mac Intel / macOS High Sierra / Python 3.11.
-Evita build da sorgente delle dipendenze native usando versioni con wheel
-compatibili quando disponibili.
+Il preparatore forza:
+- macOS deployment target 10.13
+- architettura x86_64
+- versioni native con wheel compatibili
+- constraints anche per le dipendenze transitive di TTS
+
+In questo modo pip non può sostituire grpcio/llvmlite con release moderne
+che richiedono macOS 11+ o una compilazione locale.
 """
 from __future__ import annotations
 
+import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+CONSTRAINTS = ROOT / "requirements-voce-clonata.txt"
 
 
 def run(*args: str) -> None:
+    env = os.environ.copy()
+    # Il Mac dell'utente è High Sierra 10.13.6.
+    env["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
+    env["ARCHFLAGS"] = "-arch x86_64"
+    env["PIP_CONSTRAINT"] = str(CONSTRAINTS)
     print(">>>", " ".join(args))
-    subprocess.check_call([sys.executable, "-m", "pip", *args])
+    subprocess.check_call([sys.executable, "-m", "pip", *args], env=env)
 
 
 def main() -> int:
@@ -32,20 +48,14 @@ def main() -> int:
         print(f"Python rilevato: {version.major}.{version.minor}. Usa Python 3.11.")
         return 1
 
-    # Manteniamo pip sotto 25 per evitare incompatibilita con il vecchio
-    # ecosistema di Coqui TTS 0.22.
+    if not CONSTRAINTS.is_file():
+        print(f"File constraints non trovato: {CONSTRAINTS}")
+        return 1
+
+    # Coqui TTS 0.22 appartiene a un ecosistema di dipendenze datato.
+    # Manteniamo pip sotto 25 e installiamo prima i binari nativi.
     run("install", "--upgrade", "pip<25")
 
-    # PyTorch 2.0.1 / torchaudio 2.0.2 sono il profilo previsto da TTS 0.22.
-    run("install", "torch==2.0.1", "torchaudio==2.0.2")
-
-    # Queste versioni dispongono di wheel CPython 3.11 macOS Intel:
-    # - grpcio 1.59.0: macOS 10.10+ universal2
-    # - llvmlite 0.41.1: macOS 10.9+ x86_64
-    # - soxr 0.3.6: macOS 10.9+ x86_64
-    #
-    # --only-binary impedisce a pip di ricadere in compilazioni locali
-    # che su High Sierra possono fallire per assenza di Python.h/toolchain.
     run(
         "install",
         "--only-binary=grpcio,llvmlite,soxr",
@@ -54,7 +64,15 @@ def main() -> int:
         "soxr==0.3.6",
     )
 
-    run("install", "TTS==0.22.0")
+    # PIP_CONSTRAINT impedisce a TTS e alle sue dipendenze transitive di
+    # rimpiazzare i pin con release moderne incompatibili con High Sierra.
+    run(
+        "install",
+        "--only-binary=grpcio,llvmlite,soxr",
+        "torch==2.0.1",
+        "torchaudio==2.0.2",
+        "TTS==0.22.0",
+    )
 
     print()
     print("Motore XTTS v2 installato.")
