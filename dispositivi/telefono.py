@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import secrets
 import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -35,6 +36,7 @@ class TelefonoJarvis:
         self.server = None
         self.server_thread = None
         self.server_porta = 8765
+        self.token_sessione = None
 
     def connetti(self):
         self.connesso = True
@@ -93,8 +95,25 @@ class TelefonoJarvis:
             except Exception:
                 return "127.0.0.1"
 
-    def _pagina(self, risposta=""):
-        return '''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>J.A.R.V.I.S.</title><style>body{margin:0;background:#050b14;color:#eaf6ff;font-family:Arial,sans-serif;text-align:center}main{width:92%;max-width:520px;margin:40px auto}input,button{box-sizing:border-box;width:100%;font-size:18px;padding:14px;margin:8px 0;border-radius:10px}input{background:#101b27;color:#fff;border:1px solid #426985}button{background:#173650;color:#fff;border:1px solid #5a84a3}#r{margin-top:20px;padding:14px;min-height:24px}</style></head><body><main><h1>J.A.R.V.I.S.</h1><p>Sessione telefono attiva</p><form method="post" action="/api/comando"><input name="comando" type="text" placeholder="Scrivi un comando" autocomplete="off"><button type="submit">Invia a Jarvis</button></form><div id="r">''' + str(risposta) + '''</div></main></body></html>'''
+    def _pagina(self, risposta="", token=None):
+        token = token or self.token_sessione or ""
+        return (
+            '<!doctype html><html><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<title>J.A.R.V.I.S.</title>'
+            '<style>body{margin:0;background:#050b14;color:#eaf6ff;font-family:Arial,sans-serif;text-align:center}'
+            'main{width:92%;max-width:520px;margin:40px auto}'
+            'input,button{box-sizing:border-box;width:100%;font-size:18px;padding:14px;margin:8px 0;border-radius:10px}'
+            'input{background:#101b27;color:#fff;border:1px solid #426985}'
+            'button{background:#173650;color:#fff;border:1px solid #5a84a3}'
+            '#r{margin-top:20px;padding:14px;min-height:24px}</style></head>'
+            '<body><main><h1>J.A.R.V.I.S.</h1><p>Sessione telefono attiva</p>'
+            '<form method="post" action="/api/comando">'
+            '<input name="token" type="hidden" value="' + str(token) + '">'
+            '<input name="comando" type="text" placeholder="Scrivi un comando" autocomplete="off">'
+            '<button type="submit">Invia a Jarvis</button></form>'
+            '<div id="r">' + str(risposta) + '</div></main></body></html>'
+        )
 
     def avvia_server(self, gestore_comandi=None, porta=8765):
         """Avvia il server web di sessione senza trasferire il Core."""
@@ -105,6 +124,7 @@ class TelefonoJarvis:
 
         callback = gestore_comandi or self.gestore_comandi
         self.server_porta = int(porta)
+        self.token_sessione = secrets.token_urlsafe(24)
         dispositivo = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -138,6 +158,15 @@ class TelefonoJarvis:
                     else:
                         dati = parse_qs(corpo)
                         comando = str(dati.get("comando", [""])[0]).strip()
+                    token = ""
+                    if self.headers.get("Content-Type", "").startswith("application/json"):
+                        token = str(dati.get("token", "")).strip()
+                    else:
+                        token = str(dati.get("token", [""])[0]).strip()
+                    header_token = self.headers.get("X-Jarvis-Token", "").strip()
+                    if token != dispositivo.token_sessione and header_token != dispositivo.token_sessione:
+                        self.resposta(403, json.dumps({"errore": "Token di sessione non valido"}, ensure_ascii=False))
+                        return
                     if not comando:
                         raise ValueError("Comando vuoto")
                     risposta = callback(comando) if callback else "Server telefono attivo, ma il gestore comandi non è collegato."
@@ -167,6 +196,7 @@ class TelefonoJarvis:
         self.server.server_close()
         self.server = None
         self.server_thread = None
+        self.token_sessione = None
         return "Server telefono fermato."
 
     def indirizzo_server(self):
@@ -187,6 +217,7 @@ class TelefonoJarvis:
             "sessione": self.sessione_attiva,
             "server_attivo": self.server is not None,
             "indirizzo_server": self.indirizzo_server(),
+            "sessione_protetta": bool(self.token_sessione),
             "app_aperte": self.app_aperte,
             "batteria": self.batteria,
             "wifi": self.wifi,
