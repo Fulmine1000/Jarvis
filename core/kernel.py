@@ -43,6 +43,9 @@ class KernelJarvis:
         self.plugin_manager = PluginManager(self)
         self.memoria = MemoriaJarvis(self.logger)
         self.preferenze = PreferenzeJarvis()
+        nome_utente = self.config.sezione("utente").get("nome")
+        if nome_utente:
+            self.preferenze.imposta("nome_utente", nome_utente)
         self.contesto = ContestoJarvis()
         self.personalita = PersonalitaJarvis()
         self.stato_sistema_modulo = StatoJarvis()
