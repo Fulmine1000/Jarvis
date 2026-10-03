@@ -18,6 +18,8 @@ import platform
 import shutil
 import subprocess
 import tempfile
+import threading
+import multiprocessing
 from typing import Optional
 
 TTS = None
@@ -48,6 +50,35 @@ try:
 except ImportError:
     pyttsx3 = None
     HAS_PYTTSX3 = False
+
+
+def _xtts_worker(model_name: str, text: str, reference_wav: str, language: str, audio_path: str, status_path: str) -> None:
+    """Processo isolato per XTTS: un eventuale crash di PyTorch/Coqui non abbatte Jarvis."""
+    try:
+        from TTS.api import TTS as CoquiTTS
+
+        print("🔊 Processo XTTS: caricamento modello...", flush=True)
+        model = CoquiTTS(
+            model_name=model_name,
+            progress_bar=False,
+            gpu=False,
+        )
+        print("🎙️ Processo XTTS: generazione audio...", flush=True)
+        model.tts_to_file(
+            text=text,
+            speaker_wav=reference_wav,
+            language=language,
+            file_path=audio_path,
+        )
+        with open(status_path, "w", encoding="utf-8") as stato:
+            stato.write("OK")
+    except Exception as errore:
+        try:
+            with open(status_path, "w", encoding="utf-8") as stato:
+                stato.write("ERROR:" + str(errore))
+        except Exception:
+            pass
+        raise
 
 
 class TextToSpeech:
@@ -91,6 +122,18 @@ class TextToSpeech:
         # In questo modo un caricamento lento/non compatibile non blocca l'interfaccia.
         self._use_voice_clone = bool(use_voice_clone)
         self._initialized = False
+
+        # XTTS viene eseguito in un processo separato e avviato in background.
+        # Cosi il caricamento di PyTorch/Coqui non puo bloccare il ciclo principale
+        # di Jarvis e un crash nativo resta confinato al processo figlio.
+        self.xtts_timeout = max(
+            30.0,
+            float(os.environ.get("JARVIS_XTTS_TIMEOUT", "120")),
+        )
+        self._xtts_thread = None
+        self._xtts_process = None
+        self._xtts_lock = threading.Lock()
+        self._xtts_busy = False
 
     def _inizializza(self, use_voice_clone: bool) -> None:
         if _carica_coqui() and use_voice_clone and self.reference_wav:
@@ -209,64 +252,163 @@ class TextToSpeech:
         if not testo:
             return False
 
+        # Non carichiamo mai XTTS nel thread principale. La prima risposta
+        # vocale viene messa in coda a un worker isolato e Jarvis resta reattivo.
+        if self.reference_wav and self._use_voice_clone:
+            if self._avvia_xtts_background(testo):
+                return True
+
+        # Fallback immediati quando non esiste un campione o XTTS e disattivato.
         if not self._initialized:
             self._inizializza_lazy()
 
-        if self.use_xtts and self.reference_wav:
-            if self._play_with_xtts(testo):
-                return True
-
-        if self.use_coqui:
-            if self._play_with_coqui(testo):
-                return True
-
-        if self.use_pyttsx3:
-            if self._play_with_pyttsx3(testo):
-                return True
-
+        if self.use_coqui and self._play_with_coqui(testo):
+            return True
+        if self.use_pyttsx3 and self._play_with_pyttsx3(testo):
+            return True
         if self._play_with_macos(testo):
             return True
 
         print(f"⚠️ Sintesi vocale non disponibile. Testo: {testo}")
         return False
 
-    def _play_with_xtts(self, text: str) -> bool:
-        if not self.model or not self.reference_wav:
-            return False
+    def _avvia_xtts_background(self, text: str) -> bool:
+        """Avvia XTTS senza bloccare il processo principale di Jarvis."""
+        with self._xtts_lock:
+            if self._xtts_busy:
+                # Evita due generazioni pesanti contemporaneamente.
+                print("⚠️ XTTS sta gia elaborando una risposta vocale.")
+                return True
+            self._xtts_busy = True
 
+        self._xtts_thread = threading.Thread(
+            target=self._worker_xtts,
+            args=(text,),
+            name="Jarvis-XTTS",
+            daemon=True,
+        )
+        self._xtts_thread.start()
+        return True
+
+    def _worker_xtts(self, text: str) -> None:
         audio_path = None
-        processed_path = None
+        status_path = None
+        process = None
 
         try:
+            if not _carica_coqui():
+                raise RuntimeError("Coqui TTS non disponibile")
+
             with tempfile.NamedTemporaryFile(
                 suffix=".wav", delete=False
             ) as file_audio:
                 audio_path = file_audio.name
 
-            print("🎙️ Sintetizzazione con profilo vocale cinematografico...")
-            self.model.tts_to_file(
-                text=text,
-                speaker_wav=self.reference_wav,
-                language=self.language,
-                file_path=audio_path,
+            with tempfile.NamedTemporaryFile(
+                suffix=".status", delete=False
+            ) as file_status:
+                status_path = file_status.name
+
+            ctx = multiprocessing.get_context("spawn")
+            process = ctx.Process(
+                target=_xtts_worker,
+                args=(
+                    self.XTTS_MODEL,
+                    text,
+                    self.reference_wav,
+                    self.language,
+                    audio_path,
+                    status_path,
+                ),
+                daemon=True,
             )
+            self._xtts_process = process
+            print(
+                "🎙️ XTTS avviato in background. "
+                "Jarvis rimane operativo mentre preparo la voce..."
+            )
+            process.start()
+            process.join(self.xtts_timeout)
+
+            if process.is_alive():
+                print(
+                    f"⏱️ XTTS ha superato il limite di {self.xtts_timeout:.0f}s; "
+                    "termino il worker e uso la voce di sistema."
+                )
+                process.terminate()
+                process.join(5)
+                self._fallback_background(text)
+                return
+
+            if process.exitcode != 0:
+                errore = ""
+                try:
+                    with open(status_path, "r", encoding="utf-8") as stato:
+                        errore = stato.read().strip()
+                except Exception:
+                    pass
+                print(
+                    "⚠️ Il processo XTTS e terminato senza audio"
+                    + (f": {errore}" if errore else ".")
+                )
+                self._fallback_background(text)
+                return
 
             if not os.path.isfile(audio_path) or os.path.getsize(audio_path) == 0:
-                return False
+                print("⚠️ XTTS non ha prodotto un WAV valido.")
+                self._fallback_background(text)
+                return
 
-            if self.cinematic_voice:
-                processed_path = self._applica_profilo_cinematografico(audio_path)
-                if processed_path:
-                    return self._play_audio(processed_path)
-
-            return self._play_audio(audio_path)
+            print("✅ XTTS ha generato l'audio Jarvis.")
+            processed_path = None
+            try:
+                if self.cinematic_voice:
+                    processed_path = self._applica_profilo_cinematografico(audio_path)
+                self._play_audio(processed_path or audio_path)
+            finally:
+                self._elimina_file_temporaneo(processed_path)
 
         except Exception as errore:
-            print(f"❌ Errore voce XTTS: {errore}")
-            return False
+            print(f"⚠️ XTTS in background non disponibile: {errore}")
+            self._fallback_background(text)
         finally:
-            self._elimina_file_temporaneo(processed_path)
+            if process is not None and process.is_alive():
+                try:
+                    process.terminate()
+                    process.join(2)
+                except Exception:
+                    pass
+            self._xtts_process = None
             self._elimina_file_temporaneo(audio_path)
+            self._elimina_file_temporaneo(status_path)
+            with self._xtts_lock:
+                self._xtts_busy = False
+
+    def _fallback_background(self, text: str) -> None:
+        """Fallback sicuro eseguito dallo stesso worker vocale."""
+        try:
+            if platform.system() == "Darwin" and shutil.which("say"):
+                print("🔊 Fallback immediato alla voce di sistema macOS.")
+                self._play_with_macos(text)
+                return
+            if HAS_PYTTSX3:
+                if not self.use_pyttsx3:
+                    try:
+                        self.engine = pyttsx3.init()
+                        self.use_pyttsx3 = True
+                    except Exception:
+                        pass
+                if self.use_pyttsx3:
+                    self._play_with_pyttsx3(text)
+                    return
+        except Exception as errore:
+            print(f"⚠️ Fallback vocale fallito: {errore}")
+
+        print(f"⚠️ Sintesi vocale non disponibile. Testo: {text}")
+
+    def _play_with_xtts(self, text: str) -> bool:
+        """Compatibilita: inoltra la richiesta al worker non bloccante."""
+        return self._avvia_xtts_background(text)
 
     def _applica_profilo_cinematografico(self, audio_path: str) -> Optional[str]:
         """Applica un trattamento leggero a XTTS per una resa piu cinematografica.
@@ -488,6 +630,17 @@ class TextToSpeech:
                 self.engine.stop()
         except Exception:
             pass
+
+        processo = self._xtts_process
+        if processo is not None and processo.is_alive():
+            try:
+                processo.terminate()
+                processo.join(2)
+            except Exception:
+                pass
+        self._xtts_process = None
+        with self._xtts_lock:
+            self._xtts_busy = False
 
         if platform.system() == "Darwin":
             try:
