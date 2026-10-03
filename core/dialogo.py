@@ -21,17 +21,25 @@ class DialogoJarvis:
 
     def __init__(self, logger=None):
         self.logger = logger
-        self.provider = os.getenv("JARVIS_AI_PROVIDER", "ollama").strip().lower()
-        self.endpoint = os.getenv(
-            "JARVIS_OLLAMA_URL",
-            "http://127.0.0.1:11434/api/chat",
-        )
-        self.modello = os.getenv("JARVIS_OLLAMA_MODEL", "llama3.2:3b")
+        self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "auto").strip().lower()
+        self.provider = self.provider_richiesto
+        self.endpoint = os.getenv("JARVIS_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
+        self.endpoint_llama = os.getenv("JARVIS_LLAMA_URL", "http://127.0.0.1:8080/v1/chat/completions").strip()
+        self.endpoint_compatibile = os.getenv("JARVIS_AI_URL", "").strip()
+        self.modello = os.getenv("JARVIS_AI_MODEL", os.getenv("JARVIS_OLLAMA_MODEL", "llama3.2:3b")).strip()
+        self.modello_llama = os.getenv("JARVIS_LLAMA_MODEL", self.modello).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 45, 5, 180)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
+        self.ultimo_backend = None
+        self._conversazione_locale = None
+        try:
+            from intelligenza.conversazione import ConversationEngine
+            self._conversazione_locale = ConversationEngine(language="it_IT")
+        except Exception:
+            pass
         self.istruzioni = (
             "Sei Jarvis, un assistente personale intelligente in italiano. "
             "Parla in modo elegante, calmo, naturale e preciso. "
@@ -152,6 +160,133 @@ class DialogoJarvis:
             return ""
         return ((scelte[0].get("message") or {}).get("content") or "").strip()
 
+    def _raggiungibile(self, endpoint, timeout=0.5):
+        try:
+            parsed = urllib.request.urlparse(endpoint)
+            host = parsed.hostname
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            if not host:
+                return False
+            import socket
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except (OSError, ValueError):
+            return False
+
+    def _richiesta_json(self, payload, endpoint, headers=None):
+        intestazioni = {"Content-Type": "application/json"}
+        if headers:
+            intestazioni.update(headers)
+        richiesta = urllib.request.Request(
+            endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers=intestazioni,
+            method="POST",
+        )
+        with urllib.request.urlopen(richiesta, timeout=self.timeout) as risposta:
+            return json.loads(risposta.read().decode("utf-8"))
+
+    def _rispondi_ollama(self, messaggi):
+        dati = self._richiesta_json({
+            "model": self.modello,
+            "messages": messaggi,
+            "stream": False,
+            "options": {"temperature": 0.7},
+        }, self.endpoint)
+        return (dati.get("message") or {}).get("content", "").strip()
+
+    def _rispondi_compatibile(self, messaggi, endpoint, modello):
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        dati = self._richiesta_json({
+            "model": modello,
+            "messages": messaggi,
+            "temperature": 0.7,
+            "stream": False,
+        }, endpoint, headers)
+        scelte = dati.get("choices") or []
+        if not scelte:
+            return ""
+        return ((scelte[0].get("message") or {}).get("content") or "").strip()
+
+    def _trova_llama(self):
+        binario = os.getenv(
+            "JARVIS_LLAMA_SERVER_BIN",
+            os.path.join(self.BASE_JARVIS, "motore_ia", "bin", "llama-server"),
+        ).strip()
+        modello = os.getenv(
+            "JARVIS_LLAMA_MODEL_PATH",
+            os.path.join(
+                self.BASE_JARVIS,
+                "motore_ia",
+                "modelli",
+                "qwen2.5-0.5b-instruct-q4_0.gguf",
+            ),
+        ).strip()
+        return (
+            binario if os.path.isfile(binario) and os.access(binario, os.X_OK) else None,
+            modello if os.path.isfile(modello) else None,
+        )
+
+    def _avvia_llama_server(self):
+        if self._raggiungibile(self.endpoint_llama):
+            return True
+        binario, modello = self._trova_llama()
+        if not binario or not modello:
+            return False
+        parsed = urllib.request.urlparse(self.endpoint_llama)
+        host = parsed.hostname or "127.0.0.1"
+        porta = str(parsed.port or 8080)
+        try:
+            self._server_llama = subprocess.Popen(
+                [binario, "-m", modello, "--host", host, "--port", porta,
+                 "-c", os.getenv("JARVIS_LLAMA_CONTEXT", "2048"), "-ngl", "0"],
+                cwd=os.path.dirname(binario),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            limite = time.time() + min(self.timeout, 20)
+            while time.time() < limite:
+                if self._raggiungibile(self.endpoint_llama):
+                    return True
+                if self._server_llama.poll() is not None:
+                    break
+                time.sleep(0.25)
+        except (OSError, ValueError):
+            self._server_llama = None
+        return self._raggiungibile(self.endpoint_llama)
+
+    def _backend_disponibili(self):
+        richiesto = self.provider_richiesto
+        if richiesto in {"ollama", "ollama_local"}:
+            return ["ollama"]
+        if richiesto in {"llama", "llama_cpp", "llama.cpp"}:
+            return ["llama"]
+        if richiesto in {"openai", "openai_compatible", "compatibile"}:
+            return ["compatibile"]
+        if richiesto in {"locale", "local", "fallback"}:
+            return []
+        candidati = []
+        if self._raggiungibile(self.endpoint):
+            candidati.append("ollama")
+        if self.endpoint_compatibile and self._raggiungibile(self.endpoint_compatibile):
+            candidati.append("compatibile")
+        binario, modello = self._trova_llama()
+        if self._raggiungibile(self.endpoint_llama) or (binario and modello):
+            candidati.append("llama")
+        return candidati
+
+    def _risposta_locale(self, testo):
+        if not self._conversazione_locale:
+            return None
+        try:
+            return self._conversazione_locale.generate_response(
+                testo, context={"memoria": self.storia[-6:]}
+            )
+        except Exception:
+            return None
+
     def rispondi(self, testo):
         testo = (testo or "").strip()
         if not testo or not self.attivo:
@@ -159,30 +294,51 @@ class DialogoJarvis:
 
         messaggi = self._messaggi(testo)
         self.ultima_errore = None
-        try:
-            if self.provider in {"openai", "openai_compatible", "compatibile"}:
-                testo_risposta = self._rispondi_compatibile(messaggi)
-            else:
-                testo_risposta = self._rispondi_ollama(messaggi)
+        self.ultimo_backend = None
 
-            if not testo_risposta:
-                return None
+        for backend in self._backend_disponibili():
+            try:
+                if backend == "ollama":
+                    risposta = self._rispondi_ollama(messaggi)
+                elif backend == "llama":
+                    if not self._avvia_llama_server():
+                        continue
+                    risposta = self._rispondi_compatibile(
+                        messaggi, self.endpoint_llama, self.modello_llama
+                    )
+                else:
+                    risposta = self._rispondi_compatibile(
+                        messaggi, self.endpoint_compatibile, self.modello
+                    )
+                if risposta:
+                    self.ultimo_backend = backend
+                    self.storia.extend([
+                        {"role": "user", "content": testo},
+                        {"role": "assistant", "content": risposta},
+                    ])
+                    self.storia = self.storia[-self.MASSIMO_STORIA:]
+                    self._salva_storia()
+                    return risposta
+            except (urllib.error.URLError, urllib.error.HTTPError,
+                    TimeoutError, OSError, ValueError, json.JSONDecodeError) as errore:
+                self.ultima_errore = str(errore)
+                continue
+            except Exception as errore:
+                self.ultima_errore = str(errore)
+                self._log_debug(f"Errore backend IA {backend}: {errore}")
 
+        self.provider = "locale"
+        risposta = self._risposta_locale(testo)
+        if risposta:
+            self.ultimo_backend = "conversation-engine"
             self.storia.extend([
                 {"role": "user", "content": testo},
-                {"role": "assistant", "content": testo_risposta},
+                {"role": "assistant", "content": risposta},
             ])
             self.storia = self.storia[-self.MASSIMO_STORIA:]
             self._salva_storia()
-            return testo_risposta
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as errore:
-            self.ultima_errore = str(errore)
-            self._log_debug(f"Motore IA non disponibile: {errore}")
-            return None
-        except Exception as errore:
-            self.ultima_errore = str(errore)
-            self._log_debug(f"Errore inatteso nel motore IA: {errore}")
-            return None
+            return risposta
+        return None
 
     def cancella_storia(self):
         """Cancella la memoria conversazionale dell'IA."""
@@ -197,11 +353,15 @@ class DialogoJarvis:
     def stato(self):
         return {
             "attivo": self.attivo,
+            "provider_richiesto": self.provider_richiesto,
             "provider": self.provider,
-            "motore": "Ollama locale" if self.provider == "ollama" else "API compatibile",
+            "motore": ("Ollama locale" if self.ultimo_backend == "ollama" else "llama.cpp locale" if self.ultimo_backend == "llama" else "API compatibile" if self.ultimo_backend == "compatibile" else "Conversation Engine locale" if self.ultimo_backend == "conversation-engine" else "IA automatica (backend non attivo)"),
             "modello": self.modello,
             "storia_messaggi": len(self.storia),
             "memoria_conversazionale": True,
             "timeout_secondi": self.timeout,
             "errore": self.ultima_errore,
+            "backend_attivo": self.ultimo_backend,
+            "ollama_raggiungibile": self._raggiungibile(self.endpoint),
+            "llama_raggiungibile": self._raggiungibile(self.endpoint_llama),
         }
