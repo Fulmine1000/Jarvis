@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Prepara il motore locale XTTS v2 per Jarvis su Mac Intel / High Sierra.
+"""Prepara XTTS v2 per Jarvis su Mac Intel / High Sierra.
 
-Il preparatore forza:
+Il profilo blocca le dipendenze note per TTS 0.22/XTTS v2:
 - macOS deployment target 10.13
 - architettura x86_64
-- versioni native con wheel compatibili
-- constraints anche per le dipendenze transitive di TTS
+- torch/torchaudio 2.1.0
+- transformers 4.36.2
+- tokenizers 0.15.2
+- numpy 1.26.4
+- wheel native compatibili con High Sierra
 
-In questo modo pip non può sostituire grpcio/llvmlite con release moderne
-che richiedono macOS 11+ o una compilazione locale.
+Il post-processing della voce viene gestito da voce/tts.py.
 """
 from __future__ import annotations
 
@@ -18,14 +20,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 CONSTRAINTS = ROOT / "requirements-voce-clonata.txt"
 
 
 def run(*args: str) -> None:
     env = os.environ.copy()
-    # Il Mac dell'utente è High Sierra 10.13.6.
     env["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
     env["ARCHFLAGS"] = "-arch x86_64"
     env["PIP_CONSTRAINT"] = str(CONSTRAINTS)
@@ -52,8 +52,6 @@ def main() -> int:
         print(f"File constraints non trovato: {CONSTRAINTS}")
         return 1
 
-    # Coqui TTS 0.22 appartiene a un ecosistema di dipendenze datato.
-    # Manteniamo pip sotto 25 e installiamo prima i binari nativi.
     run("install", "--upgrade", "pip<25")
 
     run(
@@ -64,24 +62,24 @@ def main() -> int:
         "soxr==0.3.6",
     )
 
-    # PIP_CONSTRAINT impedisce a TTS e alle sue dipendenze transitive di
-    # rimpiazzare i pin con release moderne incompatibili con High Sierra.
     run(
         "install",
         "--only-binary=grpcio,llvmlite,soxr",
         "torch==2.1.0",
         "torchaudio==2.1.0",
         "TTS==0.22.0",
+        "transformers==4.36.2",
+        "tokenizers==0.15.2",
+        "numpy==1.26.4",
     )
 
     print()
-    print("Motore XTTS v2 installato.")
-    print("Avvia Jarvis e controlla che compaia:")
-    print("  Caricamento voce locale Jarvis (XTTS v2)...")
-    print("  Motore vocale XTTS v2 pronto")
-    print()
+    print("Motore XTTS v2 e profilo vocale cinematografico installati.")
     print("Il campione viene cercato automaticamente sul Desktop:")
     print("  jarvis-are-you-there-at-your-service-sir.wav")
+    print()
+    print("Il profilo cinematografico modifica leggermente pitch e ritmo")
+    print("della voce generata; non richiede servizi cloud.")
     return 0
 
 
