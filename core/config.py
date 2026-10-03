@@ -2,7 +2,8 @@ import json
 import os
 
 
-PERCORSO_CONFIG = "config/config.json"
+BASE_JARVIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PERCORSO_CONFIG = os.path.join(BASE_JARVIS, "config", "config.json")
 
 
 class ConfigJarvis:
