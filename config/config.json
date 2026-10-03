@@ -14,13 +14,19 @@
     },
     "voce": {
         "wake_word": "jarvis",
-        "wake_words": ["jarvis", "ehi jarvis", "hey jarvis"],
+        "wake_words": [
+            "jarvis",
+            "ehi jarvis",
+            "hey jarvis"
+        ],
         "lingua": "it-IT",
         "motore": "voicepack",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
-        "velocita": 1.0,
+        "velocita": 0.92,
         "volume": 100,
-        "stile": "Jarvis Cinematico"
+        "stile": "Jarvis Cinematico PS3",
+        "pausa_cinematica": true,
+        "rate_cinematico": 156
     },
     "memoria": {
         "attiva": true,
