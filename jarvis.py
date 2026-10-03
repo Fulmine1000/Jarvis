@@ -66,10 +66,18 @@ class JarvisOS:
                 print(f"Avviso: server telefono non disponibile: {errore}")
 
             # HUD Qt Quick/QML: niente Tkinter e niente Canvas.
-            self.hud = HUDJarvis(kernel=self.kernel, width=1050, height=650)
-            self.kernel.hud = self.hud
-            self.hud.collega_kernel(self.kernel)
-            self.hud.aggiorna_kernel()
+            # Se Qt non e disponibile, Jarvis resta comunque operativo in
+            # modalita voce/testo invece di terminare l'intera sessione.
+            try:
+                self.hud = HUDJarvis(kernel=self.kernel, width=1050, height=650)
+                self.kernel.hud = self.hud
+                self.hud.collega_kernel(self.kernel)
+                self.hud.aggiorna_kernel()
+            except Exception as errore:
+                self.hud = None
+                self.kernel.hud = None
+                self.kernel.logger.warning(f"HUD non disponibile: {errore}")
+                print(f"Avviso: HUD non disponibile, Jarvis continua senza interfaccia grafica: {errore}")
 
             self._worker = threading.Thread(
                 target=self._attesa_sessione,
@@ -102,7 +110,10 @@ class JarvisOS:
                     )
 
             # Qt su macOS deve essere gestito dal thread principale.
-            self.hud._run_qt()
+            if self.hud:
+                self.hud._run_qt()
+            else:
+                self._attesa_sessione()
 
             self._chiusura.set()
             if self.kernel and not self.kernel.arresto_richiesto:
