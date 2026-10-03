@@ -333,16 +333,23 @@ class SintesiVocale:
                 if self._parla_con_voicepack(testo):
                     return True
 
-            # Piper resta disponibile per installazioni che lo supportano.
-            if self._parla_con_piper(testo):
-                return True
+            # Su macOS High Sierra usiamo direttamente "say":
+            # il Piper incluso nel progetto dipende da dylib incompatibili
+            # con il loader di questa versione di macOS e può bloccare la
+            # sequenza vocale. Piper resta disponibile solo fuori da macOS.
+            if platform.system() == "Darwin":
+                if self._parla_con_sistema(testo):
+                    return True
+            else:
+                if self._parla_con_piper(testo):
+                    return True
 
-            # Secondo tentativo del Voice Pack se Piper non ha funzionato.
-            if self.xtts_attivo and self._parla_con_voicepack(testo):
-                return True
+                # Secondo tentativo del Voice Pack se Piper non ha funzionato.
+                if self.xtts_attivo and self._parla_con_voicepack(testo):
+                    return True
 
-            if self._parla_con_sistema(testo):
-                return True
+                if self._parla_con_sistema(testo):
+                    return True
 
         except (OSError, ValueError, subprocess.SubprocessError) as errore:
             print(f"⚠️ Errore sintesi vocale: {errore}")
