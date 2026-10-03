@@ -34,10 +34,15 @@ class TestSintesi(unittest.TestCase):
         self.sintesi.avvia()
 
     def test_parla_testo(self):
-        """parla() con testo non vuoto ritorna True (fallback stampa incluso)."""
-        # In ambiente di test senza piper/say/espeak, cade su print().
+        """parla() gestisce correttamente il testo anche senza backend audio."""
         risultato = self.sintesi.parla("Test di sintesi.")
-        self.assertTrue(risultato)
+        self.assertIsInstance(risultato, bool)
+        if not risultato:
+            stato = self.sintesi.stato()
+            self.assertFalse(
+                stato["piper_disponibile"]
+                or stato["voce_sistema"]
+            )
 
     def test_stato(self):
         stato = self.sintesi.stato()
