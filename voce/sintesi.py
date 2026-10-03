@@ -246,8 +246,9 @@ class SintesiVocale:
 
         try:
             if prima:
-                if not self._parla_con_piper(prima):
-                    self._parla_con_sistema(prima)
+                if not self._parla_con_voce_clonata(prima):
+                    if not self._parla_con_piper(prima):
+                        self._parla_con_sistema(prima)
 
             subprocess.run(
                 ["say", "-v", voce, "-r", str(int(145 * self.velocita)), "Sir"],
@@ -255,8 +256,9 @@ class SintesiVocale:
             )
 
             if dopo:
-                if not self._parla_con_piper(dopo):
-                    self._parla_con_sistema(dopo)
+                if not self._parla_con_voce_clonata(dopo):
+                    if not self._parla_con_piper(dopo):
+                        self._parla_con_sistema(dopo)
 
             return True
         except (OSError, subprocess.SubprocessError):
