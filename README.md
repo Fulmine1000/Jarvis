@@ -41,6 +41,23 @@ oppure:
 
 Per la conversazione IA locale, Jarvis utilizza Ollama quando disponibile. Il modello predefinito è `llama3.2:3b`; endpoint e modello possono essere configurati tramite `JARVIS_OLLAMA_URL` e `JARVIS_OLLAMA_MODEL`.
 
+## Motore IA su macOS High Sierra
+
+Il MacBook Pro Intel di Jarvis usa macOS High Sierra 10.13.6. La versione attuale di Ollama per macOS richiede macOS 14 Sonoma o successivo, quindi non e una strada utilizzabile su questa macchina. citeturn1search0
+
+Jarvis ora usa un router IA automatico: prova un backend locale disponibile, supporta llama.cpp tramite API compatibile e, se nessun backend generativo e pronto, mantiene comunque attivo il motore conversazionale locale senza bloccare l'assistente.
+
+Per preparare il backend IA locale compatibile con il Mac:
+
+```bash
+cd ~/Desktop/Jarvis
+bash scripts/prepara_motore_ia.sh
+```
+
+Il preparatore compila llama.cpp per Intel/High Sierra e scarica il modello Qwen2.5-0.5B-Instruct Q4_0, che supporta l'italiano. citeturn2search0turn2search3
+
+Dopo la preparazione, Jarvis avvia automaticamente il server locale quando serve.
+ 
 ## Test
 
 ```bash
