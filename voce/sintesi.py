@@ -42,6 +42,8 @@ class SintesiVocale:
             self.stile = voce_config.get("stile", self.stile)
             self.voce = voce_config.get("voce", self.voce)
 
+        # La variabile d'ambiente può selezionare il provider senza modificare config/config.json.
+        self.motore = os.environ.get("JARVIS_VOICE_PROVIDER", self.motore).strip().lower()
         self.voce_sistema = self._trova_voce_italiana()
 
     def _trova_voce_italiana(self):
