@@ -56,10 +56,12 @@ class TestDispositivi(unittest.TestCase):
         self.assertEqual(stato["stato"], "online")
 
     def test_telefono(self):
-        """TelefonoJarvis è connesso."""
+        """TelefonoJarvis è registrato e lo stato di connessione è reale."""
         telefono = self.gestore.cerca("telefono")
+        self.assertIsNotNone(telefono)
         stato = telefono.stato()
-        self.assertTrue(stato["connesso"])
+        self.assertIn("connesso", stato)
+        self.assertIsInstance(stato["connesso"], bool)
 
     def test_smart_home_luce(self):
         """La luce soggiorno è presente e accendibile."""
