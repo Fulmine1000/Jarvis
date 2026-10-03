@@ -75,7 +75,7 @@ class ConversationEngine:
         if 5 <= ora < 12:
             saluti = (
                 "Buongiorno, Sir. Come posso assisterla?",
-                "Buongiorno, Simone. Tutti i sistemi sono pronti.",
+                "Buongiorno, Sir. Tutti i sistemi sono pronti.",
             )
         elif 12 <= ora < 18:
             saluti = (
@@ -85,7 +85,7 @@ class ConversationEngine:
         elif 18 <= ora < 23:
             saluti = (
                 "Buonasera, Sir. Come posso assisterla?",
-                "Buonasera, Simone. Tutti i sistemi sono pronti.",
+                "Buonasera, Sir. Tutti i sistemi sono pronti.",
             )
         else:
             saluti = (
