@@ -1,5 +1,6 @@
 # Dipendenze runtime di J.A.R.V.I.S.
 # Le integrazioni opzionali degradano senza bloccare l'avvio.
+
 vosk>=0.3.44
 sounddevice>=0.4.6
 psutil>=5.9.0
@@ -11,4 +12,30 @@ websocket-client>=1.8.0
 PyQt5==5.15.5
 PyQt5-Qt5==5.15.2
 
+# Componenti Voice Pack italiano.
+# SpeechRecognition è usato da voce/stt.py.
+# Il microfono può richiedere PyAudio; Jarvis continua comunque a funzionare
+# tramite il proprio motore Vosk/sounddevice se PyAudio non è disponibile.
+SpeechRecognition==3.10.0
+
+# HTTP/configurazione usati dai componenti del progetto e dal Voice Pack.
+requests==2.31.0
+python-dotenv==1.0.0
+PyYAML==6.0
+
 # Piper viene installato come binario macOS Intel da voce/prepara_modello.py.
+
+# TTS/ML pesanti del Voice Pack (Coqui TTS, NumPy/SciPy) NON sono inclusi
+# automaticamente: su sistemi meno recenti come macOS High Sierra possono
+# richiedere wheel/versioni non compatibili. voce/tts.py li tratta come
+# dipendenze opzionali e mantiene i fallback locali.
+#
+# TTS==0.22.0
+# numpy==1.24.3
+# scipy==1.10.1
+
+# waveform==0.1.0 e libosa==0.10.0 del requirements originale del Voice Pack
+# non sono necessari ai moduli adattati di Jarvis e non vengono inclusi.
+#
+# Optional: integrazione smart home MQTT
+# paho-mqtt==1.6.1
