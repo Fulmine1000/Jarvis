@@ -206,8 +206,9 @@ class SintesiVocale:
                     reference_wav=riferimento,
                     use_voice_clone=True,
                 )
-            except Exception:
+            except Exception as errore:
                 self._voicepack_tts = None
+                print(f"❌ Voice Pack/XTTS non disponibile: {errore}")
                 return False
 
         try:
@@ -423,11 +424,17 @@ class SintesiVocale:
             if self._parla_con_voce_clonata(testo):
                 return True
 
+            # Se abbiamo il campione originale, il Voice Pack locale (XTTS v2)
+            # ha priorità: Piper è mantenuto come fallback per le installazioni
+            # in cui XTTS non sia disponibile.
+            if self.voce_riferimento and self._parla_con_voicepack(testo):
+                return True
+
             if self._parla_con_piper(testo):
                 return True
 
-            # Se Piper non è disponibile, prova il Voice Pack locale con il
-            # campione WAV prima di ricorrere alla voce di sistema.
+            # Fallback Voice Pack anche senza campione esplicito (può usare
+            # un motore Coqui locale disponibile).
             if self._parla_con_voicepack(testo):
                 return True
 
