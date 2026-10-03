@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -36,6 +37,7 @@ class DialogoJarvis:
         self.storia = []
         self.ultima_errore = None
         self.ultimo_backend = None
+        self._server_llama = None
         self._conversazione_locale = None
         try:
             from intelligenza.conversazione import ConversationEngine
@@ -164,7 +166,7 @@ class DialogoJarvis:
 
     def _raggiungibile(self, endpoint, timeout=0.5):
         try:
-            parsed = urllib.request.urlparse(endpoint)
+            parsed = urllib.parse.urlparse(endpoint)
             host = parsed.hostname
             port = parsed.port or (443 if parsed.scheme == "https" else 80)
             if not host:
@@ -237,7 +239,7 @@ class DialogoJarvis:
         binario, modello = self._trova_llama()
         if not binario or not modello:
             return False
-        parsed = urllib.request.urlparse(self.endpoint_llama)
+        parsed = urllib.parse.urlparse(self.endpoint_llama)
         host = parsed.hostname or "127.0.0.1"
         porta = str(parsed.port or 8080)
         try:
