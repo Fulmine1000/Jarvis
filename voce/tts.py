@@ -1,14 +1,16 @@
 """
-Text-to-Speech (Sintesi Vocale) di Jarvis.
+Text-to-Speech di Jarvis.
 
 Motori supportati:
-1. Coqui XTTS v2 con campione WAV per la clonazione vocale locale.
+1. Coqui XTTS v2 locale con riferimento WAV.
 2. Coqui Glow-TTS italiano come fallback locale.
-3. pyttsx3 come fallback.
-4. macOS "say" come ultimo fallback.
+3. pyttsx3.
+4. macOS "say".
 
-Il campione WAV viene cercato nella cartella Desktop oppure nella
-cartella voce/campioni della repository.
+Il profilo XTTS usa un post-processing leggero "cinematico" per ottenere
+una voce italiana maschile piu profonda, controllata e cinematografica,
+senza tentare di riprodurre indistinguibilmente la voce di un doppiatore.
+Il motore resta lazy-loaded per non rallentare l'avvio di Jarvis.
 """
 
 import os
@@ -23,14 +25,11 @@ HAS_TTS = None
 
 
 def _carica_coqui():
-    """Carica Coqui TTS solo quando la voce clonata viene realmente usata.
-
-    L'import di Coqui/XTTS è pesante su macOS meno recenti e non deve rallentare
-    l'avvio del Kernel, del riconoscimento Vosk o dell'HUD.
-    """
+    """Carica Coqui TTS solo quando serve."""
     global TTS, HAS_TTS
     if HAS_TTS is not None:
         return bool(HAS_TTS)
+
     try:
         from TTS.api import TTS as CoquiTTS
         TTS = CoquiTTS
@@ -39,7 +38,9 @@ def _carica_coqui():
         TTS = None
         HAS_TTS = False
         print(f"⚠️ Coqui TTS non disponibile: {errore}")
+
     return bool(HAS_TTS)
+
 
 try:
     import pyttsx3
@@ -50,7 +51,7 @@ except ImportError:
 
 
 class TextToSpeech:
-    """Sintesi vocale locale di Jarvis con supporto al campione WAV."""
+    """Sintesi vocale locale di Jarvis con profilo vocale cinematografico."""
 
     XTTS_MODEL = "tts_models/multilingual/multi-dataset/xtts_v2"
     GLOW_MODEL = "tts_models/it/mai/glow-tts"
@@ -59,7 +60,7 @@ class TextToSpeech:
     def __init__(
         self,
         language: str = "it_IT",
-        speed: float = 0.9,
+        speed: float = 0.94,
         pitch: float = 0.8,
         reference_wav: Optional[str] = None,
         use_voice_clone: bool = True,
@@ -67,6 +68,18 @@ class TextToSpeech:
         self.language = self._normalizza_lingua(language)
         self.speed = max(0.5, min(1.5, float(speed)))
         self.pitch = max(0.5, min(1.5, float(pitch)))
+
+        # Profilo "cinematico": modifiche leggere, applicate dopo XTTS.
+        self.cinematic_voice = os.environ.get(
+            "JARVIS_CINEMATIC_VOICE", "1"
+        ).strip().lower() in ("1", "true", "yes", "on")
+        self.pitch_steps = float(
+            os.environ.get("JARVIS_CINEMATIC_PITCH", "-1.0")
+        )
+        self.time_rate = float(
+            os.environ.get("JARVIS_CINEMATIC_RATE", "0.96")
+        )
+
         self.model = None
         self.engine = None
         self.reference_wav = self._trova_campione(reference_wav)
@@ -87,7 +100,12 @@ class TextToSpeech:
                 )
                 self.use_xtts = True
                 print("✅ Motore vocale XTTS v2 pronto")
-                print(f"🎙️ Campione voce: {self.reference_wav}")
+                print(f"🎙️ Riferimento vocale: {self.reference_wav}")
+                print(
+                    "🎬 Profilo voce cinematografico: "
+                    f"pitch {self.pitch_steps:+.1f} st, "
+                    f"ritmo {self.time_rate:.2f}"
+                )
                 return
             except Exception as errore:
                 self.model = None
@@ -136,10 +154,14 @@ class TextToSpeech:
         candidati.append(os.path.join(home, "Desktop", self.DEFAULT_REFERENCE))
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        candidati.extend([
-            os.path.join(base_dir, "voce", "campioni", self.DEFAULT_REFERENCE),
-            os.path.join(base_dir, "voce", self.DEFAULT_REFERENCE),
-        ])
+        candidati.extend(
+            [
+                os.path.join(
+                    base_dir, "voce", "campioni", self.DEFAULT_REFERENCE
+                ),
+                os.path.join(base_dir, "voce", self.DEFAULT_REFERENCE),
+            ]
+        )
 
         for percorso in candidati:
             percorso = os.path.abspath(percorso)
@@ -201,23 +223,104 @@ class TextToSpeech:
             return False
 
         audio_path = None
+        processed_path = None
+
         try:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as file_audio:
+            with tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False
+            ) as file_audio:
                 audio_path = file_audio.name
 
-            print("🎙️ Sintetizzazione con voce Jarvis...")
+            print("🎙️ Sintetizzazione con profilo vocale cinematografico...")
             self.model.tts_to_file(
                 text=text,
                 speaker_wav=self.reference_wav,
                 language=self.language,
                 file_path=audio_path,
             )
+
+            if not os.path.isfile(audio_path) or os.path.getsize(audio_path) == 0:
+                return False
+
+            if self.cinematic_voice:
+                processed_path = self._applica_profilo_cinematografico(audio_path)
+                if processed_path:
+                    return self._play_audio(processed_path)
+
             return self._play_audio(audio_path)
+
         except Exception as errore:
-            print(f"❌ Errore voce clonata XTTS: {errore}")
+            print(f"❌ Errore voce XTTS: {errore}")
             return False
         finally:
+            self._elimina_file_temporaneo(processed_path)
             self._elimina_file_temporaneo(audio_path)
+
+    def _applica_profilo_cinematografico(self, audio_path: str) -> Optional[str]:
+        """Applica un trattamento leggero a XTTS per una resa piu cinematografica.
+
+        Non sostituisce il modello vocale: agisce su pitch, ritmo e dinamica
+        del WAV gia generato. Se le librerie audio non sono disponibili,
+        il file originale viene usato senza trattamento.
+        """
+        try:
+            import librosa
+            import numpy as np
+            import soundfile as sf
+
+            y, sr = librosa.load(audio_path, sr=None, mono=True)
+            if y.size == 0:
+                return None
+
+            # Elimina silenzio eccessivo ai bordi senza tagliare il parlato.
+            y, _ = librosa.effects.trim(y, top_db=38)
+            if y.size == 0:
+                return None
+
+            if abs(self.pitch_steps) > 0.01:
+                y = librosa.effects.pitch_shift(
+                    y, sr=sr, n_steps=self.pitch_steps
+                )
+
+            if abs(self.time_rate - 1.0) > 0.01:
+                y = librosa.effects.time_stretch(
+                    y, rate=max(0.75, min(1.25, self.time_rate))
+                )
+
+            # Compressione morbida: aumenta la presenza senza creare un
+            # effetto radio/robotico.
+            livello = np.abs(y)
+            picco = float(np.max(livello)) if livello.size else 0.0
+            if picco > 0:
+                soglia = 0.72
+                y = np.where(
+                    np.abs(y) > soglia,
+                    np.sign(y)
+                    * (
+                        soglia
+                        + (1.0 - soglia)
+                        * np.tanh(
+                            (np.abs(y) - soglia) / (1.0 - soglia)
+                        )
+                    ),
+                    y,
+                )
+
+            picco = float(np.max(np.abs(y))) if y.size else 0.0
+            if picco > 0:
+                y = y / picco * 0.92
+
+            with tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False
+            ) as file_audio:
+                processed_path = file_audio.name
+
+            sf.write(processed_path, y, sr, subtype="PCM_16")
+            return processed_path
+
+        except Exception as errore:
+            print(f"⚠️ Post-processing cinematico saltato: {errore}")
+            return None
 
     def _play_with_coqui(self, text: str) -> bool:
         if not self.model:
@@ -225,7 +328,9 @@ class TextToSpeech:
 
         audio_path = None
         try:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as file_audio:
+            with tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False
+            ) as file_audio:
                 audio_path = file_audio.name
 
             print("🎙️ Sintetizzazione con Coqui TTS...")
@@ -289,7 +394,14 @@ class TextToSpeech:
         if ffplay:
             try:
                 risultato = subprocess.run(
-                    [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", file_path],
+                    [
+                        ffplay,
+                        "-nodisp",
+                        "-autoexit",
+                        "-loglevel",
+                        "quiet",
+                        file_path,
+                    ],
                     check=False,
                 )
                 if risultato.returncode == 0:
@@ -299,6 +411,7 @@ class TextToSpeech:
 
         try:
             import pygame
+
             pygame.mixer.init()
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
@@ -330,7 +443,7 @@ class TextToSpeech:
 
     def stato(self) -> dict:
         if self.use_xtts:
-            motore = "xtts"
+            motore = "xtts-cinematic"
         elif self.use_coqui:
             motore = "coqui-glow-tts"
         elif self.use_pyttsx3:
@@ -345,6 +458,9 @@ class TextToSpeech:
             "lingua": self.language,
             "velocita": self.speed,
             "tono": self.pitch,
+            "profilo_cinematografico": self.cinematic_voice,
+            "pitch_steps": self.pitch_steps,
+            "cinematic_rate": self.time_rate,
             "campione_voce": self.reference_wav,
             "campione_disponibile": bool(
                 self.reference_wav and os.path.isfile(self.reference_wav)
