@@ -51,7 +51,29 @@ class SintesiVocale:
 
         # La variabile d'ambiente può selezionare il provider senza modificare config/config.json.
         self.motore = os.environ.get("JARVIS_VOICE_PROVIDER", self.motore).strip().lower()
+        # Il campione locale viene scoperto automaticamente.
+        self.voce_riferimento = self._trova_campione_locale()
         self.voce_sistema = self._trova_voce_italiana()
+
+    def _trova_campione_locale(self):
+        """Trova il campione WAV di Jarvis senza configurazione manuale."""
+        candidati = []
+        riferimento = os.environ.get("JARVIS_VOICE_REFERENCE", "").strip()
+        if riferimento:
+            candidati.append(os.path.expanduser(riferimento))
+
+        nome = "jarvis-are-you-there-at-your-service-sir.wav"
+        candidati.extend([
+            os.path.join(os.path.expanduser("~"), "Desktop", nome),
+            os.path.join(self._base_dir, "voce", "campioni", nome),
+            os.path.join(self._base_dir, "voce", nome),
+        ])
+
+        for percorso in candidati:
+            percorso = os.path.abspath(percorso)
+            if os.path.isfile(percorso) and percorso.lower().endswith(".wav"):
+                return percorso
+        return None
 
     def _trova_voce_italiana(self):
         """Trova una voce italiana installata sul sistema."""
@@ -176,7 +198,7 @@ class SintesiVocale:
         if self._voicepack_tts is None:
             self._voicepack_tts_attempted = True
             try:
-                riferimento = os.environ.get("JARVIS_VOICE_REFERENCE", "").strip() or None
+                riferimento = self.voce_riferimento
                 self._voicepack_tts = TextToSpeech(
                     language="it_IT",
                     speed=self.velocita,
@@ -208,15 +230,48 @@ class SintesiVocale:
             if not piper:
                 return False
 
+            comando = [
+                piper,
+                "--model",
+                self.modello,
+                "--output_file",
+                percorso,
+            ]
+
+            # Alcune build macOS di Piper usano librerie locali accanto
+            # all'eseguibile. Le rendiamo esplicitamente visibili al processo
+            # figlio, mantenendo compatibilita con le build che usano gia @rpath.
+            ambiente = os.environ.copy()
+            lib_dir = os.path.join(
+                self._base_dir,
+                "voce",
+                "bin",
+                "piper-phonemize",
+                "lib",
+            )
+            if os.path.isdir(lib_dir):
+                dyld = ambiente.get("DYLD_LIBRARY_PATH", "")
+                ambiente["DYLD_LIBRARY_PATH"] = (
+                    lib_dir if not dyld else lib_dir + os.pathsep + dyld
+                )
+
             processo = subprocess.run(
-                [piper, "--model", self.modello, "--output_file", percorso],
+                comando,
                 input=testo,
                 text=True,
                 capture_output=True,
+                env=ambiente,
                 check=False,
             )
 
             if processo.returncode != 0:
+                errore = (processo.stderr or processo.stdout or "").strip()
+                if errore:
+                    print(f"⚠️ Piper non ha generato l'audio: {errore}")
+                return False
+
+            if not os.path.isfile(percorso) or os.path.getsize(percorso) == 0:
+                print("⚠️ Piper ha terminato senza produrre un file WAV valido.")
                 return False
 
             return self._riproduci(percorso)
@@ -360,16 +415,10 @@ class SintesiVocale:
         testo = str(testo).strip()
 
         try:
-            if (
-                platform.system() == "Darwin"
-                and self._contiene_appellativo_sir(testo)
-            ):
-                # "Sir" viene pronunciato in inglese; il resto resta italiano.
-                if self._parla_sir_inglese(testo):
-                    return True
-                # Fallback alla voce italiana se non c'e una voce inglese.
-                if self._parla_con_sistema(testo):
-                    return True
+            # "Sir" non deve bypassare il motore vocale configurato.
+            # In precedenza questa parola attivava direttamente say di macOS,
+            # facendo sembrare che Jarvis usasse sempre la voce predefinita.
+            # Ora l'intera frase segue lo stesso provider scelto per Jarvis.
 
             if self._parla_con_voce_clonata(testo):
                 return True
@@ -426,18 +475,6 @@ class SintesiVocale:
             "voce_clonata_disponibile": self.voce_clonata.disponibile(),
             "voicepack_tts_disponibile": TextToSpeech is not None,
             "voicepack_tts_inizializzato": self._voicepack_tts is not None,
-            "campione_voce_locale": bool(
-                os.environ.get("JARVIS_VOICE_REFERENCE")
-                or os.path.isfile(os.path.join(
-                    self._base_dir,
-                    "voce",
-                    "campioni",
-                    "jarvis-are-you-there-at-your-service-sir.wav",
-                ))
-                or os.path.isfile(os.path.join(
-                    os.path.expanduser("~"),
-                    "Desktop",
-                    "jarvis-are-you-there-at-your-service-sir.wav",
-                ))
-            ),
+            "campione_voce_locale": bool(self.voce_riferimento),
+            "percorso_campione_voce": self.voce_riferimento,
         }
