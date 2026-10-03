@@ -22,7 +22,7 @@ class SintesiVocale:
         self.config = config
 
         self.motore = os.environ.get(
-            "JARVIS_VOICE_PROVIDER", "xtts"
+            "JARVIS_VOICE_PROVIDER", "piper"
         ).strip().lower()
         self.voce_clonata = ElevenLabsVoce()
         self._voicepack_tts = None
@@ -31,7 +31,7 @@ class SintesiVocale:
         # XTTS locale e il provider principale del nuovo profilo vocale.
         # L'import resta lazy: l'avvio di Jarvis continua a essere rapido.
         self.xtts_attivo = os.environ.get(
-            "JARVIS_ENABLE_XTTS", "1"
+            "JARVIS_ENABLE_XTTS", "0"
         ).strip().lower() in ("1", "true", "yes", "on")
 
         self._base_dir = os.path.dirname(
@@ -45,9 +45,9 @@ class SintesiVocale:
         )
         self.voce = "Jarvis"
         self.voce_sistema = None
-        self.velocita = 0.94
+        self.velocita = 1.0
         self.volume = 100
-        self.stile = "Jarvis Cinematico"
+        self.stile = "Jarvis"
 
         if config:
             voce_config = config.sezione("voce")
