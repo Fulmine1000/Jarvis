@@ -44,7 +44,8 @@ class TestCervelloJarvis(unittest.TestCase):
         self.assertEqual(risposta, "Risposta IA")
         self.assertIn("Stato Jarvis: Operativo", kernel.dialogo.richiesta)
         self.assertIn("Nome utente configurato: Simone", kernel.dialogo.richiesta)
-        self.assertIn("Raccontami qualcosa", kernel.dialogo.richiesta)\n        self.assertIn("Appellativo da usare nelle risposte: Sir", kernel.dialogo.richiesta)
+        self.assertIn("Raccontami qualcosa", kernel.dialogo.richiesta)
+        self.assertIn("Appellativo da usare nelle risposte: Sir", kernel.dialogo.richiesta)
 
     def test_stato(self):
         cervello = CervelloJarvis(FintoKernel())
