@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import hashlib
 
 from voce.elevenlabs import ElevenLabsVoce
 
@@ -14,7 +15,13 @@ except ImportError:
 
 
 class SintesiVocale:
-    """Motore vocale ufficiale di Jarvis con profilo cinematografico locale."""
+    """Motore vocale ufficiale di Jarvis.
+
+    Su hardware lento come il MacBook Pro 2010 la voce live deve essere
+    immediata: XTTS non viene piu usato per generare una risposta al volo.
+    Le eventuali frasi XTTS gia generate vengono riprodotte dal voicepack;
+    per tutto il resto viene usata subito la voce locale macOS.
+    """
 
     def __init__(self, config=None):
         self.nome = "Sintesi Vocale"
@@ -22,16 +29,19 @@ class SintesiVocale:
         self.config = config
 
         self.motore = os.environ.get(
-            "JARVIS_VOICE_PROVIDER", "xtts"
+            "JARVIS_VOICE_PROVIDER", "voicepack"
         ).strip().lower()
         self.voce_clonata = ElevenLabsVoce()
         self._voicepack_tts = None
         self._voicepack_tts_attempted = False
 
-        # XTTS locale e il provider principale del nuovo profilo vocale.
-        # L'import resta lazy: l'avvio di Jarvis continua a essere rapido.
+        # XTTS resta disponibile per generare/preparare il voicepack offline,
+        # ma non deve bloccare la risposta live di Jarvis.
         self.xtts_attivo = os.environ.get(
             "JARVIS_ENABLE_XTTS", "1"
+        ).strip().lower() in ("1", "true", "yes", "on")
+        self.xtts_live = os.environ.get(
+            "JARVIS_XTTS_LIVE", "0"
         ).strip().lower() in ("1", "true", "yes", "on")
 
         self._base_dir = os.path.dirname(
@@ -47,7 +57,7 @@ class SintesiVocale:
         self.voce_sistema = None
         self.velocita = 1.0
         self.volume = 100
-        self.stile = "Jarvis"
+        self.stile = "Jarvis Cinematico"
 
         if config:
             voce_config = config.sezione("voce")
@@ -64,6 +74,7 @@ class SintesiVocale:
         ).strip().lower()
 
         self.voce_riferimento = self._trova_campione_locale()
+        self.voicepack_dir = os.path.join(self._base_dir, "voce", "voicepack")
         self.voce_sistema = self._trova_voce_italiana()
 
     def _trova_campione_locale(self):
@@ -91,7 +102,7 @@ class SintesiVocale:
         return None
 
     def _trova_voce_italiana(self):
-        """Trova una voce italiana installata sul sistema."""
+        """Preferisce una voce italiana maschile di sistema, se installata."""
         if platform.system() != "Darwin":
             return None
 
@@ -109,12 +120,23 @@ class SintesiVocale:
             if risultato.returncode != 0:
                 return None
 
-            for riga in risultato.stdout.splitlines():
+            righe = risultato.stdout.splitlines()
+
+            # Nelle installazioni macOS che la includono, Luca e una voce
+            # italiana maschile e molto piu adatta al profilo Jarvis.
+            preferite = ("Luca", "Federico", "Paolo", "Lorenzo")
+            for nome in preferite:
+                for riga in righe:
+                    parti = riga.strip().split()
+                    if parti and parti[0].lower() == nome.lower():
+                        return parti[0]
+
+            for riga in righe:
                 parti = riga.strip().split()
                 if parti and "it_IT" in riga:
                     return parti[0]
 
-            for riga in risultato.stdout.splitlines():
+            for riga in righe:
                 parti = riga.strip().split()
                 if parti and (
                     "Italian" in riga or "italiano" in riga.lower()
@@ -156,12 +178,18 @@ class SintesiVocale:
 
     def _riproduci(self, file_audio):
         if platform.system() == "Darwin" and shutil.which("afplay"):
-            risultato = subprocess.run(["afplay", file_audio], check=False)
-            return risultato.returncode == 0
+            try:
+                risultato = subprocess.run(["afplay", file_audio], check=False)
+                return risultato.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                return False
 
         if platform.system() == "Linux" and shutil.which("aplay"):
-            risultato = subprocess.run(["aplay", "-q", file_audio], check=False)
-            return risultato.returncode == 0
+            try:
+                risultato = subprocess.run(["aplay", "-q", file_audio], check=False)
+                return risultato.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                return False
 
         return False
 
@@ -183,32 +211,25 @@ class SintesiVocale:
         except (OSError, ValueError, RuntimeError):
             return False
 
+    def _chiave_voicepack(self, testo):
+        """Crea un nome stabile per una frase gia pronta nel voicepack."""
+        normalizzato = " ".join(str(testo).strip().lower().split())
+        digest = hashlib.sha256(normalizzato.encode("utf-8")).hexdigest()[:16]
+        return os.path.join(self.voicepack_dir, digest + ".wav")
+
     def _parla_con_voicepack(self, testo):
-        if not self.xtts_attivo or TextToSpeech is None:
+        """Riproduce solo audio gia presente: nessuna generazione lenta live."""
+        if not self.xtts_attivo:
             return False
 
-        if self._voicepack_tts_attempted and self._voicepack_tts is None:
+        percorso = self._chiave_voicepack(testo)
+        if not os.path.isfile(percorso) or os.path.getsize(percorso) == 0:
             return False
-
-        if self._voicepack_tts is None:
-            self._voicepack_tts_attempted = True
-            try:
-                self._voicepack_tts = TextToSpeech(
-                    language="it_IT",
-                    speed=self.velocita,
-                    pitch=0.8,
-                    reference_wav=self.voce_riferimento,
-                    use_voice_clone=True,
-                )
-            except Exception as errore:
-                self._voicepack_tts = None
-                print(f"❌ Voice Pack/XTTS non disponibile: {errore}")
-                return False
 
         try:
-            return bool(self._voicepack_tts.synthesize_and_play(testo))
-        except Exception as errore:
-            print(f"❌ Errore riproduzione Voice Pack: {errore}")
+            print("🎙️ Voicepack Jarvis: riproduzione immediata.")
+            return self._riproduci(percorso)
+        except (OSError, subprocess.SubprocessError):
             return False
 
     def _parla_con_piper(self, testo):
@@ -264,7 +285,6 @@ class SintesiVocale:
                 return False
 
             if not os.path.isfile(percorso) or os.path.getsize(percorso) == 0:
-                print("⚠️ Piper ha terminato senza produrre un file WAV valido.")
                 return False
 
             return self._riproduci(percorso)
@@ -279,29 +299,15 @@ class SintesiVocale:
                     pass
 
     def _parla_con_sistema(self, testo):
-        """Usa la voce di sistema come fallback finale."""
+        """Fallback live immediato."""
         if platform.system() == "Darwin" and shutil.which("say"):
             voce = self.voce_sistema
             try:
+                comando = ["say"]
                 if voce:
-                    risultato = subprocess.run(
-                        [
-                            "say",
-                            "-v",
-                            voce,
-                            "-r",
-                            str(int(170 * self.velocita)),
-                            str(testo),
-                        ],
-                        check=False,
-                    )
-                    if risultato.returncode == 0:
-                        return True
-
-                risultato = subprocess.run(
-                    ["say", "-r", str(int(170 * self.velocita)), str(testo)],
-                    check=False,
-                )
+                    comando += ["-v", voce]
+                comando += ["-r", str(int(170 * self.velocita)), str(testo)]
+                risultato = subprocess.run(comando, check=False)
                 return risultato.returncode == 0
             except (OSError, subprocess.SubprocessError):
                 return False
@@ -328,26 +334,46 @@ class SintesiVocale:
             if self._parla_con_voce_clonata(testo):
                 return True
 
-            # Nuovo provider principale: XTTS con profilo cinematografico.
-            if self.xtts_attivo and self.voce_riferimento:
-                if self._parla_con_voicepack(testo):
-                    return True
+            # Prima scelta: frase gia preparata con XTTS, riproduzione immediata.
+            if self._parla_con_voicepack(testo):
+                return True
 
-            # Su macOS High Sierra usiamo direttamente "say":
-            # il Piper incluso nel progetto dipende da dylib incompatibili
-            # con il loader di questa versione di macOS e può bloccare la
-            # sequenza vocale. Piper resta disponibile solo fuori da macOS.
+            # XTTS live resta disponibile solo se esplicitamente richiesto
+            # tramite JARVIS_XTTS_LIVE=1. Non viene mai attivato per errore.
+            if (
+                self.xtts_live
+                and self.xtts_attivo
+                and self.voce_riferimento
+                and TextToSpeech is not None
+            ):
+                if self._voicepack_tts is None and not self._voicepack_tts_attempted:
+                    self._voicepack_tts_attempted = True
+                    try:
+                        self._voicepack_tts = TextToSpeech(
+                            language="it_IT",
+                            speed=self.velocita,
+                            pitch=0.8,
+                            reference_wav=self.voce_riferimento,
+                            use_voice_clone=True,
+                        )
+                    except Exception as errore:
+                        self._voicepack_tts = None
+                        print(f"⚠️ XTTS live non disponibile: {errore}")
+
+                if self._voicepack_tts is not None:
+                    try:
+                        if self._voicepack_tts.synthesize_and_play(testo):
+                            return True
+                    except Exception as errore:
+                        print(f"⚠️ Errore XTTS live: {errore}")
+
+            # Su High Sierra questa e la via rapida e affidabile.
             if platform.system() == "Darwin":
                 if self._parla_con_sistema(testo):
                     return True
             else:
                 if self._parla_con_piper(testo):
                     return True
-
-                # Secondo tentativo del Voice Pack se Piper non ha funzionato.
-                if self.xtts_attivo and self._parla_con_voicepack(testo):
-                    return True
-
                 if self._parla_con_sistema(testo):
                     return True
 
@@ -392,6 +418,7 @@ class SintesiVocale:
             "voce_clonata_disponibile": self.voce_clonata.disponibile(),
             "voicepack_tts_disponibile": TextToSpeech is not None and self.xtts_attivo,
             "xtts_attivo": self.xtts_attivo,
+            "xtts_live": self.xtts_live,
             "voicepack_tts_inizializzato": self._voicepack_tts is not None,
             "campione_voce_locale": bool(self.voce_riferimento),
             "percorso_campione_voce": self.voce_riferimento,
