@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+from voce.elevenlabs import ElevenLabsVoce
+
 
 class SintesiVocale:
     """Motore vocale ufficiale di Jarvis con Piper e fallback di sistema."""
@@ -15,7 +17,8 @@ class SintesiVocale:
         self.attivo = True
         self.config = config
 
-        self.motore = "piper"
+        self.motore = os.environ.get("JARVIS_VOICE_PROVIDER", "piper").strip().lower()
+        self.voce_clonata = ElevenLabsVoce()
         self._base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.modello = os.path.join(
             self._base_dir,
@@ -129,6 +132,25 @@ class SintesiVocale:
             return risultato.returncode == 0
 
         return False
+
+    def _parla_con_voce_clonata(self, testo):
+        """Sintetizza con la voce clonata configurata, se disponibile."""
+        if self.motore not in ("elevenlabs", "voce_clonata", "clonata"):
+            return False
+
+        try:
+            percorso = self.voce_clonata.parla(testo)
+            if not percorso:
+                return False
+            try:
+                return self._riproduci(percorso)
+            finally:
+                try:
+                    os.remove(percorso)
+                except OSError:
+                    pass
+        except (OSError, ValueError, RuntimeError):
+            return False
 
     def _parla_con_piper(self, testo):
         """Sintetizza e riproduce il testo tramite Piper."""
@@ -306,6 +328,9 @@ class SintesiVocale:
                 if self._parla_con_sistema(testo):
                     return True
 
+            if self._parla_con_voce_clonata(testo):
+                return True
+
             if self._parla_con_piper(testo):
                 return True
 
@@ -350,4 +375,5 @@ class SintesiVocale:
             "volume": self.volume,
             "stile": self.stile,
             "piper_disponibile": self._piper_disponibile(),
+            "voce_clonata_disponibile": self.voce_clonata.disponibile(),
         }
