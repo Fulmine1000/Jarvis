@@ -15,7 +15,8 @@ class DialogoJarvis:
     nessuna chiave privata viene salvata nella repository.
     """
 
-    FILE_STORIA = "memoria/conversazioni.json"
+    BASE_JARVIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    FILE_STORIA = os.path.join(BASE_JARVIS, "memoria", "conversazioni.json")
     MASSIMO_STORIA = 40
 
     def __init__(self, logger=None):
