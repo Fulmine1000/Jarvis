@@ -111,6 +111,26 @@ class CapacitaJarvis:
                 pass
         return f"Non riesco ad aprire {nome} su questo sistema."
 
+    def chiudi_app(self, nome):
+        """Chiude un'applicazione locale quando il sistema lo permette."""
+        nome = str(nome or "").strip()
+        if not nome:
+            return "Nome applicazione mancante."
+        if platform.system() == "Darwin":
+            script = 'tell application "' + nome.replace('"', '') + '" to quit'
+            try:
+                risultato = subprocess.run(
+                    ["osascript", "-e", script],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                if risultato.returncode == 0:
+                    return f"Ho chiuso {nome}."
+            except (OSError, subprocess.SubprocessError):
+                pass
+        return f"Non riesco a chiudere {nome} su questo sistema."
+
     def apri_cartella(self, percorso="~"):
         percorso = os.path.abspath(os.path.expanduser(percorso))
         if not os.path.exists(percorso):
