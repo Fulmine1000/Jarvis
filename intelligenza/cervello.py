@@ -56,8 +56,12 @@ class CervelloJarvis:
         except Exception:
             pass
         try:
-            ricordi = self.kernel.memoria.elenco_ricordi()[-10:]
-            if ricordi:
+            ricordi = self.kernel.memoria.elenco_ricordi()
+            if isinstance(ricordi, dict):
+                elementi = list(ricordi.items())[-10:]
+                if elementi:
+                    parti.append(f"Ricordi persistenti disponibili: {dict(elementi)}")
+            elif ricordi:
                 parti.append(f"Ricordi persistenti disponibili: {ricordi}")
         except Exception:
             pass
