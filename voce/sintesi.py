@@ -55,9 +55,11 @@ class SintesiVocale:
         )
         self.voce = "Jarvis"
         self.voce_sistema = None
-        self.velocita = 1.0
+        self.velocita = 0.92
         self.volume = 100
         self.stile = "Jarvis Cinematico"
+        self.pausa_cinematica = True
+        self.rate_cinematico = 156
 
         if config:
             voce_config = config.sezione("voce")
@@ -68,6 +70,8 @@ class SintesiVocale:
             self.volume = int(voce_config.get("volume", self.volume))
             self.stile = voce_config.get("stile", self.stile)
             self.voce = voce_config.get("voce", self.voce)
+            self.pausa_cinematica = bool(voce_config.get("pausa_cinematica", self.pausa_cinematica))
+            self.rate_cinematico = int(voce_config.get("rate_cinematico", self.rate_cinematico))
 
         self.motore = os.environ.get(
             "JARVIS_VOICE_PROVIDER", self.motore
@@ -306,7 +310,8 @@ class SintesiVocale:
                 comando = ["say"]
                 if voce:
                     comando += ["-v", voce]
-                comando += ["-r", str(int(170 * self.velocita)), str(testo)]
+                rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
+                comando += ["-r", str(rate), str(testo)]
                 risultato = subprocess.run(comando, check=False)
                 return risultato.returncode == 0
             except (OSError, subprocess.SubprocessError):
@@ -423,4 +428,6 @@ class SintesiVocale:
             "campione_voce_locale": bool(self.voce_riferimento),
             "percorso_campione_voce": self.voce_riferimento,
             "profilo_cinematografico": True,
+            "pausa_cinematica": self.pausa_cinematica,
+            "rate_cinematico": self.rate_cinematico,
         }
