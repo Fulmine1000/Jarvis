@@ -191,14 +191,17 @@ class GestoreComandi:
             localita = c[5:].strip() if c.startswith("meteo") else c[9:].strip()
             return cap.meteo(localita or "Napoli") if cap else "Servizio meteo non disponibile."
         if c.startswith("apri app "):
-            return cap.apri_app(c[9:].strip()) if cap else "Apertura app non disponibile."
+            app = c[9:].strip()
+            if app and cap:
+                return cap.apri_app(app)
+            return "Apertura app non disponibile."
         if c.startswith("apri "):
             app = c[5:].strip()
             if app:
                 telefono_principale = self._telefono_principale()
                 if telefono_principale:
                     return telefono_principale.apri_app(app)
-                return "Nessun telefono principale attivo."
+                return cap.apri_app(app) if cap else "Apertura app non disponibile."
         if c.startswith("apri cartella"):
             return cap.apri_cartella() if cap else "Gestione cartelle non disponibile."
         if c == "apri finder":
@@ -209,7 +212,7 @@ class GestoreComandi:
                 telefono_principale = self._telefono_principale()
                 if telefono_principale:
                     return telefono_principale.chiudi_app(app)
-                return "Nessun telefono principale attivo."
+                return cap.chiudi_app(app) if cap else "Chiusura app non disponibile."
         if "fai uno screenshot" in c or "fai una schermata" in c:
             return cap.screenshot() if cap else "Screenshot non disponibile."
         m = re.search(r"(?:imposta|avvia|crea) (?:un )?timer (?:di )?(\d+)\s*(secondi|secondo|minuti|minuto|ore|ora)?", c)
