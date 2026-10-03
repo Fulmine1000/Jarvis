@@ -77,7 +77,7 @@ class TextToSpeech:
         self._inizializza(use_voice_clone)
 
     def _inizializza(self, use_voice_clone: bool) -> None:
-        if HAS_TTS and use_voice_clone and self.reference_wav:
+        if _carica_coqui() and use_voice_clone and self.reference_wav:
             try:
                 print("🔊 Caricamento voce locale Jarvis (XTTS v2)...")
                 self.model = TTS(
@@ -93,7 +93,7 @@ class TextToSpeech:
                 self.model = None
                 print(f"⚠️ XTTS v2 non disponibile: {errore}")
 
-        if HAS_TTS:
+        if _carica_coqui():
             try:
                 print("🔊 Caricamento Coqui Glow-TTS italiano...")
                 self.model = TTS(
@@ -158,7 +158,7 @@ class TextToSpeech:
 
         self.reference_wav = percorso
 
-        if HAS_TTS and not self.use_xtts:
+        if _carica_coqui() and not self.use_xtts:
             try:
                 self.model = TTS(
                     model_name=self.XTTS_MODEL,
