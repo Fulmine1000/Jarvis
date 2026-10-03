@@ -1,8 +1,16 @@
-# Motore locale per la voce clonata di Jarvis.
+# Motore locale per la voce di Jarvis.
 # Profilo: Mac Intel / High Sierra / Python 3.11.
 torch==2.1.0
 torchaudio==2.1.0
 TTS==0.22.0
+
+# Compatibilita XTTS/Transformers:
+# TTS 0.22.x usa API di Transformers precedenti alle release moderne.
+transformers==4.36.2
+tokenizers==0.15.2
+
+# NumPy 2.x non e compatibile con Numba/Librosa usati da TTS 0.22.
+numpy==1.26.4
 
 # Wheel native compatibili con CPython 3.11 su macOS Intel.
 grpcio==1.59.0
