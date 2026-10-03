@@ -12,8 +12,11 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 - Contesto reale del sistema fornito al cervello senza inventare stato o azioni.
 - Wake word `Jarvis`, `Hey Jarvis`, `Ehi Jarvis` e riconoscimento Vosk opzionale.
 - Sintesi vocale Piper opzionale con fallback macOS `say`, Linux `espeak` e terminale.
-- Provider opzionale per una voce clonata tramite campione audio, con fallback automatico a Piper e alla voce di sistema.
+- Supporto a un provider TTS locale con campione audio, quando il motore e il modello compatibili sono disponibili.
+- Nuovi componenti vocali riutilizzabili per STT/TTS in `voce/stt.py` e `voce/tts.py`.
 - Memoria persistente, profilo, ricordi e contesto.
+- Memoria conversazionale riutilizzabile in `memoria/memory.py`.
+- Motore conversazionale locale in `intelligenza/conversazione.py`.
 - Calcolatrice sicura, ora/data, diagnostica, CPU/RAM/disco, browser, app, cartelle, screenshot, volume e timer.
 - Automazioni e attività pianificate.
 - Modulo visione predisposto e rilevamento camera.
@@ -48,22 +51,57 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 ## Struttura
 
 - `jarvis.py` — unico punto di ingresso ufficiale.
-- `core/` — kernel e servizi fondamentali.
-- `intelligenza/` — cervello cognitivo e orchestrazione della conversazione IA.
+- `core/` — kernel, facciata pubblica `JARVIS` e servizi fondamentali.
+- `intelligenza/` — cervello cognitivo, conversazione IA e memoria conversazionale.
 - `comandi/` — gestione ed esecuzione dei comandi.
 - `voce/` — ascolto, wake word, riconoscimento e sintesi vocale.
 - `interfaccia/` — HUD grafico.
-- `memoria/` — memoria persistente.
+- `memoria/` — memoria persistente e memoria conversazionale.
 - `dispositivi/` — integrazioni hardware e smart home.
 - `moduli/` — adattatori dei moduli Jarvis.
 - `personalita/` — personalità e comportamento.
 - `plugin/` — estensioni.
 - `config/` — configurazioni e metadati di versione/identità.
+- `examples/` — esempi di utilizzo e integrazione.
 - `docs/` — documentazione.
 - `tests/` — test automatici.
 - `legacy/` — moduli storici mantenuti esclusivamente per compatibilità e riferimento.
 
 La root del progetto contiene quindi solo gli elementi realmente necessari al progetto, mentre i componenti tecnici sono organizzati nelle rispettive cartelle.
+
+## Voice Pack italiano
+
+Il progetto incorpora e adatta alcuni componenti del Voice Pack italiano alla struttura reale di Jarvis, senza creare una seconda applicazione parallela.
+
+I componenti principali sono:
+
+- `voce/tts.py` — motore Text-to-Speech riutilizzabile, con supporto ai motori locali disponibili e ricerca di un campione WAV configurato.
+- `voce/stt.py` — componente Speech-to-Text riutilizzabile basato su SpeechRecognition.
+- `intelligenza/conversazione.py` — motore conversazionale locale con risposte italiane e gestione del contesto di base.
+- `memoria/memory.py` — memoria conversazionale temporanea separata dalla memoria persistente di Jarvis.
+- `config/settings.py` — configurazione riutilizzabile per voce, AI e audio.
+- `core/core.py` — facciata `JARVIS` che utilizza il `KernelJarvis` esistente, evitando un secondo kernel.
+- `examples/simple.py` — esempio semplice di ascolto e risposta.
+- `examples/integration.py` — esempio di integrazione in un progetto esistente.
+- `examples/advanced.py` — esempio con comandi personalizzati.
+
+### Esempi
+
+Gli esempi possono essere eseguiti dalla root della repository dopo aver preparato l'ambiente:
+
+```bash
+python examples/simple.py
+python examples/integration.py
+python examples/advanced.py
+```
+
+Gli esempi sono dimostrativi: il punto di ingresso ufficiale dell'applicazione completa rimane `jarvis.py`.
+
+### Nota sulla compatibilità
+
+Le dipendenze del Voice Pack non vengono installate automaticamente solo perché i relativi file sono presenti nella repository. Prima di modificare `requirements.txt`, le dipendenze vengono verificate rispetto all'architettura e alla versione di Python utilizzate da Jarvis.
+
+In particolare, su sistemi meno recenti alcuni motori TTS/ML possono non avere pacchetti binari compatibili. In questi casi Jarvis deve mantenere un fallback funzionante invece di considerare il motore opzionale come obbligatorio.
 
 ## Nota
 
@@ -71,14 +109,7 @@ Le funzioni cinematografiche che richiedono hardware inesistente non possono ess
 
 ## Voce clonata opzionale
 
-Jarvis può usare un provider TTS con voce clonata configurato tramite variabili d'ambiente. Il campione audio resta locale e non viene inserito nella repository.
+Jarvis può utilizzare un campione audio locale con un motore TTS compatibile con il sistema. Il campione audio personale non deve essere inserito nella repository.
 
-```bash
-export ELEVENLABS_API_KEY="..."
-python voce/clona_voce.py /percorso/al/campione.wav
-export JARVIS_ELEVENLABS_VOICE_ID="..."
-export JARVIS_VOICE_PROVIDER=elevenlabs
-python jarvis.py
-```
+La disponibilità effettiva della clonazione vocale dipende dal motore TTS, dal modello vocale e dalla compatibilità con il sistema operativo e l'architettura del computer.
 
-Se il provider non è configurato o non è raggiungibile, Jarvis ricade su Piper e quindi sulla voce di sistema.
