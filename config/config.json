@@ -16,11 +16,11 @@
         "wake_word": "jarvis",
         "wake_words": ["jarvis", "ehi jarvis", "hey jarvis"],
         "lingua": "it-IT",
-        "motore": "xtts",
+        "motore": "piper",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
-        "velocita": 0.94,
+        "velocita": 1.0,
         "volume": 100,
-        "stile": "Jarvis Cinematico"
+        "stile": "Jarvis"
     },
     "memoria": {
         "attiva": true,
