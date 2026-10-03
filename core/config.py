@@ -11,7 +11,7 @@ class ConfigJarvis:
     def __init__(self):
         self.default = {
             "jarvis": {
-                "nome": "Jarvis",
+                "nome": "J.A.R.V.I.S.",
                 "versione": "definitiva",
                 "stato": "operativo",
             },
@@ -25,10 +25,14 @@ class ConfigJarvis:
                 "wake_word": "jarvis",
                 "wake_words": ["jarvis", "ehi jarvis", "hey jarvis"],
                 "lingua": "it-IT",
-                "motore": "piper",
+                "motore": "voicepack",
                 "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
-                "velocita": 1.0,
+                "velocita": 0.92,
                 "volume": 100,
+                "stile": "Jarvis Cinematico PS3",
+                "pausa_cinematica": True,
+                "rate_cinematico": 156,
+                "sample_rate": 16000,
             },
             "memoria": {
                 "attiva": True,
@@ -54,6 +58,7 @@ class ConfigJarvis:
                 "avvio_automatico": False,
                 "modalita_debug": False,
                 "fallback_testuale": True,
+                "hud": True,
             },
         }
         self.config = {}
@@ -65,7 +70,7 @@ class ConfigJarvis:
             os.makedirs(cartella)
 
         if not os.path.exists(PERCORSO_CONFIG):
-            self.config = self.default.copy()
+            self.config = json.loads(json.dumps(self.default))
             self.salva()
             return
 
@@ -74,17 +79,21 @@ class ConfigJarvis:
                 dati = json.load(file)
             self.config = self._completa(dati)
         except (OSError, ValueError, TypeError):
-            self.config = self.default.copy()
+            self.config = json.loads(json.dumps(self.default))
             self.salva()
 
     def _completa(self, dati):
         """Completa configurazioni precedenti senza perdere valori esistenti."""
         configurazione = json.loads(json.dumps(self.default))
+        if not isinstance(dati, dict):
+            return configurazione
+
         for sezione, valori in dati.items():
             if isinstance(valori, dict) and isinstance(configurazione.get(sezione), dict):
                 configurazione[sezione].update(valori)
             else:
                 configurazione[sezione] = valori
+
         configurazione.setdefault("jarvis", {})["versione"] = "definitiva"
         return configurazione
 
@@ -92,8 +101,15 @@ class ConfigJarvis:
         cartella = os.path.dirname(PERCORSO_CONFIG)
         if cartella and not os.path.exists(cartella):
             os.makedirs(cartella)
-        with open(PERCORSO_CONFIG, "w", encoding="utf-8") as file:
+        temporaneo = PERCORSO_CONFIG + ".tmp"
+        with open(temporaneo, "w", encoding="utf-8") as file:
             json.dump(self.config, file, indent=4, ensure_ascii=False)
+            file.flush()
+            try:
+                os.fsync(file.fileno())
+            except OSError:
+                pass
+        os.replace(temporaneo, PERCORSO_CONFIG)
 
     def ottieni(self, chiave, default=None):
         return self.config.get(chiave, default)
