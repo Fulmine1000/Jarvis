@@ -26,6 +26,7 @@ class SintesiVocale:
         self.voce_clonata = ElevenLabsVoce()
         self._voicepack_tts = None
         self._voicepack_tts_attempted = False
+        self.xtts_attivo = os.environ.get("JARVIS_ENABLE_XTTS", "0").strip().lower() in ("1", "true", "yes", "on")
         self._base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.modello = os.path.join(
             self._base_dir,
@@ -189,7 +190,7 @@ class SintesiVocale:
         Il motore viene inizializzato solo quando serve, così la presenza del
         modulo non rallenta l'avvio di Jarvis su macOS meno recenti.
         """
-        if TextToSpeech is None:
+        if not self.xtts_attivo or TextToSpeech is None:
             return False
 
         if self._voicepack_tts_attempted and self._voicepack_tts is None:
@@ -427,25 +428,26 @@ class SintesiVocale:
             # Se abbiamo il campione originale, il Voice Pack locale (XTTS v2)
             # ha priorità: Piper è mantenuto come fallback per le installazioni
             # in cui XTTS non sia disponibile.
-            if self.voce_riferimento and self._parla_con_voicepack(testo):
+            # XTTS/Voice Pack è opzionale: su macOS High Sierra un modello
+            # Coqui può impiegare molto tempo o bloccarsi durante l'inferenza.
+            # Viene quindi attivato solo esplicitamente con JARVIS_ENABLE_XTTS=1.
+            if self.xtts_attivo and self.voce_riferimento and self._parla_con_voicepack(testo):
                 return True
 
             if self._parla_con_piper(testo):
                 return True
 
-            # Fallback Voice Pack anche senza campione esplicito (può usare
-            # un motore Coqui locale disponibile).
-            if self._parla_con_voicepack(testo):
+            if self.xtts_attivo and self._parla_con_voicepack(testo):
                 return True
 
             if self._parla_con_sistema(testo):
                 return True
 
-        except (OSError, ValueError, subprocess.SubprocessError):
-            pass
+        except (OSError, ValueError, subprocess.SubprocessError) as errore:
+            print(f"⚠️ Errore sintesi vocale: {errore}")
 
-        print(f"[JARVIS] {testo}")
-        return True
+        print(f"⚠️ Nessun motore vocale è riuscito a riprodurre: {testo}")
+        return False
 
     def cambia_modello(self, modello):
         self.modello = self._percorso_modello(modello)
@@ -480,7 +482,8 @@ class SintesiVocale:
             "stile": self.stile,
             "piper_disponibile": self._piper_disponibile(),
             "voce_clonata_disponibile": self.voce_clonata.disponibile(),
-            "voicepack_tts_disponibile": TextToSpeech is not None,
+            "voicepack_tts_disponibile": TextToSpeech is not None and self.xtts_attivo,
+            "xtts_attivo": self.xtts_attivo,
             "voicepack_tts_inizializzato": self._voicepack_tts is not None,
             "campione_voce_locale": bool(self.voce_riferimento),
             "percorso_campione_voce": self.voce_riferimento,
