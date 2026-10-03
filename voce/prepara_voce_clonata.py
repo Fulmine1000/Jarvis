@@ -69,8 +69,8 @@ def main() -> int:
     run(
         "install",
         "--only-binary=grpcio,llvmlite,soxr",
-        "torch==2.0.1",
-        "torchaudio==2.0.2",
+        "torch==2.1.0",
+        "torchaudio==2.1.0",
         "TTS==0.22.0",
     )
 
