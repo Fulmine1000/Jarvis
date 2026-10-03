@@ -15,11 +15,27 @@ class MotoreAscolto:
         self.nome = "Motore Ascolto"
         self.attivo = False
         self.thread = None
-        self.wake_word = WakeWordJarvis()
+        self.wake_word = self._crea_wake_word()
         self._ultimo_testo = None
         self._ultimo_testo_timestamp = 0.0
         self._duplicate_lock = threading.Lock()
         self._hud_listening = False
+
+    def _crea_wake_word(self):
+        """Costruisce la wake word usando la configurazione del modulo."""
+        config = getattr(self.modulo_voce, "config", None)
+        if config:
+            try:
+                voce = config.sezione("voce")
+                parole = voce.get("wake_words")
+                if not parole:
+                    parola = voce.get("wake_word", "jarvis")
+                    parole = [parola]
+                timeout = voce.get("wake_timeout", 10)
+                return WakeWordJarvis(parole=parole, timeout=timeout)
+            except Exception:
+                pass
+        return WakeWordJarvis()
 
     def avvia(self):
         if self.attivo:
