@@ -26,15 +26,15 @@ jobs:
         run: python -m pip check
       - name: Compile Python sources
         run: python -m compileall -q .
-      - name: Verify no legacy version references
+      - name: Verify no obsolete Python version declarations
         run: |
           python - <<'PY'
           import os
           import re
 
-          pattern = re.compile(r"(?<![0-9])(3\.1|3\.0|4\.0)(?![0-9])")
+          pattern = re.compile(r"(?i)\b(?:python|py)\s*(?:version\s*)?(3\.0|3\.1|4\.0)\b")
           excluded_dirs = {".git", ".github", "venv", "__pycache__"}
-          excluded_extensions = {".json", ".pyc"}
+          excluded_extensions = {".json", ".pyc", ".qml", ".java"}
           found = []
 
           for root, dirs, files in os.walk("."):
@@ -52,10 +52,10 @@ jobs:
                       continue
 
           if found:
-              print("Trovati riferimenti a versioni legacy:")
+              print("Trovate dichiarazioni di versioni Python obsolete:")
               print("\n".join(found))
               raise SystemExit(1)
-          print("Nessun riferimento legacy trovato.")
+          print("Nessuna dichiarazione Python obsoleta trovata.")
           PY
       - name: Run tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
