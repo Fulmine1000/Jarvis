@@ -137,10 +137,15 @@ class MotoreAscolto:
                     continue
 
                 self.log(f"Comando ricevuto: {comando}")
-                self.modulo_voce.kernel.esegui_comando(comando)
+
+                # La sessione di ascolto termina PRIMA di eseguire il comando.
+                # La risposta vocale puo' richiedere tempo (in particolare XTTS)
+                # e non deve lasciare l'HUD bloccato su LISTENING mentre Jarvis parla.
                 self.wake_word.disattiva()
                 self._reset_duplicato()
                 self._imposta_hud_ascolto(False)
+
+                self.modulo_voce.kernel.esegui_comando(comando)
 
             except Exception as errore:
                 self.log(f"Errore motore ascolto: {errore}")
