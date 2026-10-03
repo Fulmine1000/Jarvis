@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Prepara il motore locale di clonazione vocale Jarvis.
 
-Target: Mac Intel / macOS High Sierra con Python 3.11.
-Usa versioni che hanno wheel macOS x86_64 per PyTorch.
+Profilo mirato: Mac Intel / macOS High Sierra / Python 3.11.
+Evita build da sorgente delle dipendenze native usando versioni con wheel
+compatibili quando disponibili.
 """
 from __future__ import annotations
 
@@ -31,14 +32,32 @@ def main() -> int:
         print(f"Python rilevato: {version.major}.{version.minor}. Usa Python 3.11.")
         return 1
 
-    # PyTorch 2.0.1 dispone di una wheel macOS 10.9+ x86_64 per CPython 3.11.
-    # Coqui TTS 0.22 supporta Python 3.11 e include XTTS v2.
+    # Manteniamo pip sotto 25 per evitare incompatibilita con il vecchio
+    # ecosistema di Coqui TTS 0.22.
     run("install", "--upgrade", "pip<25")
+
+    # PyTorch 2.0.1 / torchaudio 2.0.2 sono il profilo previsto da TTS 0.22.
     run("install", "torch==2.0.1", "torchaudio==2.0.2")
+
+    # Queste versioni dispongono di wheel CPython 3.11 macOS Intel:
+    # - grpcio 1.59.0: macOS 10.10+ universal2
+    # - llvmlite 0.41.1: macOS 10.9+ x86_64
+    # - soxr 0.3.6: macOS 10.9+ x86_64
+    #
+    # --only-binary impedisce a pip di ricadere in compilazioni locali
+    # che su High Sierra possono fallire per assenza di Python.h/toolchain.
+    run(
+        "install",
+        "--only-binary=grpcio,llvmlite,soxr",
+        "grpcio==1.59.0",
+        "llvmlite==0.41.1",
+        "soxr==0.3.6",
+    )
+
     run("install", "TTS==0.22.0")
 
     print()
-    print("✅ Motore XTTS v2 installato.")
+    print("Motore XTTS v2 installato.")
     print("Avvia Jarvis e controlla che compaia:")
     print("  Caricamento voce locale Jarvis (XTTS v2)...")
     print("  Motore vocale XTTS v2 pronto")
