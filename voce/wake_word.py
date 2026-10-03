@@ -4,13 +4,22 @@ import time
 class WakeWordJarvis:
     """Gestisce l'attivazione vocale e separa sempre la wake word dal comando."""
 
-    def __init__(self):
+    def __init__(self, parole=None, timeout=10):
         self.nome = "Wake Word Jarvis"
-        self.parole_attivazione = ["jarvis", "hey jarvis", "ehi jarvis"]
+        predefinite = ["jarvis", "hey jarvis", "ehi jarvis"]
+        valori = parole if isinstance(parole, (list, tuple)) else predefinite
+        self.parole_attivazione = []
+        for parola in valori:
+            normalizzata = self.pulisci_testo(parola)
+            if normalizzata and normalizzata not in self.parole_attivazione:
+                self.parole_attivazione.append(normalizzata)
+        if not self.parole_attivazione:
+            self.parole_attivazione = predefinite[:]
+
         self.prefissi_attivazione = ["ehi", "hey"]
         self.attivo = False
         self.ultimo_rilevamento = None
-        self.tempo_attivo = 10
+        self.tempo_attivo = max(1, int(timeout))
         self.ultimo_comando = ""
 
     def pulisci_testo(self, testo):
@@ -19,7 +28,8 @@ class WakeWordJarvis:
         testo = str(testo).lower().strip()
         for vecchio, nuovo in {"jervis": "jarvis", "gervis": "jarvis"}.items():
             testo = testo.replace(vecchio, nuovo)
-        testo = testo.replace(",", " ").replace(".", " ")
+        for carattere in ",.!?;:":
+            testo = testo.replace(carattere, " ")
         return " ".join(testo.split())
 
     def _estrai_comando_da_wake_word(self, frase):
@@ -36,8 +46,6 @@ class WakeWordJarvis:
         if not frase:
             return {"attivato": False, "comando": ""}
 
-        # Anche se la wake word era già attiva, "jarvis che ore sono"
-        # deve diventare semplicemente "che ore sono".
         if self.verifica_timeout():
             comando = self._estrai_comando_da_wake_word(frase)
             if comando is not None:
@@ -59,7 +67,6 @@ class WakeWordJarvis:
             self.ultimo_comando = ""
             return {"attivato": True, "comando": ""}
 
-        # Supporta sia "jarvis" sia "jarvis + comando" nella stessa frase.
         comando = self._estrai_comando_da_wake_word(frase)
         if comando is not None:
             self.attiva()
@@ -84,19 +91,21 @@ class WakeWordJarvis:
         self.attivo = False
 
     def cambia_timeout(self, secondi):
-        self.tempo_attivo = secondi
+        self.tempo_attivo = max(1, int(secondi))
 
     def aggiungi_parola(self, parola):
-        parola = parola.lower().strip()
-        if parola not in self.parole_attivazione:
+        parola = self.pulisci_testo(parola)
+        if parola and parola not in self.parole_attivazione:
             self.parole_attivazione.append(parola)
             return f"Parola aggiunta: {parola}"
         return "Parola già presente."
 
     def rimuovi_parola(self, parola):
-        parola = parola.lower().strip()
+        parola = self.pulisci_testo(parola)
         if parola in self.parole_attivazione:
             self.parole_attivazione.remove(parola)
+            if not self.parole_attivazione:
+                self.parole_attivazione.append("jarvis")
             return f"Parola rimossa: {parola}"
         return "Parola non trovata."
 
@@ -105,6 +114,6 @@ class WakeWordJarvis:
             "nome": self.nome,
             "attivo": self.attivo,
             "timeout": self.tempo_attivo,
-            "parole": self.parole_attivazione,
+            "parole": list(self.parole_attivazione),
             "ultimo_comando": self.ultimo_comando,
         }
