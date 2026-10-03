@@ -12,6 +12,7 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 - Contesto reale del sistema fornito al cervello senza inventare stato o azioni.
 - Wake word `Jarvis`, `Hey Jarvis`, `Ehi Jarvis` e riconoscimento Vosk opzionale.
 - Sintesi vocale Piper opzionale con fallback macOS `say`, Linux `espeak` e terminale.
+- Provider opzionale per una voce clonata tramite campione audio, con fallback automatico a Piper e alla voce di sistema.
 - Memoria persistente, profilo, ricordi e contesto.
 - Calcolatrice sicura, ora/data, diagnostica, CPU/RAM/disco, browser, app, cartelle, screenshot, volume e timer.
 - Automazioni e attività pianificate.
@@ -67,3 +68,17 @@ La root del progetto contiene quindi solo gli elementi realmente necessari al pr
 ## Nota
 
 Le funzioni cinematografiche che richiedono hardware inesistente non possono essere create dal solo software. Jarvis, però, è strutturato per sfruttare l'hardware e i servizi realmente collegati senza fingere che un'azione sia stata eseguita quando non lo è stata.
+
+## Voce clonata opzionale
+
+Jarvis può usare un provider TTS con voce clonata configurato tramite variabili d'ambiente. Il campione audio resta locale e non viene inserito nella repository.
+
+```bash
+export ELEVENLABS_API_KEY="..."
+python voce/clona_voce.py /percorso/al/campione.wav
+export JARVIS_ELEVENLABS_VOICE_ID="..."
+export JARVIS_VOICE_PROVIDER=elevenlabs
+python jarvis.py
+```
+
+Se il provider non è configurato o non è raggiungibile, Jarvis ricade su Piper e quindi sulla voce di sistema.
