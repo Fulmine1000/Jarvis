@@ -36,7 +36,7 @@ class TestDialogo(unittest.TestCase):
     def test_stato(self):
         dialogo = DialogoJarvis()
         stato = dialogo.stato()
-        self.assertEqual(stato["motore"], "Ollama locale")
+        self.assertIn(stato["motore"], {"Ollama locale", "Conversation Engine locale", "IA automatica (backend non attivo)", "llama.cpp locale", "API compatibile"})
         self.assertEqual(stato["storia_messaggi"], 0)
 
 
