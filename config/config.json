@@ -16,7 +16,7 @@
         "wake_word": "jarvis",
         "wake_words": ["jarvis", "ehi jarvis", "hey jarvis"],
         "lingua": "it-IT",
-        "motore": "xtts",
+        "motore": "voicepack",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
         "velocita": 1.0,
         "volume": 100,
