@@ -87,7 +87,10 @@ class TextToSpeech:
         self.use_coqui = False
         self.use_pyttsx3 = False
 
-        self._inizializza(use_voice_clone)
+        # Il modello XTTS viene caricato al primo utilizzo, non durante l'avvio di Jarvis.
+        # In questo modo un caricamento lento/non compatibile non blocca l'interfaccia.
+        self._use_voice_clone = bool(use_voice_clone)
+        self._initialized = False
 
     def _inizializza(self, use_voice_clone: bool) -> None:
         if _carica_coqui() and use_voice_clone and self.reference_wav:
@@ -170,6 +173,12 @@ class TextToSpeech:
 
         return None
 
+    def _inizializza_lazy(self) -> None:
+        if self._initialized:
+            return
+        self._initialized = True
+        self._inizializza(self._use_voice_clone)
+
     def set_reference_wav(self, percorso: str) -> bool:
         if not percorso:
             return False
@@ -199,6 +208,9 @@ class TextToSpeech:
         testo = str(text or "").strip()
         if not testo:
             return False
+
+        if not self._initialized:
+            self._inizializza_lazy()
 
         if self.use_xtts and self.reference_wav:
             if self._play_with_xtts(testo):
