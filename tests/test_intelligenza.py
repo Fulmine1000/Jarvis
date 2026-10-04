@@ -47,6 +47,15 @@ class TestCervelloJarvis(unittest.TestCase):
             "Spiegami cos'è un buco nero",
         )
 
+    def test_integra_conoscenza_locale_pertinente(self):
+        kernel = FintoKernel()
+        cervello = CervelloJarvis(kernel)
+
+        cervello.rispondi("Che cos'è un buco nero")
+
+        self.assertIn("CONOSCENZA LOCALE PERTINENTE", kernel.dialogo.richiesta)
+        self.assertIn("Buco nero", kernel.dialogo.richiesta)
+
     def test_stato(self):
         cervello = CervelloJarvis(FintoKernel())
         stato = cervello.stato()
