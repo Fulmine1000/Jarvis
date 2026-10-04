@@ -5,6 +5,7 @@ import os
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -44,15 +45,16 @@ class DialogoJarvis:
             "qwen2.5-3b-instruct-q4_0.gguf",
         ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
-        self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 90, 5, 180)
-        self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 4, 1, 16)
-        self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 2048, 512, 8192)
-        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 128, 32, 256)
+        self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 60, 5, 180)
+        self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 4, 1, 8)
+        self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 1024, 512, 4096)
+        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 80, 24, 160)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
         self.ultimo_backend = None
         self._server_llama = None
+        self._server_avvio_thread = None
         self._conversazione_locale = None
 
         try:
@@ -78,6 +80,11 @@ class DialogoJarvis:
             "l'appellativo 'Sir'. Non chiamarlo Simone nelle risposte dirette."
         )
         self._carica_storia()
+
+        # Precarica il server IA in background: il primo comando non deve
+        # aspettare anche il caricamento del modello da circa 2 GB.
+        if self.provider_richiesto in {"llama", "llama_cpp", "llama.cpp"}:
+            self._prepara_llama_background()
 
     @staticmethod
     def _intero_env(nome, predefinito, minimo, massimo):
@@ -140,10 +147,13 @@ class DialogoJarvis:
             self.logger.debug(messaggio)
 
     def _messaggi(self, testo):
-        messaggi = [{"role": "system", "content": self.istruzioni}]
-        messaggi.extend(self.storia[-4:])
-        messaggi.append({"role": "user", "content": testo})
-        return messaggi
+        # Ogni domanda vocale viene inviata come richiesta autonoma. La
+        # cronologia persistente non viene inserita automaticamente nel
+        # prompt, evitando contaminazioni e lavoro inutile sul CPU.
+        return [
+            {"role": "system", "content": self.istruzioni},
+            {"role": "user", "content": testo},
+        ]
 
     @staticmethod
     def _raggiungibile(endpoint, timeout=0.5):
