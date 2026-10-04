@@ -24,13 +24,21 @@ class DialogoJarvis:
 
     def __init__(self, logger=None):
         self.logger = logger
-        self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "auto").strip().lower()
+        # Su questo Mac Intel il backend locale principale e llama.cpp/Qwen.
+        # Ollama resta disponibile come backend alternativo esplicito.
+        self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "llama").strip().lower()
         self.provider = self.provider_richiesto
         self.endpoint = os.getenv("JARVIS_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
         self.endpoint_llama = os.getenv("JARVIS_LLAMA_URL", "http://127.0.0.1:8080/v1/chat/completions").strip()
         self.endpoint_compatibile = os.getenv("JARVIS_AI_URL", "").strip()
-        self.modello = os.getenv("JARVIS_AI_MODEL", os.getenv("JARVIS_OLLAMA_MODEL", "llama3.2:3b")).strip()
-        self.modello_llama = os.getenv("JARVIS_LLAMA_MODEL", self.modello).strip()
+        self.modello = os.getenv(
+            "JARVIS_AI_MODEL",
+            os.getenv("JARVIS_OLLAMA_MODEL", "llama3.2:3b"),
+        ).strip()
+        self.modello_llama = os.getenv(
+            "JARVIS_LLAMA_MODEL",
+            "qwen2.5-0.5b-instruct-q4_0.gguf",
+        ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 45, 5, 180)
         self.attivo = True
@@ -272,13 +280,15 @@ class DialogoJarvis:
         if richiesto in {"locale", "local", "fallback"}:
             return []
         candidati = []
+        # Preferenza locale: sul Mac di Jarvis usiamo prima llama.cpp/Qwen,
+        # così il cervello locale non dipende da Ollama o da servizi esterni.
+        binario, modello = self._trova_llama()
+        if self._raggiungibile(self.endpoint_llama) or (binario and modello):
+            candidati.append("llama")
         if self._raggiungibile(self.endpoint):
             candidati.append("ollama")
         if self.endpoint_compatibile and self._raggiungibile(self.endpoint_compatibile):
             candidati.append("compatibile")
-        binario, modello = self._trova_llama()
-        if self._raggiungibile(self.endpoint_llama) or (binario and modello):
-            candidati.append("llama")
         return candidati
 
     def _risposta_locale(self, testo):
