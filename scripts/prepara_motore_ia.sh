@@ -35,12 +35,35 @@ else
 fi
 
 # Compatibilita con AppleClang 10 / macOS High Sierra.
-# AppleClang 10 non accetta la definizione fuori classe di un distruttore
-# implicitamente dichiarato. La soluzione piu pulita per questa versione
-# del sorgente e rimuovere quella definizione: il distruttore implicito
-# della struct e sufficiente e non richiede alcuna dichiarazione aggiuntiva.
+# AppleClang 10 richiede un distruttore esplicitamente dichiarato e definito
+# per common_params_sampling. Usiamo una definizione con corpo vuoto, evitando
+# il problema del distruttore implicitamente dichiarato e quello di una
+# definizione esplicitamente defaulted che su questo compilatore non esporta
+# correttamente il simbolo al linker.
 git checkout -- common/common.h common/sampling.cpp
-sed -i '' '/^common_params_sampling::~common_params_sampling() = default;$/d' common/sampling.cpp
+python - <<'PY'
+from pathlib import Path
+
+header = Path("common/common.h")
+text = header.read_text()
+needle = "struct common_params_sampling {\n"
+replacement = "struct common_params_sampling {\n    ~common_params_sampling();\n"
+if needle not in text:
+    raise SystemExit("ERRORE: struttura common_params_sampling non trovata")
+if "~common_params_sampling();" not in text:
+    text = text.replace(needle, replacement, 1)
+    header.write_text(text)
+
+source = Path("common/sampling.cpp")
+text = source.read_text()
+needle = "std::string common_params_sampling::print() const {\n"
+replacement = "common_params_sampling::~common_params_sampling() {}\n\nstd::string common_params_sampling::print() const {\n"
+if needle not in text:
+    raise SystemExit("ERRORE: funzione common_params_sampling::print non trovata")
+if "common_params_sampling::~common_params_sampling()" not in text:
+    text = text.replace(needle, replacement, 1)
+    source.write_text(text)
+PY
 
 export MACOSX_DEPLOYMENT_TARGET=10.13
 export CMAKE_OSX_DEPLOYMENT_TARGET=10.13
