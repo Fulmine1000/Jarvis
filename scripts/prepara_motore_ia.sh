@@ -35,20 +35,19 @@ else
 fi
 
 # Compatibilita con AppleClang 10 / macOS High Sierra.
-# sampling.cpp definisce il distruttore fuori dalla struct; AppleClang 10
-# richiede che il distruttore sia prima dichiarato nella struct.
-# NON lo dichiariamo come = default qui: la definizione fuori classe in
-# sampling.cpp deve rimanere l'unico punto in cui viene defaulted.
+# sampling.cpp definisce il distruttore fuori dalla struct. AppleClang 10
+# richiede una dichiarazione preventiva, ma non una dichiarazione gia
+# defaulted, perche la definizione esterna in sampling.cpp e il solo punto
+# in cui il distruttore viene defaulted.
 if grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
-  if ! grep -A3 'struct common_params_sampling {' common/common.h | grep -q '~common_params_sampling();'; then
-    awk '
-      { print }
-      /^struct common_params_sampling \{/ {
-        print "    ~common_params_sampling();"
-      }
-    ' common/common.h > common/common.h.jarvis
-    mv common/common.h.jarvis common/common.h
-  fi
+  awk '
+    /^    ~common_params_sampling()( = default)?;$/ { next }
+    { print }
+    /^struct common_params_sampling {/ {
+      print "    ~common_params_sampling();"
+    }
+  ' common/common.h > common/common.h.jarvis
+  mv common/common.h.jarvis common/common.h
 fi
 
 export MACOSX_DEPLOYMENT_TARGET=10.13
@@ -56,21 +55,12 @@ export CMAKE_OSX_DEPLOYMENT_TARGET=10.13
 export CMAKE_OSX_ARCHITECTURES=x86_64
 
 rm -rf build
-cmake -S . -B build \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 \
-  -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-  -DGGML_METAL=OFF \
-  -DGGML_BLAS=OFF \
-  -DLLAMA_BUILD_SERVER=ON \
-  -DLLAMA_BUILD_TESTS=OFF
+cmake -S . -B build   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13   -DCMAKE_OSX_ARCHITECTURES=x86_64   -DGGML_METAL=OFF   -DGGML_BLAS=OFF   -DLLAMA_BUILD_SERVER=ON   -DLLAMA_BUILD_TESTS=OFF
 
 cmake --build build --config Release --target llama-server -j 2
 
 SERVER=""
-for candidate in \
-  "$SRC_DIR/build/bin/llama-server" \
-  "$SRC_DIR/build/bin/server"; do
+for candidate in   "$SRC_DIR/build/bin/llama-server"   "$SRC_DIR/build/bin/server"; do
   if [ -x "$candidate" ]; then
     SERVER="$candidate"
     break
@@ -87,9 +77,7 @@ chmod +x "$BIN_DIR/llama-server"
 
 if [ ! -f "$MODEL" ]; then
   echo "Scarico il modello Qwen2.5 0.5B..."
-  curl -L --fail --progress-bar \
-    -o "$MODEL" \
-    "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf"
+  curl -L --fail --progress-bar     -o "$MODEL"     "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf"
 fi
 
 echo ""
