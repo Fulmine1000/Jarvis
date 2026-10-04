@@ -35,11 +35,15 @@ else
 fi
 
 # Compatibilita con AppleClang 10 / macOS High Sierra.
-# AppleClang 10 richiede un distruttore esplicitamente dichiarato e definito
-# per common_params_sampling. Usiamo una definizione con corpo vuoto, evitando
-# il problema del distruttore implicitamente dichiarato e quello di una
-# definizione esplicitamente defaulted che su questo compilatore non esporta
-# correttamente il simbolo al linker.
+# La versione storica di llama.cpp non dichiara un distruttore per
+# common_params_sampling: il compilatore lo genera implicitamente.
+# Su AppleClang 10, nel percorso di link di libcommon + llama-server,
+# quel distruttore implicito puo produrre un riferimento non risolto.
+#
+# Rendiamo il distruttore esplicitamente INLINE nella struttura. In questo
+# modo il simbolo viene emesso nel contesto in cui common_params_sampling
+# viene usato, evitando la dipendenza da una definizione out-of-line nel
+# singolo object file di sampling.cpp.
 git checkout -- common/common.h common/sampling.cpp
 python - <<'PY'
 from pathlib import Path
@@ -47,22 +51,12 @@ from pathlib import Path
 header = Path("common/common.h")
 text = header.read_text()
 needle = "struct common_params_sampling {\n"
-replacement = "struct common_params_sampling {\n    ~common_params_sampling();\n"
+replacement = "struct common_params_sampling {\n    ~common_params_sampling() {}\n"
 if needle not in text:
     raise SystemExit("ERRORE: struttura common_params_sampling non trovata")
-if "~common_params_sampling();" not in text:
+if "~common_params_sampling()" not in text:
     text = text.replace(needle, replacement, 1)
     header.write_text(text)
-
-source = Path("common/sampling.cpp")
-text = source.read_text()
-needle = "std::string common_params_sampling::print() const {\n"
-replacement = "common_params_sampling::~common_params_sampling() {}\n\nstd::string common_params_sampling::print() const {\n"
-if needle not in text:
-    raise SystemExit("ERRORE: funzione common_params_sampling::print non trovata")
-if "common_params_sampling::~common_params_sampling()" not in text:
-    text = text.replace(needle, replacement, 1)
-    source.write_text(text)
 PY
 
 export MACOSX_DEPLOYMENT_TARGET=10.13
