@@ -28,9 +28,15 @@ class CervelloJarvis:
         dialogo = getattr(self.kernel, "dialogo", None)
         if not dialogo:
             return None
-        # Per le domande normali inviamo al modello soprattutto la domanda
-        # dell'utente. Il piccolo Qwen locale funziona molto meglio senza
-        # un lungo dump di stato, cronologia e memoria dentro la richiesta.
+        # Le domande definitorie gia presenti nella base locale possono avere
+        # una risposta immediata e naturale, evitando di attendere Qwen.
+        if not self.conoscenza.necessita_web(testo):
+            risposta_rapida = self.conoscenza.risposta_rapida(testo)
+            if risposta_rapida:
+                return risposta_rapida
+
+        # Per le altre domande inviamo al modello soprattutto la richiesta
+        # dell'utente. Qwen riceve solo il contesto utile, non uno stato enorme.
         contesto = ""
         locale = self.conoscenza.cerca_locale(testo, massimo=2, caratteri_massimi=1200)
         if locale:
