@@ -26,7 +26,7 @@ class GestoreComandi:
         if not comando or not comando.strip():
             return "Comando vuoto."
         originale = comando.strip()
-        c = re.sub(r"\s+", " ", originale.lower())
+        c = self._normalizza_comando_vocale(originale)
         if c in ("esci", "chiudi", "stop", "spegni jarvis", "arresta jarvis"):
             if self.kernel:
                 self.kernel.richiedi_arresto()
@@ -46,6 +46,34 @@ class GestoreComandi:
             except Exception:
                 pass
         return risposta
+
+    @staticmethod
+    def _normalizza_comando_vocale(comando):
+        """Corregge solo errori vocali comuni senza alterare il significato.
+
+        Vosk può produrre piccole deformazioni fonetiche. Le correzioni qui
+        presenti sono volutamente conservative e servono soprattutto a
+        trasformare una domanda riconoscibile in una frase che il cervello IA
+        possa comprendere. Non usiamo fuzzy matching sui comandi operativi,
+        perché potrebbe eseguire un'azione diversa da quella pronunciata.
+        """
+        c = re.sub(r"\s+", " ", str(comando or "").strip().lower())
+
+        correzioni = (
+            (r"^briga di\s+", "spiegami "),
+            (r"^briga\s+", "spiegami "),
+            (r"^spiega mi\s+", "spiegami "),
+            (r"^mi spiega\s+", "mi spieghi "),
+            (r"^che cosa e\s+", "che cos'è "),
+            (r"^cosa e\s+", "cosa è "),
+        )
+        for pattern, sostituzione in correzioni:
+            nuovo = re.sub(pattern, sostituzione, c, count=1)
+            if nuovo != c:
+                c = nuovo
+                break
+
+        return c.strip()
 
     def _esegui_raw(self, c):
         k = self.kernel
