@@ -46,15 +46,16 @@ class DialogoJarvis:
         ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 60, 5, 180)
-        self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 8, 1, 8)
+        self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 2, 1, 4)
         self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 768, 512, 4096)
-        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 64, 24, 160)
+        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 48, 16, 128)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
         self.ultimo_backend = None
         self._server_llama = None
         self._server_avvio_thread = None
+        self._server_avvio_lock = threading.Lock()
         self._conversazione_locale = None
 
         try:
@@ -262,49 +263,53 @@ class DialogoJarvis:
         self._server_avvio_thread.start()
 
     def _avvia_llama_server(self):
-        if self._raggiungibile(self.endpoint_llama):
-            return True
+        # Il precaricamento avviene in background. Un lock evita che la prima
+        # domanda avvii un secondo llama-server mentre il primo sta caricando
+        # il modello.
+        with self._server_avvio_lock:
+            if self._raggiungibile(self.endpoint_llama):
+                return True
 
-        binario, modello = self._trova_llama()
-        if not binario or not modello:
-            return False
+            binario, modello = self._trova_llama()
+            if not binario or not modello:
+                return False
 
-        parsed = urllib.parse.urlparse(self.endpoint_llama)
-        host = parsed.hostname or "127.0.0.1"
-        porta = str(parsed.port or 8080)
+            parsed = urllib.parse.urlparse(self.endpoint_llama)
+            host = parsed.hostname or "127.0.0.1"
+            porta = str(parsed.port or 8080)
 
-        try:
-            self._server_llama = subprocess.Popen(
-                [
-                    binario,
-                    "-m",
-                    modello,
-                    "--host",
-                    host,
-                    "--port",
-                    porta,
-                    "-c",
-                    str(self.llama_context),
-                    "-ngl",
-                    "0",
-                    "-t",
-                    str(self.llama_threads),
-                ],
-                cwd=os.path.dirname(binario),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            limite = time.time() + min(self.timeout, 30)
-            while time.time() < limite:
-                if self._raggiungibile(self.endpoint_llama):
-                    return True
-                if self._server_llama.poll() is not None:
-                    break
-                time.sleep(0.25)
-        except (OSError, ValueError):
-            self._server_llama = None
+            try:
+                self._server_llama = subprocess.Popen(
+                    [
+                        binario,
+                        "-m",
+                        modello,
+                        "--host",
+                        host,
+                        "--port",
+                        porta,
+                        "-c",
+                        str(self.llama_context),
+                        "-ngl",
+                        "0",
+                        "-t",
+                        str(self.llama_threads),
+                    ],
+                    cwd=os.path.dirname(binario),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                limite = time.time() + min(self.timeout, 30)
+                while time.time() < limite:
+                    if self._raggiungibile(self.endpoint_llama):
+                        return True
+                    if self._server_llama.poll() is not None:
+                        break
+                    time.sleep(0.25)
+            except (OSError, ValueError):
+                self._server_llama = None
 
-        return self._raggiungibile(self.endpoint_llama)
+            return self._raggiungibile(self.endpoint_llama)
 
     def _backend_disponibili(self):
         richiesto = self.provider_richiesto
