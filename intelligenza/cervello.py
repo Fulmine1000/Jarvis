@@ -31,17 +31,26 @@ class CervelloJarvis:
         # Per le domande normali inviamo al modello soprattutto la domanda
         # dell'utente. Il piccolo Qwen locale funziona molto meglio senza
         # un lungo dump di stato, cronologia e memoria dentro la richiesta.
-        contesto_web = ""
+        contesto = ""
+        locale = self.conoscenza.cerca_locale(testo, massimo=2, caratteri_massimi=1200)
+        if locale:
+            contesto += (
+                "\n\nCONOSCENZA LOCALE PERTINENTE (usala come riferimento):\n"
+                + locale
+            )
+
         if self.conoscenza.necessita_web(testo):
             risultati = self.conoscenza.cerca_web(testo)
             if risultati:
-                contesto_web = (
-                    "\n\nDATI WEB RECENTI (solo se pertinenti):\n" + risultati
+                contesto += (
+                    "\n\nDATI WEB RECENTI (solo se pertinenti e distinguendoli "
+                    "dalla conoscenza locale):\n" + risultati
                 )
 
-        # Le regole comportamentali sono già nel system prompt del dialogo.
-        # Evitiamo di duplicarle: meno token da elaborare e meno ambiguità.
-        richiesta = testo + contesto_web
+        # Il contesto viene recuperato solo quando esiste una corrispondenza.
+        # In questo modo le domande normali restano rapide e il modello riceve
+        # informazioni aggiuntive solo quando possono migliorare la precisione.
+        richiesta = testo + contesto
 
         return dialogo.rispondi(richiesta)
 
