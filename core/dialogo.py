@@ -136,7 +136,7 @@ class DialogoJarvis:
 
     def _messaggi(self, testo):
         messaggi = [{"role": "system", "content": self.istruzioni}]
-        messaggi.extend(self.storia[-6:])
+        messaggi.extend(self.storia[-4:])
         messaggi.append({"role": "user", "content": testo})
         return messaggi
 
@@ -158,7 +158,7 @@ class DialogoJarvis:
             "model": self.modello,
             "messages": messaggi,
             "stream": False,
-            "options": {"temperature": 0.25, "num_ctx": 2048, "num_predict": 384},
+            "options": {"temperature": 0.25, "num_ctx": 2048, "num_predict": 192},
         })
         return (dati.get("message") or {}).get("content", "").strip()
 
@@ -171,7 +171,7 @@ class DialogoJarvis:
             "messages": messaggi,
             "temperature": 0.25,
             "stream": False,
-            "max_tokens": 384,
+            "max_tokens": 192,
         }, headers)
         scelte = dati.get("choices") or []
         if not scelte:
