@@ -239,6 +239,26 @@ class DialogoJarvis:
             modello if os.path.isfile(modello) else None,
         )
 
+    def _prepara_llama_background(self):
+        """Prepara il server llama.cpp durante l'avvio di Jarvis."""
+        if self._raggiungibile(self.endpoint_llama):
+            return
+        if self._server_avvio_thread and self._server_avvio_thread.is_alive():
+            return
+
+        def avvia():
+            try:
+                self._avvia_llama_server()
+            except Exception as errore:
+                self._log_debug(f"Avvio IA in background non riuscito: {errore}")
+
+        self._server_avvio_thread = threading.Thread(
+            target=avvia,
+            name="JarvisLlamaPreload",
+            daemon=True,
+        )
+        self._server_avvio_thread.start()
+
     def _avvia_llama_server(self):
         if self._raggiungibile(self.endpoint_llama):
             return True
