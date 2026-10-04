@@ -404,6 +404,21 @@ class DialogoJarvis:
 
         return None
 
+    def ferma(self):
+        """Arresta il llama-server avviato da questa istanza di Jarvis."""
+        processo = self._server_llama
+        self._server_llama = None
+        if processo and processo.poll() is None:
+            try:
+                processo.terminate()
+                processo.wait(timeout=2)
+            except Exception:
+                try:
+                    processo.kill()
+                except Exception:
+                    pass
+        return True
+
     def cancella_storia(self):
         self.storia = []
         try:
