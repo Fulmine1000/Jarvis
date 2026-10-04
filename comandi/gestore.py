@@ -279,6 +279,12 @@ class GestoreComandi:
         for nome, funzione in self.comandi_personalizzati.items():
             if nome in c:
                 return funzione()
+
+        # Stringhe manifestamente tecniche o di test non vanno inoltrate al
+        # modello: l'IA potrebbe trasformarle arbitrariamente in una risposta.
+        if re.fullmatch(r"[a-zàèéìòù0-9_\-]+", c) and ("_" in c or any(ch.isdigit() for ch in c)):
+            return "Non ho trovato un comando compatibile."
+
         if k and hasattr(k, "intelligenza"):
             risposta_ai = k.intelligenza.rispondi(c)
             if risposta_ai:
