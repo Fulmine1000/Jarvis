@@ -95,6 +95,54 @@ class ConoscenzaJarvis:
 
         return "\n".join(risultati)
 
+    def risposta_rapida(self, query: str):
+        """Restituisce subito una risposta naturale per domande definitorie note."""
+        query = (query or "").strip()
+        if not query or not self.attivo or not self.locale_attivo or not self.voci:
+            return None
+
+        normalizzato = self._normalizza(query)
+        definitoria = (
+            normalizzato.startswith("cos'e ")
+            or normalizzato.startswith("che cos'e ")
+            or normalizzato.startswith("cosa e ")
+            or normalizzato.startswith("spiegami ")
+            or normalizzato.startswith("cosa significa ")
+            or normalizzato.startswith("che significa ")
+        )
+        if not definitoria:
+            return None
+
+        query_tokens = self._tokenizza(query)
+        migliore = None
+        for voce in self.voci:
+            titolo = str(voce.get("titolo", ""))
+            testo = str(voce.get("testo", "")).strip()
+            if not testo:
+                continue
+            score = 0
+            titolo_norm = self._normalizza(titolo)
+            if titolo_norm and titolo_norm in normalizzato:
+                score += 8
+            for chiave in voce.get("parole_chiave", []):
+                chiave_norm = self._normalizza(str(chiave))
+                if chiave_norm and chiave_norm in normalizzato:
+                    score += 5
+                score += min(2, len(self._tokenizza(str(chiave)) & query_tokens))
+            score += min(4, len(self._tokenizza(titolo) & query_tokens) * 2)
+            if score >= 8 and (migliore is None or score > migliore[0]):
+                migliore = (score, testo)
+
+        if not migliore:
+            return None
+
+        testo = migliore[1]
+        # Una breve apertura rende la risposta piu naturale senza chiedere
+        # al modello di generarla, evitando diversi secondi di attesa.
+        if testo:
+            testo = testo[0].lower() + testo[1:]
+        return "In breve, " + testo
+
     def cerca_web(self, query: str, massimo: int = 5) -> str:
         query = (query or "").strip()
         if not query or not self.attivo:
