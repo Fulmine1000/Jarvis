@@ -12,6 +12,7 @@ import threading
 import time
 import traceback
 
+from core.istanza import IstanzaUnicaJarvis
 from core.kernel import KernelJarvis
 from dispositivi.telefono import TelefonoJarvis
 from interfaccia.hud import HUDJarvis
@@ -188,6 +189,14 @@ class JarvisOS:
 
 
 def main() -> int:
+    # Una sola istanza globale: se una seconda esecuzione viene avviata
+    # accidentalmente dalla wake word o dal terminale, non crea un altro
+    # HUD/microfono/server ma termina in modo innocuo.
+    istanza = IstanzaUnicaJarvis()
+    if not istanza.acquisisci():
+        print("J.A.R.V.I.S. è già in esecuzione: nessuna seconda istanza avviata.")
+        return 0
+
     jarvis = JarvisOS()
 
     def chiusura(signum=None, frame=None):
@@ -205,6 +214,8 @@ def main() -> int:
     except KeyboardInterrupt:
         jarvis.arresta()
         return 0
+    finally:
+        istanza.rilascia()
 
 
 if __name__ == "__main__":
