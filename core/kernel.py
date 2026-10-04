@@ -132,6 +132,10 @@ class KernelJarvis:
         self.logger.info("Arresto Jarvis...")
         self.arresto_richiesto = True
         self.intelligenza.ferma()
+        try:
+            self.dialogo.ferma()
+        except Exception as errore:
+            self.logger.warning(f"Errore arresto motore IA locale: {errore}")
         self.portabilita_ia.disattiva()
         self.automazioni.ferma()
         self.pianificatore.ferma()
