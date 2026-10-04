@@ -6,7 +6,7 @@ IA_DIR="$ROOT/motore_ia"
 SRC_DIR="$IA_DIR/llama.cpp"
 BIN_DIR="$IA_DIR/bin"
 MODEL_DIR="$IA_DIR/modelli"
-MODEL_NAME="qwen2.5-3b-instruct-q4_0.gguf"
+MODEL_NAME="qwen2.5-3b-instruct-q4_k_m.gguf"
 MODEL="$MODEL_DIR/$MODEL_NAME"
 MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/$MODEL_NAME"
 
@@ -35,7 +35,7 @@ fi
 echo "=== Preparazione motore IA locale Jarvis ==="
 echo "Sistema: macOS Intel"
 echo "Motore: llama.cpp CPU"
-echo "Modello: Qwen2.5 3B Instruct Q4_0 (~2 GB)"
+echo "Modello: Qwen2.5 3B Instruct Q4_K_M (~2 GB)"
 echo "Python: $PYTHON_BIN"
 
 if [ ! -d "$SRC_DIR/.git" ]; then
@@ -111,7 +111,7 @@ if [ ! -f "$MODEL" ]; then
     echo "Uso il modello gia scaricato in /tmp."
     cp "/tmp/$MODEL_NAME" "$MODEL"
   else
-    echo "Scarico il modello Qwen2.5 3B Instruct Q4_0..."
+    echo "Scarico il modello Qwen2.5 3B Instruct Q4_K_M..."
     curl -L --fail --progress-bar -o "$MODEL" "$MODEL_URL"
   fi
 fi
