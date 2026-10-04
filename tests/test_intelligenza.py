@@ -44,11 +44,13 @@ class TestCervelloJarvis(unittest.TestCase):
         self.assertEqual(risposta, "Risposta IA")
         self.assertEqual(
             kernel.dialogo.richiesta,
-            "Rispondi direttamente alla domanda dell'utente in italiano. "
-            "Non cambiare argomento e non rispondere con la data o con lo stato "
-            "del sistema se l'utente non lo ha chiesto. "
-            "Se è una domanda generale, usa le sue conoscenze. "
-            "Domanda: Spiegami cos'è un buco nero",
+            "Rispondi SOLO alla richiesta attuale dell'utente, in italiano. "
+            "Non aggiungere data, ora, saluti, stato del sistema, riepiloghi "
+            "o altri argomenti che l'utente non ha richiesto. "
+            "Non usare la cronologia precedente come motivo per cambiare "
+            "argomento. Per una domanda semplice, rispondi in una o due frasi. "
+            "Se la richiesta chiede una spiegazione, spiega soltanto quella. "
+            "Domanda attuale: Spiegami cos'è un buco nero",
         )
 
     def test_stato(self):
