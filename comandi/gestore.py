@@ -66,10 +66,11 @@ class GestoreComandi:
             (r"^mi spiega\s+", "mi spieghi "),
             (r"^che cosa e\s+", "che cos'è "),
             (r"^cosa e\s+", "cosa è "),
-            (r"^che giorno e$", "che giorno è"),
-            (r"^che data e$", "che data è"),
-            (r"^che giorno è oggi$", "che giorno è"),
-            (r"^che data è oggi$", "che data è"),
+            (r"^(che\s+)?giorno\s+(?:è|e)(?:\s+oggi)?$", "che giorno è"),
+            (r"^(che\s+)?data\s+(?:è|e)(?:\s+oggi)?$", "che data è"),
+            (r"^(che\s+)?giorno\s+oggi$", "che giorno è"),
+            (r"^(che\s+)?data\s+oggi$", "che data è"),
+            (r"^che\s+ore\s+(?:sono|e)(?:\s+adesso|\s+ora)?$", "che ore sono"),
         )
         for pattern, sostituzione in correzioni:
             nuovo = re.sub(pattern, sostituzione, c, count=1)
@@ -96,6 +97,8 @@ class GestoreComandi:
             return self.personalita.aiuto() if self.personalita else "Posso gestire sistema, memoria, voce, web e dispositivi."
         if c in ("che ore sono", "ora"):
             return cap.ora() if cap else f"Sono le {datetime.datetime.now().strftime('%H:%M')}."
+        if re.fullmatch(r"(?:che\s+)?(?:giorno|data)(?:\s+(?:è|e))?(?:\s+oggi)?", c):
+            return cap.data() if cap else f"Oggi è il {datetime.datetime.now().strftime('%d/%m/%Y')}."
         if c in ("che giorno è", "che data è", "data"):
             return cap.data() if cap else f"Oggi è il {datetime.datetime.now().strftime('%d/%m/%Y')}."
         if c in ("stato sistema", "stato del sistema", "rapporto sistema", "diagnostica"):
