@@ -66,6 +66,10 @@ class GestoreComandi:
             (r"^mi spiega\s+", "mi spieghi "),
             (r"^che cosa e\s+", "che cos'è "),
             (r"^cosa e\s+", "cosa è "),
+            (r"^che giorno e$", "che giorno è"),
+            (r"^che data e$", "che data è"),
+            (r"^che giorno è oggi$", "che giorno è"),
+            (r"^che data è oggi$", "che data è"),
         )
         for pattern, sostituzione in correzioni:
             nuovo = re.sub(pattern, sostituzione, c, count=1)
