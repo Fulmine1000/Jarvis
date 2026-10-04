@@ -39,16 +39,56 @@ else
   exit 3
 fi
 
-# AppleClang 10 su High Sierra puo lasciare un simbolo esterno per il
-# distruttore implicito di common_params_sampling. Definiamo il distruttore
-# fuori dalla classe in sampling.cpp, cosi il linker riceve sempre il simbolo.
-if ! grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
-  awk '
-    { print }
-    /#include "sampling.h"/ {
-      print "common_params_sampling::~common_params_sampling() = default;"
-    }
-  ' common/sampling.cpp > common/sampling.cpp.jarvis && mv common/sampling.cpp.jarvis common/sampling.cpp
+# Compatibilita con AppleClang 10 / macOS High Sierra.
+# In questa versione di llama.cpp sampling.cpp definisce esplicitamente
+# il distruttore di common_params_sampling. AppleClang 10 rifiuta pero la
+# definizione se il distruttore non e stato dichiarato nella struct.
+# Aggiungiamo quindi la dichiarazione direttamente in common.h.
+if grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
+  if ! grep -A2 -q 'struct common_params_sampling {[[:space:]]*
+export MACOSX_DEPLOYMENT_TARGET=10.13
+export CMAKE_OSX_DEPLOYMENT_TARGET=10.13
+export CMAKE_OSX_ARCHITECTURES=x86_64
+
+rm -rf build
+cmake -S . -B build   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13   -DCMAKE_OSX_ARCHITECTURES=x86_64   -DGGML_METAL=OFF   -DGGML_BLAS=OFF   -DLLAMA_BUILD_SERVER=ON   -DLLAMA_BUILD_TESTS=OFF
+
+cmake --build build --config Release --target llama-server -j 2
+
+SERVER=""
+for candidate in   "$SRC_DIR/build/bin/llama-server"   "$SRC_DIR/build/bin/server"; do
+  if [ -x "$candidate" ]; then
+    SERVER="$candidate"
+    break
+  fi
+done
+
+if [ -z "$SERVER" ]; then
+  echo "ERRORE: llama-server non trovato dopo la compilazione."
+  exit 2
+fi
+
+cp "$SERVER" "$BIN_DIR/llama-server"
+chmod +x "$BIN_DIR/llama-server"
+
+if [ ! -f "$MODEL" ]; then
+  echo "Scarico il modello Qwen2.5 0.5B..."
+  curl -L --fail --progress-bar     -o "$MODEL"     "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf"
+fi
+
+echo ""
+echo "Motore IA locale preparato."
+echo "Binario: $BIN_DIR/llama-server"
+echo "Modello: $MODEL"
+echo "Jarvis lo avviera automaticamente quando servira."
+ common/common.h ||      ! grep -A3 'struct common_params_sampling {' common/common.h | grep -q '~common_params_sampling() = default;'; then
+    awk '
+      { print }
+      /^struct common_params_sampling \{/ {
+        print "    ~common_params_sampling() = default;"
+      }
+    ' common/common.h > common/common.h.jarvis && mv common/common.h.jarvis common/common.h
+  fi
 fi
 
 export MACOSX_DEPLOYMENT_TARGET=10.13
