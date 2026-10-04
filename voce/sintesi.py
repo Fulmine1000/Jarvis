@@ -333,7 +333,9 @@ class SintesiVocale:
         if not self.attivo or not str(testo or "").strip():
             return False
 
-        testo = str(testo).strip()
+        # La sintesi di sistema gestisce meglio un unico flusso continuo:
+        # rimuoviamo a capo e spazi ripetuti che possono creare pause spezzate.
+        testo = " ".join(str(testo).strip().split())
 
         try:
             if self._parla_con_voce_clonata(testo):
