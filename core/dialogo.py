@@ -48,7 +48,7 @@ class DialogoJarvis:
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 60, 5, 180)
         self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 4, 1, 4)
         self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 512, 512, 4096)
-        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 64, 16, 128)
+        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 48, 16, 96)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
@@ -69,7 +69,7 @@ class DialogoJarvis:
             "Rispondi solo alla domanda dell'utente, in modo corretto, chiaro e breve. "
             "Non aggiungere data, ora, saluti o informazioni non richieste. "
             "Non inventare: se non sei sicuro, dillo. "
-            "Per domande fattuali, dai prima la risposta corretta e poi una breve spiegazione. "
+            "Per domande fattuali, usa definizioni affidabili e non fare supposizioni. ""Dai prima la risposta corretta e poi una breve spiegazione. "
             "Usa 'Sir' solo quando ti rivolgi direttamente all'utente."
         )
         self._carica_storia()
