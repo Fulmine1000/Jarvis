@@ -17,10 +17,26 @@ if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "x86_64" ]; then
   exit 1
 fi
 
+PYTHON_BIN=""
+for candidato in python3 python; do
+  if command -v "$candidato" >/dev/null 2>&1; then
+    if "$candidato" -c 'import sys; raise SystemExit(0 if sys.version_info.major >= 3 else 1)' >/dev/null 2>&1; then
+      PYTHON_BIN="$candidato"
+      break
+    fi
+  fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+  echo "ERRORE: serve Python 3 per preparare il motore IA."
+  exit 4
+fi
+
 echo "=== Preparazione motore IA locale Jarvis ==="
 echo "Sistema: macOS Intel"
 echo "Motore: llama.cpp CPU"
 echo "Modello: Qwen2.5 3B Instruct Q4_0 (~2 GB)"
+echo "Python: $PYTHON_BIN"
 
 if [ ! -d "$SRC_DIR/.git" ]; then
   git clone --depth 1 https://github.com/ggml-org/llama.cpp.git "$SRC_DIR"
@@ -38,7 +54,7 @@ fi
 
 # Compatibilita con AppleClang 10 / macOS High Sierra.
 git checkout -- common/common.h common/sampling.cpp
-python - <<'PY'
+"$PYTHON_BIN" - <<'PY'
 from pathlib import Path
 
 header = Path("common/common.h")
