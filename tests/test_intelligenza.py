@@ -21,8 +21,8 @@ class FintaPreferenze:
 
 
 class FintoContesto:
-    def stato(self):
-        return {"messaggi": 1}
+    def cronologia(self):
+        return [{"ruolo": "utente", "testo": "precedente"}]
 
 
 class FintoKernel:
@@ -35,17 +35,21 @@ class FintoKernel:
 
 
 class TestCervelloJarvis(unittest.TestCase):
-    def test_delega_al_motore_ai_con_contesto_reale(self):
+    def test_delega_al_motore_ai_sulla_richiesta_attuale(self):
         kernel = FintoKernel()
         cervello = CervelloJarvis(kernel)
 
-        risposta = cervello.rispondi("Raccontami qualcosa")
+        risposta = cervello.rispondi("Spiegami cos'è un buco nero")
 
         self.assertEqual(risposta, "Risposta IA")
-        self.assertIn("Stato Jarvis: Operativo", kernel.dialogo.richiesta)
-        self.assertIn("Nome utente configurato: Simone", kernel.dialogo.richiesta)
-        self.assertIn("Raccontami qualcosa", kernel.dialogo.richiesta)
-        self.assertIn("Appellativo da usare nelle risposte: Sir", kernel.dialogo.richiesta)
+        self.assertEqual(
+            kernel.dialogo.richiesta,
+            "Rispondi direttamente alla domanda dell'utente in italiano. "
+            "Non cambiare argomento e non rispondere con la data o con lo stato "
+            "del sistema se l'utente non lo ha chiesto. "
+            "Se è una domanda generale, usa le sue conoscenze. "
+            "Domanda: Spiegami cos'è un buco nero",
+        )
 
     def test_stato(self):
         cervello = CervelloJarvis(FintoKernel())
