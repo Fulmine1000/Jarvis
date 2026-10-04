@@ -43,6 +43,7 @@ class CervelloJarvis:
         # Evitiamo di duplicarle: meno token da elaborare e meno ambiguità.
         richiesta = testo + contesto_web
 
+        return dialogo.rispondi(richiesta)
 
     def _contesto_reale(self) -> str:
         parti = []
