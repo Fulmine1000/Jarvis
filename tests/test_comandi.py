@@ -52,6 +52,10 @@ class TestComandi(unittest.TestCase):
         risposta = self._cmd("che giorno è")
         self.assertIn("/", risposta)
 
+        for comando in ("che data e oggi", "che giorno e oggi", "che data oggi", "che giorno oggi"):
+            risposta = self._cmd(comando)
+            self.assertIn("/", risposta)
+
     def test_stato_dispositivi(self):
         risposta = self._cmd("stato dispositivi")
         self.assertIsInstance(risposta, str)
