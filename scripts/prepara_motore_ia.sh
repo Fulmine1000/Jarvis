@@ -26,11 +26,6 @@ fi
 
 cd "$SRC_DIR"
 
-# Dal commit 3420909 llama.cpp usa std::filesystem in punti che
-# richiedono macOS 10.15. High Sierra 10.13 non puo compilare quella
-# versione con AppleClang 10. Scarichiamo quindi la storia completa e
-# fissiamo il sorgente al commit immediatamente precedente al primo
-# commit incompatibile.
 git fetch --unshallow >/dev/null 2>&1 || true
 if git cat-file -e 3420909^ 2>/dev/null; then
   git checkout --detach 3420909^
@@ -40,16 +35,16 @@ else
 fi
 
 # Compatibilita con AppleClang 10 / macOS High Sierra.
-# In questa versione di llama.cpp sampling.cpp definisce esplicitamente
-# il distruttore di common_params_sampling. AppleClang 10 rifiuta pero la
-# definizione se il distruttore non e stato dichiarato nella struct.
-# Aggiungiamo quindi la dichiarazione direttamente in common.h.
+# sampling.cpp definisce il distruttore fuori dalla struct; AppleClang 10
+# richiede che il distruttore sia prima dichiarato nella struct.
+# NON lo dichiariamo come = default qui: la definizione fuori classe in
+# sampling.cpp deve rimanere l'unico punto in cui viene defaulted.
 if grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
-  if ! grep -A3 'struct common_params_sampling {' common/common.h | grep -q '~common_params_sampling() = default;'; then
+  if ! grep -A3 'struct common_params_sampling {' common/common.h | grep -q '~common_params_sampling();'; then
     awk '
       { print }
       /^struct common_params_sampling \{/ {
-        print "    ~common_params_sampling() = default;"
+        print "    ~common_params_sampling();"
       }
     ' common/common.h > common/common.h.jarvis
     mv common/common.h.jarvis common/common.h
