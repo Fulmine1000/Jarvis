@@ -42,10 +42,11 @@ class TestCervelloJarvis(unittest.TestCase):
         risposta = cervello.rispondi("Spiegami cos'è un buco nero")
 
         self.assertEqual(risposta, "Risposta IA")
-        self.assertEqual(
-            kernel.dialogo.richiesta,
-            "Spiegami cos'è un buco nero",
+        self.assertTrue(
+            kernel.dialogo.richiesta.startswith("Spiegami cos'è un buco nero")
         )
+        self.assertIn("CONOSCENZA LOCALE PERTINENTE", kernel.dialogo.richiesta)
+        self.assertIn("Buco nero:", kernel.dialogo.richiesta)
 
     def test_integra_conoscenza_locale_pertinente(self):
         kernel = FintoKernel()
