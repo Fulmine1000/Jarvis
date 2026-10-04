@@ -183,8 +183,8 @@ class DialogoJarvis:
                 "stream": False,
                 "options": {
                     "temperature": 0.1,
-                "top_p": 0.9,
-                "repeat_penalty": 1.05,
+                    "top_p": 0.9,
+                    "repeat_penalty": 1.05,
                     "num_ctx": self.llama_context,
                     "num_predict": self.llama_max_tokens,
                 },
@@ -202,7 +202,9 @@ class DialogoJarvis:
             {
                 "model": modello,
                 "messages": messaggi,
-                "temperature": 0.15,
+                "temperature": 0.1,
+                "top_p": 0.9,
+                "repeat_penalty": 1.05,
                 "stream": False,
                 "max_tokens": self.llama_max_tokens,
             },
