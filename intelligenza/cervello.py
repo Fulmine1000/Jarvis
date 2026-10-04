@@ -28,13 +28,25 @@ class CervelloJarvis:
         dialogo = getattr(self.kernel, "dialogo", None)
         if not dialogo:
             return None
-        parti = ["Contesto reale del sistema:", self._contesto_reale() or "nessun dato aggiuntivo"]
+        # Per le domande normali inviamo al modello soprattutto la domanda
+        # dell'utente. Il piccolo Qwen locale funziona molto meglio senza
+        # un lungo dump di stato, cronologia e memoria dentro la richiesta.
+        contesto_web = ""
         if self.conoscenza.necessita_web(testo):
             risultati = self.conoscenza.cerca_web(testo)
             if risultati:
-                parti.extend(["\nInformazioni Web recenti (usale come contesto, non inventare fatti):", risultati])
-        parti.extend(["\nRichiesta dell'utente:", testo])
-        return dialogo.rispondi("\n".join(parti))
+                contesto_web = (
+                    "\n\nDATI WEB RECENTI (solo se pertinenti):\n" + risultati
+                )
+
+        richiesta = (
+            "Rispondi direttamente alla domanda dell'utente in italiano. "
+            "Non cambiare argomento e non rispondere con la data o con lo stato "
+            "del sistema se l'utente non lo ha chiesto. "
+            "Se è una domanda generale, usa le tue conoscenze. "
+            "Domanda: " + testo + contesto_web
+        )
+        return dialogo.rispondi(richiesta)
 
     def _contesto_reale(self) -> str:
         parti = []
