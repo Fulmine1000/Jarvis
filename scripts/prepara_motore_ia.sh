@@ -39,6 +39,23 @@ else
   exit 3
 fi
 
+# AppleClang 10 su High Sierra puo lasciare un simbolo esterno per il
+# distruttore implicito di common_params_sampling. Definiamo il distruttore
+# fuori dalla classe in sampling.cpp, così il linker riceve sempre il simbolo.
+if ! grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
+  python - <<'PY'
+from pathlib import Path
+p = Path("common/sampling.cpp")
+s = p.read_text()
+marker = '#include "sampling.h"'
+if marker not in s:
+    raise SystemExit("ERRORE: include di sampling.h non trovato.")
+insertion = marker + '\n\ncommon_params_sampling::~common_params_sampling() = default;'
+s = s.replace(marker, insertion, 1)
+p.write_text(s)
+PY
+fi
+
 export MACOSX_DEPLOYMENT_TARGET=10.13
 export CMAKE_OSX_DEPLOYMENT_TARGET=10.13
 export CMAKE_OSX_ARCHITECTURES=x86_64
