@@ -40,11 +40,13 @@ class CervelloJarvis:
                 )
 
         richiesta = (
-            "Rispondi direttamente alla domanda dell'utente in italiano. "
-            "Non cambiare argomento e non rispondere con la data o con lo stato "
-            "del sistema se l'utente non lo ha chiesto. "
-            "Se è una domanda generale, usa le tue conoscenze. "
-            "Domanda: " + testo + contesto_web
+            "Rispondi SOLO alla richiesta attuale dell'utente, in italiano. "
+            "Non aggiungere data, ora, saluti, stato del sistema, riepiloghi "
+            "o altri argomenti che l'utente non ha richiesto. "
+            "Non usare la cronologia precedente come motivo per cambiare "
+            "argomento. Per una domanda semplice, rispondi in una o due frasi. "
+            "Se la richiesta chiede una spiegazione, spiega soltanto quella. "
+            "Domanda attuale: " + testo + contesto_web
         )
         return dialogo.rispondi(richiesta)
 
