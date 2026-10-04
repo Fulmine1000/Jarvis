@@ -50,9 +50,10 @@ cmake -S . -B build \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
   -DGGML_METAL=OFF \
   -DGGML_BLAS=OFF \
-  -DLLAMA_BUILD_SERVER=ON
+  -DLLAMA_BUILD_SERVER=ON \
+  -DLLAMA_BUILD_TESTS=OFF
 
-cmake --build build --config Release -j 2
+cmake --build build --config Release --target llama-server -j 2
 
 SERVER=""
 for candidate in \
