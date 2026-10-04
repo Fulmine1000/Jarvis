@@ -42,13 +42,13 @@ class DialogoJarvis:
         ).strip()
         self.modello_llama = os.getenv(
             "JARVIS_LLAMA_MODEL",
-            "qwen2.5-3b-instruct-q4_0.gguf",
+            "qwen2.5-3b-instruct-q4_k_m.gguf",
         ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 60, 5, 180)
         self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 4, 1, 4)
         self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 512, 512, 4096)
-        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 48, 16, 96)
+        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 32, 16, 64)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
