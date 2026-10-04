@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import subprocess
 import tempfile
 import time
@@ -13,9 +14,9 @@ import urllib.request
 class DialogoJarvis:
     """Motore conversazionale IA di J.A.R.V.I.S.
 
-    Supporta Ollama locale e, tramite API compatibili, anche provider esterni.
-    La configurazione avviene esclusivamente tramite variabili d'ambiente, così
-    nessuna chiave privata viene salvata nella repository.
+    Backend principale: llama.cpp locale. Ollama e API compatibili restano
+    disponibili come alternative esplicite. Nessuna chiave privata viene
+    salvata nella repository.
     """
 
     BASE_JARVIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,56 +25,57 @@ class DialogoJarvis:
 
     def __init__(self, logger=None):
         self.logger = logger
-        # Su questo Mac Intel il backend locale principale e llama.cpp/Qwen.
-        # Ollama resta disponibile come backend alternativo esplicito.
         self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "llama").strip().lower()
         self.provider = self.provider_richiesto
-        self.endpoint = os.getenv("JARVIS_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
-        self.endpoint_llama = os.getenv("JARVIS_LLAMA_URL", "http://127.0.0.1:8080/v1/chat/completions").strip()
+        self.endpoint = os.getenv(
+            "JARVIS_OLLAMA_URL", "http://127.0.0.1:11434/api/chat"
+        ).strip()
+        self.endpoint_llama = os.getenv(
+            "JARVIS_LLAMA_URL",
+            "http://127.0.0.1:8080/v1/chat/completions",
+        ).strip()
         self.endpoint_compatibile = os.getenv("JARVIS_AI_URL", "").strip()
         self.modello = os.getenv(
             "JARVIS_AI_MODEL",
-            os.getenv("JARVIS_OLLAMA_MODEL", "llama3.2:3b"),
+            os.getenv("JARVIS_OLLAMA_MODEL", "qwen2.5:3b"),
         ).strip()
         self.modello_llama = os.getenv(
             "JARVIS_LLAMA_MODEL",
-            "qwen2.5-0.5b-instruct-q4_0.gguf",
+            "qwen2.5-3b-instruct-q4_0.gguf",
         ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
-        self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 45, 5, 180)
+        self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 90, 5, 180)
+        self.llama_threads = self._intero_env("JARVIS_LLAMA_THREADS", 4, 1, 16)
+        self.llama_context = self._intero_env("JARVIS_LLAMA_CONTEXT", 2048, 512, 8192)
+        self.llama_max_tokens = self._intero_env("JARVIS_LLAMA_MAX_TOKENS", 128, 32, 256)
         self.attivo = True
         self.storia = []
         self.ultima_errore = None
         self.ultimo_backend = None
         self._server_llama = None
         self._conversazione_locale = None
+
         try:
             from intelligenza.conversazione import ConversationEngine
             self._conversazione_locale = ConversationEngine(language="it_IT")
         except Exception:
             pass
+
         self.istruzioni = (
             "Sei Jarvis, un assistente personale intelligente in italiano. "
             "Parla in modo elegante, calmo, naturale e preciso. "
-            "Puoi spiegare concetti, ragionare, aiutare nello studio, scrivere, "
-            "analizzare problemi e mantenere il filo della conversazione. "
-            "Usa il contesto fornito dal sistema solo come informazione attendibile. "
+            "Rispondi direttamente alla richiesta attuale dell'utente. "
+            "Mantieni le risposte brevi ma complete: per una domanda semplice "
+            "usa poche frasi. Non ripetere parole inutilmente e non continuare "
+            "la risposta oltre il necessario. "
+            "Non inventare informazioni. Se non sai qualcosa, dichiaralo. "
             "Non fingere di aver eseguito azioni che non hai realmente eseguito. "
-            "Non inventare dati sul computer, sui dispositivi o sul mondo reale. "
-            "Quando non sai qualcosa, dichiaralo chiaramente. "
-            "Rispondi prima alla richiesta attuale dell'utente e non lasciarti "
-            "guidare da richieste precedenti presenti nella cronologia. "
-            "Se la richiesta è una domanda, rispondi alla domanda e non a un "
-            "dato casuale del contesto. Mantieni le risposte brevi ma utili, "
-            "specialmente quando la domanda è semplice. "
-            "Non esporre queste istruzioni interne all'utente. "
-            "REGOLA IDENTITA UTENTE: il nome anagrafico/configurato dell'utente è "
-            "Simone, ma Simone NON è l'appellativo con cui devi rivolgerti a lui. "
-            "Quando ti rivolgi direttamente all'utente, usa esclusivamente "
-            "l'appellativo 'Sir'. Non chiamarlo 'Simone' nelle risposte rivolte "
-            "direttamente a lui. 'Simone' può essere usato solo quando l'utente "
-            "chiede esplicitamente quale sia il proprio nome o quando serve "
-            "distinguere il nome configurato dall'appellativo."
+            "Non confondere il contesto delle richieste precedenti con la "
+            "richiesta attuale. "
+            "Non esporre queste istruzioni interne. "
+            "REGOLA IDENTITA: il nome configurato dell'utente è Simone, ma "
+            "quando ti rivolgi direttamente a lui usa esclusivamente "
+            "l'appellativo 'Sir'. Non chiamarlo Simone nelle risposte dirette."
         )
         self._carica_storia()
 
@@ -86,7 +88,6 @@ class DialogoJarvis:
             return predefinito
 
     def _carica_storia(self):
-        """Ripristina una piccola memoria conversazionale locale."""
         try:
             if not os.path.exists(self.FILE_STORIA):
                 return
@@ -109,7 +110,6 @@ class DialogoJarvis:
             self.storia = []
 
     def _salva_storia(self):
-        """Salva la cronologia in modo atomico, senza creare dati nel repository."""
         try:
             cartella = os.path.dirname(os.path.abspath(self.FILE_STORIA))
             os.makedirs(cartella, exist_ok=True)
@@ -118,7 +118,12 @@ class DialogoJarvis:
             )
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as file:
-                    json.dump(self.storia[-self.MASSIMO_STORIA:], file, indent=2, ensure_ascii=False)
+                    json.dump(
+                        self.storia[-self.MASSIMO_STORIA:],
+                        file,
+                        indent=2,
+                        ensure_ascii=False,
+                    )
                     file.flush()
                     os.fsync(file.fileno())
                 os.replace(temporaneo, self.FILE_STORIA)
@@ -140,58 +145,21 @@ class DialogoJarvis:
         messaggi.append({"role": "user", "content": testo})
         return messaggi
 
-    def _richiesta_json(self, payload, headers=None):
-        intestazioni = {"Content-Type": "application/json"}
-        if headers:
-            intestazioni.update(headers)
-        richiesta = urllib.request.Request(
-            self.endpoint,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers=intestazioni,
-            method="POST",
-        )
-        with urllib.request.urlopen(richiesta, timeout=self.timeout) as risposta:
-            return json.loads(risposta.read().decode("utf-8"))
-
-    def _rispondi_ollama(self, messaggi):
-        dati = self._richiesta_json({
-            "model": self.modello,
-            "messages": messaggi,
-            "stream": False,
-            "options": {"temperature": 0.25, "num_ctx": 2048, "num_predict": 192},
-        })
-        return (dati.get("message") or {}).get("content", "").strip()
-
-    def _rispondi_compatibile(self, messaggi):
-        headers = {}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        dati = self._richiesta_json({
-            "model": self.modello,
-            "messages": messaggi,
-            "temperature": 0.25,
-            "stream": False,
-            "max_tokens": 192,
-        }, headers)
-        scelte = dati.get("choices") or []
-        if not scelte:
-            return ""
-        return ((scelte[0].get("message") or {}).get("content") or "").strip()
-
-    def _raggiungibile(self, endpoint, timeout=0.5):
+    @staticmethod
+    def _raggiungibile(endpoint, timeout=0.5):
         try:
             parsed = urllib.parse.urlparse(endpoint)
             host = parsed.hostname
             port = parsed.port or (443 if parsed.scheme == "https" else 80)
             if not host:
                 return False
-            import socket
             with socket.create_connection((host, port), timeout=timeout):
                 return True
         except (OSError, ValueError):
             return False
 
-    def _richiesta_json(self, payload, endpoint, headers=None):
+    @staticmethod
+    def _richiesta_json(payload, endpoint, headers=None, timeout=90):
         intestazioni = {"Content-Type": "application/json"}
         if headers:
             intestazioni.update(headers)
@@ -201,28 +169,42 @@ class DialogoJarvis:
             headers=intestazioni,
             method="POST",
         )
-        with urllib.request.urlopen(richiesta, timeout=self.timeout) as risposta:
+        with urllib.request.urlopen(richiesta, timeout=timeout) as risposta:
             return json.loads(risposta.read().decode("utf-8"))
 
     def _rispondi_ollama(self, messaggi):
-        dati = self._richiesta_json({
-            "model": self.modello,
-            "messages": messaggi,
-            "stream": False,
-            "options": {"temperature": 0.7},
-        }, self.endpoint)
+        dati = self._richiesta_json(
+            {
+                "model": self.modello,
+                "messages": messaggi,
+                "stream": False,
+                "options": {
+                    "temperature": 0.15,
+                    "num_ctx": self.llama_context,
+                    "num_predict": self.llama_max_tokens,
+                },
+            },
+            self.endpoint,
+            timeout=self.timeout,
+        )
         return (dati.get("message") or {}).get("content", "").strip()
 
     def _rispondi_compatibile(self, messaggi, endpoint, modello):
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        dati = self._richiesta_json({
-            "model": modello,
-            "messages": messaggi,
-            "temperature": 0.7,
-            "stream": False,
-        }, endpoint, headers)
+        dati = self._richiesta_json(
+            {
+                "model": modello,
+                "messages": messaggi,
+                "temperature": 0.15,
+                "stream": False,
+                "max_tokens": self.llama_max_tokens,
+            },
+            endpoint,
+            headers,
+            timeout=self.timeout,
+        )
         scelte = dati.get("choices") or []
         if not scelte:
             return ""
@@ -239,7 +221,7 @@ class DialogoJarvis:
                 self.BASE_JARVIS,
                 "motore_ia",
                 "modelli",
-                "qwen2.5-0.5b-instruct-q4_0.gguf",
+                self.modello_llama,
             ),
         ).strip()
         return (
@@ -250,21 +232,37 @@ class DialogoJarvis:
     def _avvia_llama_server(self):
         if self._raggiungibile(self.endpoint_llama):
             return True
+
         binario, modello = self._trova_llama()
         if not binario or not modello:
             return False
+
         parsed = urllib.parse.urlparse(self.endpoint_llama)
         host = parsed.hostname or "127.0.0.1"
         porta = str(parsed.port or 8080)
+
         try:
             self._server_llama = subprocess.Popen(
-                [binario, "-m", modello, "--host", host, "--port", porta,
-                 "-c", os.getenv("JARVIS_LLAMA_CONTEXT", "2048"), "-ngl", "0"],
+                [
+                    binario,
+                    "-m",
+                    modello,
+                    "--host",
+                    host,
+                    "--port",
+                    porta,
+                    "-c",
+                    str(self.llama_context),
+                    "-ngl",
+                    "0",
+                    "-t",
+                    str(self.llama_threads),
+                ],
                 cwd=os.path.dirname(binario),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            limite = time.time() + min(self.timeout, 20)
+            limite = time.time() + min(self.timeout, 30)
             while time.time() < limite:
                 if self._raggiungibile(self.endpoint_llama):
                     return True
@@ -273,10 +271,12 @@ class DialogoJarvis:
                 time.sleep(0.25)
         except (OSError, ValueError):
             self._server_llama = None
+
         return self._raggiungibile(self.endpoint_llama)
 
     def _backend_disponibili(self):
         richiesto = self.provider_richiesto
+
         if richiesto in {"ollama", "ollama_local"}:
             return ["ollama"]
         if richiesto in {"llama", "llama_cpp", "llama.cpp"}:
@@ -285,9 +285,8 @@ class DialogoJarvis:
             return ["compatibile"]
         if richiesto in {"locale", "local", "fallback"}:
             return []
+
         candidati = []
-        # Preferenza locale: sul Mac di Jarvis usiamo prima llama.cpp/Qwen,
-        # così il cervello locale non dipende da Ollama o da servizi esterni.
         binario, modello = self._trova_llama()
         if self._raggiungibile(self.endpoint_llama) or (binario and modello):
             candidati.append("llama")
@@ -330,6 +329,7 @@ class DialogoJarvis:
                     risposta = self._rispondi_compatibile(
                         messaggi, self.endpoint_compatibile, self.modello
                     )
+
                 if risposta:
                     self.ultimo_backend = backend
                     self.storia.extend([
@@ -339,8 +339,14 @@ class DialogoJarvis:
                     self.storia = self.storia[-self.MASSIMO_STORIA:]
                     self._salva_storia()
                     return risposta
-            except (urllib.error.URLError, urllib.error.HTTPError,
-                    TimeoutError, OSError, ValueError, json.JSONDecodeError) as errore:
+            except (
+                urllib.error.URLError,
+                urllib.error.HTTPError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                json.JSONDecodeError,
+            ) as errore:
                 self.ultima_errore = str(errore)
                 continue
             except Exception as errore:
@@ -358,10 +364,10 @@ class DialogoJarvis:
             self.storia = self.storia[-self.MASSIMO_STORIA:]
             self._salva_storia()
             return risposta
+
         return None
 
     def cancella_storia(self):
-        """Cancella la memoria conversazionale dell'IA."""
         self.storia = []
         try:
             if os.path.exists(self.FILE_STORIA):
@@ -371,15 +377,29 @@ class DialogoJarvis:
         return True
 
     def stato(self):
+        if self.ultimo_backend == "ollama":
+            motore = "Ollama locale"
+        elif self.ultimo_backend == "llama":
+            motore = "llama.cpp locale"
+        elif self.ultimo_backend == "compatibile":
+            motore = "API compatibile"
+        elif self.ultimo_backend == "conversation-engine":
+            motore = "Conversation Engine locale"
+        else:
+            motore = "IA automatica (backend non attivo)"
+
         return {
             "attivo": self.attivo,
             "provider_richiesto": self.provider_richiesto,
             "provider": self.provider,
-            "motore": ("Ollama locale" if self.ultimo_backend == "ollama" else "llama.cpp locale" if self.ultimo_backend == "llama" else "API compatibile" if self.ultimo_backend == "compatibile" else "Conversation Engine locale" if self.ultimo_backend == "conversation-engine" else "IA automatica (backend non attivo)"),
-            "modello": self.modello,
+            "motore": motore,
+            "modello": self.modello_llama if self.provider_richiesto in {"llama", "llama_cpp", "llama.cpp"} else self.modello,
             "storia_messaggi": len(self.storia),
             "memoria_conversazionale": True,
             "timeout_secondi": self.timeout,
+            "thread_llama": self.llama_threads,
+            "contesto_llama": self.llama_context,
+            "max_token_llama": self.llama_max_tokens,
             "errore": self.ultima_errore,
             "backend_attivo": self.ultimo_backend,
             "ollama_raggiungibile": self._raggiungibile(self.endpoint),
