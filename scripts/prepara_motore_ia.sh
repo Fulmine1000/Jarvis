@@ -34,16 +34,20 @@ else
   exit 3
 fi
 
+# Ripristina i due file toccati dai precedenti tentativi di compatibilita.
+# In questo modo ogni esecuzione parte sempre dal sorgente pulito del
+# commit compatibile, senza accumulare dichiarazioni duplicate.
+git checkout -- common/common.h common/sampling.cpp
+
 # Compatibilita con AppleClang 10 / macOS High Sierra.
 # sampling.cpp definisce il distruttore fuori dalla struct. AppleClang 10
-# richiede una dichiarazione preventiva, ma non una dichiarazione gia
-# defaulted, perche la definizione esterna in sampling.cpp e il solo punto
-# in cui il distruttore viene defaulted.
+# richiede una dichiarazione preventiva nella struct, mentre la definizione
+# = default resta esclusivamente in sampling.cpp.
 if grep -q 'common_params_sampling::~common_params_sampling()' common/sampling.cpp; then
   awk '
-    /^    ~common_params_sampling()( = default)?;$/ { next }
+    /^[[:space:]]*~common_params_sampling()([[:space:]]*=[[:space:]]*default)?;[[:space:]]*$/ { next }
     { print }
-    /^struct common_params_sampling {/ {
+    /^struct common_params_sampling[[:space:]]*\{/ {
       print "    ~common_params_sampling();"
     }
   ' common/common.h > common/common.h.jarvis
