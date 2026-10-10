@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import sys
 from typing import Any
 
@@ -42,6 +43,33 @@ class RiconoscitoreVoce:
             return importlib.util.find_spec("vosk") is not None
         except (ImportError, ModuleNotFoundError, OSError, ValueError):
             return False
+
+    @staticmethod
+    def normalizza_comando_riconosciuto(testo):
+        """Corregge trascrizioni Vosk note senza applicare fuzzy matching globale.
+
+        Le correzioni sono limitate a frasi osservate durante l'uso di Jarvis.
+        Tutte le altre trascrizioni vengono restituite intatte, per evitare
+        che una correzione troppo aggressiva cambi comandi o frasi dell'utente.
+        """
+        originale = str(testo or "").strip()
+        confronto = re.sub(r"\s+", " ", originale.lower()).strip()
+        confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
+
+        alias = (
+            # "stato cybersecurity" viene talvolta trascritto da Vosk come
+            # "stato sai per security".
+            (r"(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)", "stato cybersecurity"),
+            # Variante osservata quando l'utente pronuncia "cybersecurity".
+            (r"sai\s+bersi\s+uniti", "cybersecurity"),
+            # "analizza la mia rete" può diventare "analizzano il mia rete".
+            (r"analizzano\s+(?:il|la)\s+mia\s+rete", "analizza la mia rete"),
+            (r"analizza\s+il\s+mia\s+rete", "analizza la mia rete"),
+        )
+        for pattern, canonico in alias:
+            if re.fullmatch(pattern, confronto):
+                return canonico
+        return originale
 
     def _carica_vosk(self):
         """Carica Vosk solo quando serve realmente il riconoscimento."""
@@ -98,7 +126,8 @@ class RiconoscitoreVoce:
         try:
             if self.riconoscitore.AcceptWaveform(audio):
                 risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
-                return str(risultato.get("text", "")).strip() or None
+                testo = str(risultato.get("text", "")).strip()
+                return self.normalizza_comando_riconosciuto(testo) or None
         except (OSError, RuntimeError, ValueError, TypeError, json.JSONDecodeError) as errore:
             self.ultimo_errore = str(errore)
         return None
