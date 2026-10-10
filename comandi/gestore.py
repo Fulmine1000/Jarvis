@@ -122,10 +122,10 @@ class GestoreComandi:
                     "; radio sub-GHz: " + hw["sub_ghz"] + "; infrarossi: " + hw["infrarossi"] + ".")
         if c in ("annulla scansione", "annulla verifica cybersecurity") and cyber:
             return cyber.annulla_scansione()
-        m = re.match(r"scansiona host\\s+(.+)$", c)
+        m = re.match(r"scansiona host\s+(.+)$", c)
         if m and cyber:
             return cyber.richiedi_scansione_host(m.group(1).strip())
-        m = re.match(r"confermo scansione\\s+(.+)$", c)
+        m = re.match(r"confermo scansione\s+(.+)$", c)
         if m and cyber:
             return cyber.conferma_scansione_host(m.group(1).strip())
 
