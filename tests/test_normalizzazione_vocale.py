@@ -24,6 +24,24 @@ class TestNormalizzazioneVocale(unittest.TestCase):
                     "stato cybersecurity",
                 )
 
+    def test_stato_cybersecurity_con_wake_word(self):
+        casi = (
+            "jarvis stato sai per security",
+            "ehi jarvis stato sai per security",
+            "hey jarvis stato sai per security",
+        )
+        atteso = (
+            "jarvis stato cybersecurity",
+            "ehi jarvis stato cybersecurity",
+            "hey jarvis stato cybersecurity",
+        )
+        for testo, canonico in zip(casi, atteso):
+            with self.subTest(testo=testo):
+                self.assertEqual(
+                    RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
+                    canonico,
+                )
+
     def test_cybersecurity_trascritto_foneticamente(self):
         self.assertEqual(
             RiconoscitoreVoce.normalizza_comando_riconosciuto("sai bersi uniti"),
@@ -42,6 +60,14 @@ class TestNormalizzazioneVocale(unittest.TestCase):
                     RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
                     "analizza la mia rete",
                 )
+
+    def test_comando_rete_con_wake_word(self):
+        self.assertEqual(
+            RiconoscitoreVoce.normalizza_comando_riconosciuto(
+                "jarvis analizzano il mia rete"
+            ),
+            "jarvis analizza la mia rete",
+        )
 
     def test_punteggiatura_finale_non_impedisce_correzione(self):
         self.assertEqual(
