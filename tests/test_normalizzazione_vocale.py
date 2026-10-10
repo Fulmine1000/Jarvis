@@ -20,6 +20,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "controlla la sicurezza",
             "controllare la sicurezza",
             "controllo sicurezza",
+            "giardino controllo la sicurezza",
             "stato sai per giur it",
             "stato sei bersi giur it",
             "sei bersi giur it",
