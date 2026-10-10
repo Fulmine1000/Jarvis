@@ -14,6 +14,12 @@ class TestNormalizzazioneVocale(unittest.TestCase):
         casi = (
             "stato sai per security",
             "stato sarebbe security",
+            "stato sarebbero security",
+            "stato sarebbero servizi",
+            "stato sarebbero giur it",
+            "controlla la sicurezza",
+            "controllare la sicurezza",
+            "controllo sicurezza",
             "stato sai per giur it",
             "stato sei bersi giur it",
             "sei bersi giur it",
@@ -32,6 +38,8 @@ class TestNormalizzazioneVocale(unittest.TestCase):
     def test_stato_cybersecurity_con_wake_word(self):
         casi = (
             "jarvis stato sai per security",
+            "jarvis stato sarebbero security",
+            "jarvis controllare la sicurezza",
             "ehi jarvis stato sai per security",
             "hey jarvis stato sai per security",
         )
