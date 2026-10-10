@@ -65,6 +65,8 @@ class RiconoscitoreVoce:
                 break
 
         alias = (
+            # Variante fonetica riportata nei log reali di Vosk.
+            (r"(?:stato\s+)?sei\s+bersi\s+giur(?:\s+it)?", "stato cybersecurity"),
             (r"(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)", "stato cybersecurity"),
             (r"sai\s+bersi\s+uniti", "cybersecurity"),
             (r"analizzano\s+(?:il|la)\s+mia\s+rete", "analizza la mia rete"),
