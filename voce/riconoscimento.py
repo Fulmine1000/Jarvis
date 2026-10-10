@@ -68,6 +68,7 @@ class RiconoscitoreVoce:
             # Variante fonetica riportata nei log reali di Vosk.
             (r"(?:stato\s+)?sei\s+bersi\s+giur(?:\s+it)?", "stato cybersecurity"),
             (r"stato\s+sai\s+per\s+giur(?:\s+it)?", "stato cybersecurity"),
+            (r"stato\s+sarebbe\s+security", "stato cybersecurity"),
             (r"(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)", "stato cybersecurity"),
             (r"stato\s+sai\s+bersi\s+uniti", "stato cybersecurity"),
             (r"sai\s+bersi\s+uniti", "cybersecurity"),
