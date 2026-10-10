@@ -75,9 +75,12 @@ class RiconoscitoreVoce:
         # Vosk può restituire l'intera frase, wake word compresa. In quel caso
         # normalizziamo solo il comando e manteniamo il prefisso originale.
         prefisso = ""
-        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis "):
+        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "giardino "):
             if confronto.startswith(wake):
-                prefisso = wake
+                # "giardino" è una trascrizione Vosk già osservata al posto
+                # della wake word: la correzione produce un comando valido
+                # solo se il testo successivo coincide con un alias noto.
+                prefisso = "jarvis " if wake == "giardino " else wake
                 confronto = confronto[len(wake):].strip()
                 break
 
