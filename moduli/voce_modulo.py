@@ -26,6 +26,7 @@ class ModuloVoce:
         self.assistente = AssistenteVoce(self.kernel)
         self.motore = MotoreAscolto(self)
         self._speech_lock = threading.RLock()
+        self.ultimo_errore_ascolto = None
 
     def avvia(self):
         if self.attivo:
@@ -90,8 +91,20 @@ class ModuloVoce:
             audio = self.ascoltatore.ascolta()
             if not audio:
                 return None
-            return self.riconoscitore.riconosci(audio)
-        except Exception:
+            testo = self.riconoscitore.riconosci(audio)
+            if testo:
+                self.ultimo_errore_ascolto = None
+            return testo
+        except Exception as errore:
+            messaggio = f"{type(errore).__name__}: {errore}"
+            if messaggio != self.ultimo_errore_ascolto:
+                self.ultimo_errore_ascolto = messaggio
+                if self.kernel and self.kernel.logger:
+                    self.kernel.logger.warning(
+                        f"Errore durante l'ascolto/riconoscimento: {messaggio}"
+                    )
+                else:
+                    print(f"Errore durante l'ascolto/riconoscimento: {messaggio}")
             return None
 
     def elabora_voce(self, testo):
@@ -134,4 +147,5 @@ class ModuloVoce:
             "riconoscimento": self.riconoscitore.stato(),
             "assistente": self.assistente.stato(),
             "motore_ascolto": self.motore.stato(),
+            "ultimo_errore_ascolto": self.ultimo_errore_ascolto,
         }
