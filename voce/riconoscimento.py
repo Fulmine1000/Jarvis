@@ -22,6 +22,9 @@ class RiconoscitoreVoce:
         self.ultimo_errore = None
         self._Model = None
         self._KaldiRecognizer = None
+        self.multilingue = None
+        self.backend_attivo = "vosk"
+        self.usa_multilingue = False
 
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.percorso_modello = os.path.join(base, "vosk-model-small-it-0.22")
@@ -33,6 +36,20 @@ class RiconoscitoreVoce:
             if modello:
                 self.percorso_modello = os.path.join(base, modello)
             self.sample_rate = int(voce.get("sample_rate", 16000))
+            self.usa_multilingue = bool(voce.get("riconoscimento_multilingue", False))
+            if self.usa_multilingue:
+                try:
+                    from voce.whisper_multilingue import WhisperMultilingue
+                    modello_multi = voce.get("modello_multilingue", "motore_ia/whisper.cpp/models/ggml-base.bin")
+                    eseguibile_multi = voce.get("eseguibile_multilingue", "")
+                    self.multilingue = WhisperMultilingue(
+                        modello=os.path.join(base, modello_multi) if not os.path.isabs(modello_multi) else modello_multi,
+                        eseguibile=eseguibile_multi,
+                        sample_rate=self.sample_rate,
+                        timeout=voce.get("timeout_multilingue", 90),
+                    )
+                except (ImportError, OSError, ValueError, TypeError) as errore:
+                    self.ultimo_errore = str(errore)
 
     @staticmethod
     def _vosk_disponibile():
@@ -102,10 +119,22 @@ class RiconoscitoreVoce:
     def avvia(self):
         if self.attivo:
             return True
+
+        # Preferisci Whisper multilingue se richiesto e preparato; altrimenti usa Vosk.
+        if self.usa_multilingue and self.multilingue is not None:
+            if self.multilingue.avvia():
+                self.backend_attivo = "whisper"
+                self.lingua = "auto"
+                self.attivo = True
+                self.ultimo_errore = None
+                return True
+            self.ultimo_errore = self.multilingue.ultimo_errore
+
         if not self.disponibile or not self._vosk_disponibile():
             self.disponibile = False
             self.attivo = False
-            self.ultimo_errore = "Vosk non disponibile"
+            if not self.ultimo_errore:
+                self.ultimo_errore = "Vosk non disponibile"
             return False
 
         if not os.path.isdir(self.percorso_modello):
@@ -119,6 +148,8 @@ class RiconoscitoreVoce:
 
             self.modello = self._Model(self.percorso_modello)
             self.riconoscitore = self._KaldiRecognizer(self.modello, self.sample_rate)
+            self.backend_attivo = "vosk"
+            self.lingua = "it"
             self.attivo = True
             self.ultimo_errore = None
             return True
@@ -130,7 +161,14 @@ class RiconoscitoreVoce:
             return False
 
     def riconosci(self, audio):
-        if not self.attivo or not audio or self.riconoscitore is None:
+        if not self.attivo or not audio:
+            return None
+        if self.backend_attivo == "whisper" and self.multilingue is not None:
+            testo = self.multilingue.riconosci(audio)
+            if testo:
+                return self.normalizza_comando_riconosciuto(testo) or None
+            return None
+        if self.riconoscitore is None:
             return None
         try:
             if self.riconoscitore.AcceptWaveform(audio):
@@ -154,6 +192,9 @@ class RiconoscitoreVoce:
         self.attivo = False
         self.modello = None
         self.riconoscitore = None
+        if self.multilingue is not None:
+            self.multilingue.ferma()
+        self.backend_attivo = "vosk"
         return True
 
     def stato(self):
@@ -161,6 +202,9 @@ class RiconoscitoreVoce:
             "nome": self.nome,
             "stato": "attivo" if self.attivo else "spento",
             "lingua": self.lingua,
+            "backend": self.backend_attivo,
+            "multilingue_configurato": self.usa_multilingue,
+            "stato_multilingue": self.multilingue.stato() if self.multilingue else None,
             "modello": self.percorso_modello,
             "sample_rate": self.sample_rate,
             "disponibile": self.disponibile,

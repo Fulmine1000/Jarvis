@@ -58,6 +58,21 @@ Il preparatore compila llama.cpp per Intel/High Sierra e scarica il modello Qwen
 
 Dopo la preparazione, Jarvis avvia automaticamente il server locale quando serve.
  
+## Riconoscimento vocale multilingue offline
+
+Jarvis può usare Whisper multilingue tramite whisper.cpp per riconoscere automaticamente italiano, inglese e molte altre lingue con un solo modello. La configurazione lo preferisce quando il motore e il modello sono presenti; se non sono disponibili, il riconoscimento Vosk italiano resta il fallback.
+
+Su macOS Intel, dalla root del progetto eseguire una volta:
+
+```bash
+cd ~/Desktop/Jarvis
+bash scripts/prepara_riconoscimento_multilingue.sh
+```
+
+Lo script compila whisper.cpp e scarica il modello Whisper BASE multilingue (circa 150 MB). La prima preparazione richiede una connessione Internet e strumenti di compilazione; il riconoscimento successivo è locale. Sul MacBook Pro Intel del 2010 il modello BASE potrebbe avere una latenza sensibile. Whisper supporta molte lingue, ma non garantisce ogni lingua, dialetto o frase mista; la precisione varia in base all'audio e al modello.
+
+Per controllare il backend effettivamente attivo, consultare lo stato del modulo voce di Jarvis: il campo `backend` mostra `whisper` oppure `vosk`. Se la compilazione non riesce su High Sierra, Jarvis mantiene il fallback Vosk invece di interrompere l'avvio.
+
 ## Test
 
 ```bash
