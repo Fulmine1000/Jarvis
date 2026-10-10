@@ -80,7 +80,7 @@ class RiconoscitoreVoce:
                 # "giardino" è una trascrizione Vosk già osservata al posto
                 # della wake word: la correzione produce un comando valido
                 # solo se il testo successivo coincide con un alias noto.
-                prefisso = "jarvis " if wake == "giardino " else wake
+                prefisso = "" if wake == "giardino " else wake
                 confronto = confronto[len(wake):].strip()
                 break
 
