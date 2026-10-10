@@ -145,3 +145,26 @@ Jarvis può utilizzare un campione audio locale con un motore TTS compatibile co
 
 La disponibilità effettiva della clonazione vocale dipende dal motore TTS, dal modello vocale e dalla compatibilità con il sistema operativo e l'architettura del computer.
 
+
+
+## Cybersecurity difensiva
+
+Il modulo `cybersecurity/` comprende strumenti locali con limiti espliciti:
+
+- inventario passivo degli indirizzi e delle interfacce locali;
+- verifica TCP limitata a un singolo IPv4 privato, solo dopo una richiesta e una conferma vocale esatta;
+- hash SHA-256 di file per verificarne l'integrità;
+- analisi statica euristica di file e progetti per individuare possibili segreti accidentali e costrutti che meritano revisione;
+- analisi di log locali per contare errori, autenticazioni fallite e possibili blocchi;
+- indicazioni sui limiti dell'hardware radio, NFC, USB e infrarossi.
+
+Esempi di comandi, usando il percorso completo del file o della cartella:
+
+- `hash sha256 di file /Users/utente/Desktop/campione.bin`
+- `analizza file /Users/utente/Desktop/script.py`
+- `controlla progetto /Users/utente/Desktop/MioProgetto`
+- `analizza log /Users/utente/Desktop/app.log`
+- `analizza la mia rete`
+- `scansiona host 192.168.1.20`, poi confermare esattamente con `confermo scansione 192.168.1.20`.
+
+L'analisi statica non esegue i file, non rimuove elementi e non certifica che un progetto sia sicuro. I rilevamenti sono euristici e richiedono revisione umana. La scansione TCP è intenzionalmente limitata e non è una scansione di vulnerabilità. Non sono implementati exploit, furto di credenziali, brute force, malware, persistenza, evasione, spoofing o deautenticazione Wi-Fi. Testare solo sistemi propri o per cui si dispone di autorizzazione. Radio sub-GHz, NFC e infrarossi richiedono hardware compatibile e driver specifici.
