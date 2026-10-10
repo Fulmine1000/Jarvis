@@ -130,7 +130,14 @@ class ModuloVoce:
             if hud:
                 hud.imposta_parlato(True)
             try:
-                return bool(self.sintesi.parla(testo))
+                riuscita = bool(self.sintesi.parla(testo))
+                if not riuscita and self.kernel and self.kernel.logger:
+                    stato = self.sintesi.stato()
+                    self.kernel.logger.warning(
+                        "Sintesi vocale fallita: nessun audio riprodotto "
+                        f"(motore={stato.get('motore')}, voce_sistema={stato.get('voce_sistema')})."
+                    )
+                return riuscita
             finally:
                 if hud:
                     hud.imposta_parlato(False)
