@@ -13,6 +13,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
     def test_stato_cybersecurity_trascritto_male(self):
         casi = (
             "stato sai per security",
+            "stato sarebbe security",
             "stato sai per giur it",
             "stato sei bersi giur it",
             "sei bersi giur it",
