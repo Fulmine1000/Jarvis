@@ -60,7 +60,7 @@ Dopo la preparazione, Jarvis avvia automaticamente il server locale quando serve
  
 ## Riconoscimento vocale multilingue offline
 
-Jarvis può usare Whisper multilingue tramite whisper.cpp per riconoscere automaticamente italiano, inglese e molte altre lingue con un solo modello. La configurazione lo preferisce quando il motore e il modello sono presenti; se non sono disponibili, il riconoscimento Vosk italiano resta il fallback.
+Jarvis può usare Whisper multilingue tramite whisper.cpp per riconoscere automaticamente italiano, inglese e molte altre lingue con un solo modello. Su Mac Intel datati, la configurazione predefinita usa Vosk italiano per mantenere l'ascolto reattivo. Whisper può essere abilitato impostando `"riconoscimento_multilingue": true` nella sezione `voce` di `config/config.json`; se il motore o il modello non sono disponibili all'avvio, Jarvis ripiega su Vosk. Su hardware meno recente Whisper BASE può introdurre una latenza elevata durante l'ascolto continuo.
 
 Su macOS Intel, dalla root del progetto eseguire una volta:
 
