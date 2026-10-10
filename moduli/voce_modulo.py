@@ -44,7 +44,10 @@ class ModuloVoce:
                 self.ascolto_attivo = False
                 self.attivo = True
                 if self.kernel and self.kernel.logger:
-                    self.kernel.logger.info("Audio non disponibile: modalita solo-testo attiva.")
+                    dettaglio = self.ascoltatore.ultimo_errore or "errore non specificato"
+                    self.kernel.logger.warning(
+                        f"Microfono non disponibile ({dettaglio}): modalita solo-testo attiva."
+                    )
                 return True
 
             modello = self.riconoscitore.avvia()
@@ -54,10 +57,19 @@ class ModuloVoce:
                 self.ascolto_attivo = False
                 self.attivo = True
                 if self.kernel and self.kernel.logger:
-                    self.kernel.logger.info("Riconoscimento vocale non disponibile: modalita solo-testo attiva.")
+                    dettaglio = self.riconoscitore.ultimo_errore or "modello o backend non disponibile"
+                    self.kernel.logger.warning(
+                        f"Riconoscimento vocale non disponibile ({dettaglio}): modalita solo-testo attiva."
+                    )
                 return True
 
             self.ascolto_attivo = True
+            if self.kernel and self.kernel.logger:
+                stato = self.riconoscitore.stato()
+                self.kernel.logger.info(
+                    f"Riconoscimento vocale attivo: backend={stato.get('backend')}, "
+                    f"sample_rate={stato.get('sample_rate')}, modello={stato.get('modello')}"
+                )
             self.assistente.avvia()
             self.motore.avvia()
             self.attivo = True
