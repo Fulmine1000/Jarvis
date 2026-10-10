@@ -101,6 +101,34 @@ class GestoreComandi:
             return cap.data() if cap else f"Oggi è il {datetime.datetime.now().strftime('%d/%m/%Y')}."
         if c in ("che giorno è", "che data è", "data"):
             return cap.data() if cap else f"Oggi è il {datetime.datetime.now().strftime('%d/%m/%Y')}."
+        # Cybersecurity difensiva: inventario passivo per default; le verifiche
+        # TCP richiedono una richiesta esplicita e una seconda conferma vocale.
+        cyber = getattr(k, "cybersecurity", None) if k else None
+        if c in ("stato cybersecurity", "cybersecurity", "strumenti cybersecurity", "modalità cybersecurity", "modalita cybersecurity"):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            stato = cyber.stato()
+            return ("Modulo cybersecurity pronto. Sistema " + stato["sistema"] +
+                    ". Inventario rete in sola lettura; verifiche TCP su un singolo IP privato con conferma. " +
+                    "NFC, radio sub-GHz e infrarossi richiedono accessori esterni compatibili.")
+        if c in ("analizza la mia rete", "analizza rete locale", "analizza la rete", "inventario rete", "stato rete locale") and cyber:
+            risultato = cyber.analizza_rete_locale()
+            indirizzi = ", ".join(risultato["indirizzi_locali"]) or "nessun indirizzo rilevato"
+            interfacce = ", ".join(risultato["interfacce"]) or "interfacce non disponibili"
+            return f"Inventario locale completato. Computer: {risultato['host']}. Indirizzi: {indirizzi}. Interfacce: {interfacce}. Non ho eseguito scansioni di altri dispositivi."
+        if c in ("capacità hardware", "capacita hardware", "hardware flipper", "stato hardware cybersecurity") and cyber:
+            hw = cyber.capacita_hardware()
+            return ("Hardware: USB seriale possibile con adattatore e driver; NFC: " + hw["nfc"] +
+                    "; radio sub-GHz: " + hw["sub_ghz"] + "; infrarossi: " + hw["infrarossi"] + ".")
+        if c in ("annulla scansione", "annulla verifica cybersecurity") and cyber:
+            return cyber.annulla_scansione()
+        m = re.match(r"scansiona host\s+(.+)$", c)
+        if m and cyber:
+            return cyber.richiedi_scansione_host(m.group(1).strip())
+        m = re.match(r"confermo scansione\s+(.+)$", c)
+        if m and cyber:
+            return cyber.conferma_scansione_host(m.group(1).strip())
+
         if c in ("stato sistema", "stato del sistema", "rapporto sistema", "diagnostica"):
             return k.diagnostica.riepilogo() if k else "Diagnostica non disponibile."
         if c in ("stato memoria", "memoria"):
