@@ -125,6 +125,7 @@ class MotoreAscolto:
                     continue
 
                 normalizzato = self._normalizza_testo(testo)
+                self.log(f"Trascrizione riconosciuta: {normalizzato}")
 
                 if self._e_eco_jarvis(normalizzato):
                     self.log("Eco della risposta Jarvis ignorata: Sono qui.")
