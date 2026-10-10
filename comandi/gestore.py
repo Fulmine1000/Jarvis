@@ -103,6 +103,10 @@ class GestoreComandi:
             if not match:
                 continue
             percorso = match.group(1).strip().strip('"').strip("'").strip("“”‘’")
+            if tipo == "hash":
+                # Alcune formulazioni vocali includono "il file" o "un file"
+                # prima del percorso effettivo.
+                percorso = re.sub(r"^(?:un\\s+)?file\\s+", "", percorso, flags=re.IGNORECASE)
             if tipo == "hash" and re.fullmatch(
                 r"(?:un\s+)?file(?:\s+esistente)?|un\s+file\s+(?:locale|sul\s+mac)",
                 percorso,
