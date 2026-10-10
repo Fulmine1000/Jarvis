@@ -28,6 +28,7 @@ class WhisperMultilingue:
         silenzio_blocchi=2,
         soglia_rms=420,
         pre_roll_blocchi=3,
+        prompt="Jarvis, Ehi Jarvis, Hey Jarvis, Ciao Jarvis, mi senti, che ore sono",
     ):
         self.nome = "Whisper multilingue (whisper.cpp)"
         self.sample_rate = int(sample_rate)
@@ -35,6 +36,7 @@ class WhisperMultilingue:
         self.silenzio_blocchi = max(1, int(silenzio_blocchi))
         self.soglia_rms = max(50, int(soglia_rms))
         self.pre_roll_blocchi = max(0, int(pre_roll_blocchi))
+        self.prompt = str(prompt or "").strip()
         base = Path(__file__).resolve().parent.parent
         self.modello = str(Path(modello).expanduser()) if modello else str(
             base / "motore_ia" / "whisper.cpp" / "models" / "ggml-base.bin"
@@ -160,8 +162,12 @@ class WhisperMultilingue:
             comando = [
                 self.eseguibile, "-m", self.modello, "-f", wav_path,
                 "-l", "auto", "-nt", "-np", "-t", "2",
-                "-otxt", "-of", output_base,
             ]
+            # Il prompt fornisce contesto lessicale utile per la wake word,
+            # senza forzare una lingua: il rilevamento resta automatico.
+            if self.prompt:
+                comando.extend(["--prompt", self.prompt])
+            comando.extend(["-otxt", "-of", output_base])
             risultato = subprocess.run(
                 comando,
                 stdout=subprocess.PIPE,
@@ -238,5 +244,6 @@ class WhisperMultilingue:
             "modello": self.modello,
             "eseguibile": self.eseguibile,
             "pre_roll_blocchi": self.pre_roll_blocchi,
+            "prompt_attivo": bool(self.prompt),
             "ultimo_errore": self.ultimo_errore,
         }
