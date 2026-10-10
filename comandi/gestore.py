@@ -90,7 +90,10 @@ class GestoreComandi:
             return None
         testo = str(comando_originale or "").strip()
         comandi = (
-            (r"^(?:calcola hash|hash(?: sha-?256)? di|calcola sha-?256 di) file\s+(.+)$", "hash"),
+            # Hash: accetta forme naturali con "hash SHA-256 di/del" e
+            # "calcola SHA-256 di/del"; il percorso conserva maiuscole e spazi.
+            (r"^(?:calcola\s+)?(?:l['’]\s*)?hash(?:\s+sha[\s-]?256)?\s+(?:di|del|della)\s+(.+)$", "hash"),
+            (r"^calcola\s+sha[\s-]?256\s+(?:di|del|della)\s+(.+)$", "hash"),
             (r"^(?:analizza file|controlla file)\s+(.+)$", "file"),
             (r"^(?:controlla progetto|analizza progetto|audit progetto)\s+(.+)$", "progetto"),
             (r"^(?:analizza log|controlla log)\s+(.+)$", "log"),
@@ -99,7 +102,13 @@ class GestoreComandi:
             match = re.match(pattern, testo, re.IGNORECASE)
             if not match:
                 continue
-            percorso = match.group(1).strip().strip(chr(34)).strip(chr(39))
+            percorso = match.group(1).strip().strip('"').strip("'").strip("“”‘’")
+            if tipo == "hash" and re.fullmatch(
+                r"(?:un\s+)?file(?:\s+esistente)?|un\s+file\s+(?:locale|sul\s+mac)",
+                percorso,
+                re.IGNORECASE,
+            ):
+                return "Per calcolare l'hash SHA-256, pronunci o scriva il percorso completo del file, per esempio: calcola hash SHA-256 di /Users/utente/Desktop/esempio.txt."
             if tipo == "hash":
                 risultato = cyber.hash_file(percorso)
                 if not risultato.get("ok"):
