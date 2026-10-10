@@ -15,6 +15,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "stato sai per security",
             "stato sei bersi giur it",
             "sei bersi giur it",
+            "stato sai bersi uniti",
             "sai per security",
             "cybersecurity",
             "cyber security",
