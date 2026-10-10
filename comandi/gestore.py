@@ -35,7 +35,9 @@ class GestoreComandi:
             self.kernel.sicurezza.registra("Comando protetto richiesto", originale)
             return "Questo comando richiede conferma. Aggiunga 'confermo' per autorizzarlo."
         try:
-            risposta = self._esegui_raw(c)
+            risposta = self._esegui_cybersecurity_file_command(originale)
+            if risposta is None:
+                risposta = self._esegui_raw(c)
         except Exception as errore:
             if self.logger:
                 self.logger.error(f"Errore comando '{originale}': {errore}")
@@ -79,6 +81,52 @@ class GestoreComandi:
                 break
 
         return c.strip()
+
+    def _esegui_cybersecurity_file_command(self, comando_originale):
+        """Comandi file cybersecurity; conserva le maiuscole del percorso."""
+        k = self.kernel
+        cyber = getattr(k, "cybersecurity", None) if k else None
+        if not cyber:
+            return None
+        testo = str(comando_originale or "").strip()
+        comandi = (
+            (r"^(?:calcola hash|hash(?: sha-?256)? di|calcola sha-?256 di) file\\s+(.+)$", "hash"),
+            (r"^(?:analizza file|controlla file)\\s+(.+)$", "file"),
+            (r"^(?:controlla progetto|analizza progetto|audit progetto)\\s+(.+)$", "progetto"),
+            (r"^(?:analizza log|controlla log)\\s+(.+)$", "log"),
+        )
+        for pattern, tipo in comandi:
+            match = re.match(pattern, testo, re.IGNORECASE)
+            if not match:
+                continue
+            percorso = match.group(1).strip().strip(chr(34)).strip(chr(39))
+            if tipo == "hash":
+                risultato = cyber.hash_file(percorso)
+                if not risultato.get("ok"):
+                    return risultato.get("errore", "Impossibile calcolare l'hash.")
+                return "SHA-256 di " + risultato["file"] + ": " + risultato["sha256"]
+            if tipo == "file":
+                risultato = cyber.analizza_file(percorso)
+            elif tipo == "progetto":
+                risultato = cyber.controlla_progetto(percorso)
+            else:
+                risultato = cyber.analizza_log(percorso)
+            if not risultato.get("ok"):
+                return risultato.get("errore", "Analisi non completata.")
+            if tipo == "file":
+                return (f"Analisi statica completata per {risultato['file']}. "
+                        f"Possibili segreti: {len(risultato.get('indicatori', []))}; "
+                        f"avvertenze euristiche: {len(risultato.get('avvertenze', []))}. "
+                        "Non ho eseguito il file.")
+            if tipo == "progetto":
+                return (f"Controllo statico completato. File esaminati: {risultato['file_esaminati']}; "
+                        f"indicatori e avvertenze: {len(risultato['problemi'])}. "
+                        "Il controllo è euristico, non una certificazione di sicurezza.")
+            conteggi = risultato["conteggi"]
+            return (f"Analisi log completata. Errori: {conteggi['errori']}; "
+                    f"autenticazioni fallite: {conteggi['autenticazioni_fallite']}; "
+                    f"possibili blocchi o limiti: {conteggi['possibili_blocchi']}.")
+        return None
 
     def _esegui_raw(self, c):
         k = self.kernel
