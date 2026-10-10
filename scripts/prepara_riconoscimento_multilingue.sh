@@ -11,11 +11,45 @@ MODEL="$MODEL_DIR/ggml-base.bin"
 REPO_URL="https://github.com/ggerganov/whisper.cpp.git"
 MODEL_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
 
-mkdir -p "$ROOT/motore_ia" "$MODEL_DIR"
+mkdir -p "$ROOT/motore_ia"
 
+# Non creare MODEL_DIR prima del clone: farlo crea una cartella whisper.cpp
+# non vuota e git clone fallisce. Se un'esecuzione precedente ha lasciato
+# soltanto models/, conserva gli eventuali file e libera la cartella.
 if [ ! -d "$DIR/.git" ]; then
-  git clone --depth 1 --branch v1.5.5 "$REPO_URL" "$DIR"
+  if [ -d "$DIR" ]; then
+    EXTRA="$(find "$DIR" -mindepth 1 -maxdepth 1 ! -name models -print | wc -l | tr -d ' ')"
+    if [ "$EXTRA" != "0" ]; then
+      echo "ERRORE: $DIR esiste ma non è un repository Git riconoscibile." >&2
+      echo "Non lo modifico per non cancellare file esistenti. Rinomina la cartella e riprova." >&2
+      exit 1
+    fi
+    if [ -d "$MODEL_DIR" ]; then
+      PRESERVE="$ROOT/motore_ia/.whisper-models-preserve"
+      if [ -e "$PRESERVE" ]; then
+        echo "ERRORE: esiste già $PRESERVE; non sovrascrivo file." >&2
+        exit 1
+      fi
+      mv "$MODEL_DIR" "$PRESERVE"
+      rmdir "$DIR"
+      if ! git clone --depth 1 --branch v1.5.5 "$REPO_URL" "$DIR"; then
+        mkdir -p "$DIR"
+        mv "$PRESERVE" "$MODEL_DIR"
+        exit 1
+      fi
+      mkdir -p "$MODEL_DIR"
+      cp -R "$PRESERVE/." "$MODEL_DIR/"
+      rm -rf "$PRESERVE"
+    else
+      rmdir "$DIR"
+      git clone --depth 1 --branch v1.5.5 "$REPO_URL" "$DIR"
+    fi
+  else
+    git clone --depth 1 --branch v1.5.5 "$REPO_URL" "$DIR"
+  fi
 fi
+
+mkdir -p "$MODEL_DIR"
 
 if [ ! -x "$DIR/main" ] && [ ! -x "$DIR/build/bin/main" ] && [ ! -x "$DIR/build/bin/whisper-cli" ]; then
   echo "Compilo whisper.cpp per il Mac in uso..."
