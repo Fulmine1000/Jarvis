@@ -46,29 +46,33 @@ class RiconoscitoreVoce:
 
     @staticmethod
     def normalizza_comando_riconosciuto(testo):
-        """Corregge trascrizioni Vosk note senza applicare fuzzy matching globale.
+        """Corregge trascrizioni Vosk note, anche se precedute dalla wake word.
 
-        Le correzioni sono limitate a frasi osservate durante l'uso di Jarvis.
-        Tutte le altre trascrizioni vengono restituite intatte, per evitare
-        che una correzione troppo aggressiva cambi comandi o frasi dell'utente.
+        Le correzioni sono volutamente limitate a frasi osservate nell'uso
+        reale, per non alterare arbitrariamente altri comandi dell'utente.
         """
         originale = str(testo or "").strip()
         confronto = re.sub(r"\s+", " ", originale.lower()).strip()
         confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
 
+        # Vosk può restituire l'intera frase, wake word compresa. In quel caso
+        # normalizziamo solo il comando e manteniamo il prefisso originale.
+        prefisso = ""
+        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis "):
+            if confronto.startswith(wake):
+                prefisso = wake
+                confronto = confronto[len(wake):].strip()
+                break
+
         alias = (
-            # "stato cybersecurity" viene talvolta trascritto da Vosk come
-            # "stato sai per security".
             (r"(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)", "stato cybersecurity"),
-            # Variante osservata quando l'utente pronuncia "cybersecurity".
             (r"sai\s+bersi\s+uniti", "cybersecurity"),
-            # "analizza la mia rete" può diventare "analizzano il mia rete".
             (r"analizzano\s+(?:il|la)\s+mia\s+rete", "analizza la mia rete"),
             (r"analizza\s+il\s+mia\s+rete", "analizza la mia rete"),
         )
         for pattern, canonico in alias:
             if re.fullmatch(pattern, confronto):
-                return canonico
+                return (prefisso + canonico).strip()
         return originale
 
     def _carica_vosk(self):
