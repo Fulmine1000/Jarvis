@@ -1,5 +1,8 @@
+import os
+import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from core.automazioni import AutomazioniJarvis, PianificatoreJarvis
 from core.visione import VisioneJarvis
@@ -34,9 +37,24 @@ class TestVisione(unittest.TestCase):
 
 class TestDialogo(unittest.TestCase):
     def test_stato(self):
-        dialogo = DialogoJarvis()
-        stato = dialogo.stato()
-        self.assertIn(stato["motore"], {"Ollama locale", "Conversation Engine locale", "IA automatica (backend non attivo)", "llama.cpp locale", "API compatibile"})
+        # Il test deve usare una cronologia isolata: la cronologia reale di
+        # Jarvis è persistente e può contenere messaggi di sessioni precedenti.
+        with tempfile.TemporaryDirectory() as cartella:
+            file_storia_test = os.path.join(cartella, "conversazioni.json")
+            with patch.object(DialogoJarvis, "FILE_STORIA", file_storia_test):
+                dialogo = DialogoJarvis()
+                stato = dialogo.stato()
+
+        self.assertIn(
+            stato["motore"],
+            {
+                "Ollama locale",
+                "Conversation Engine locale",
+                "IA automatica (backend non attivo)",
+                "llama.cpp locale",
+                "API compatibile",
+            },
+        )
         self.assertEqual(stato["storia_messaggi"], 0)
 
 
