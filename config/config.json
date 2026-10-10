@@ -20,7 +20,7 @@
             "hey jarvis"
         ],
         "lingua": "it-IT",
-        "riconoscimento_multilingue": true,
+        "riconoscimento_multilingue": false,
         "modello_multilingue": "motore_ia/whisper.cpp/models/ggml-base.bin",
         "eseguibile_multilingue": "",
         "timeout_multilingue": 90,
