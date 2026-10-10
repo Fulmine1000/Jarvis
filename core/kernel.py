@@ -11,6 +11,7 @@ from core.visione import VisioneJarvis
 from core.diagnostica import DiagnosticaJarvis
 from core.stato import StatoJarvis
 from core.sicurezza import SicurezzaJarvis
+from cybersecurity.modulo import CybersecurityJarvis
 from core.aggiornamenti import AggiornamentiJarvis
 from core.portabilita import GestorePortabilitaIA
 from intelligenza.cervello import CervelloJarvis
@@ -50,6 +51,7 @@ class KernelJarvis:
         self.personalita = PersonalitaJarvis()
         self.stato_sistema_modulo = StatoJarvis()
         self.sicurezza = SicurezzaJarvis()
+        self.cybersecurity = CybersecurityJarvis(self.logger)
         self.aggiornamenti = AggiornamentiJarvis()
         self.capacita = CapacitaJarvis(self.logger)
         self.dialogo = DialogoJarvis(self.logger)
@@ -124,7 +126,7 @@ class KernelJarvis:
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "cybersecurity": self.cybersecurity.stato(), "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
