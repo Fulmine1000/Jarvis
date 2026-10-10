@@ -107,10 +107,13 @@ class GestoreComandi:
                 # Alcune formulazioni vocali includono "il file" o "un file"
                 # prima del percorso effettivo.
                 percorso = re.sub(r"^(?:un\s+)?file\s+", "", percorso, flags=re.IGNORECASE)
-            if tipo == "hash" and re.fullmatch(
-                r"(?:un\s+)?file(?:\s+esistente)?|un\s+file\s+(?:locale|sul\s+mac)",
-                percorso,
-                re.IGNORECASE,
+            if tipo == "hash" and (
+                not percorso
+                or re.fullmatch(
+                    r"(?:un\s+)?file(?:\s+esistente)?|un\s+file\s+(?:locale|sul\s+mac)",
+                    percorso,
+                    re.IGNORECASE,
+                )
             ):
                 return "Per calcolare l'hash SHA-256, pronunci o scriva il percorso completo del file, per esempio: calcola hash SHA-256 di /Users/utente/Desktop/esempio.txt."
             if tipo == "hash":
