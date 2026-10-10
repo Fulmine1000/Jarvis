@@ -90,10 +90,10 @@ class GestoreComandi:
             return None
         testo = str(comando_originale or "").strip()
         comandi = (
-            (r"^(?:calcola hash|hash(?: sha-?256)? di|calcola sha-?256 di) file\\s+(.+)$", "hash"),
-            (r"^(?:analizza file|controlla file)\\s+(.+)$", "file"),
-            (r"^(?:controlla progetto|analizza progetto|audit progetto)\\s+(.+)$", "progetto"),
-            (r"^(?:analizza log|controlla log)\\s+(.+)$", "log"),
+            (r"^(?:calcola hash|hash(?: sha-?256)? di|calcola sha-?256 di) file\s+(.+)$", "hash"),
+            (r"^(?:analizza file|controlla file)\s+(.+)$", "file"),
+            (r"^(?:controlla progetto|analizza progetto|audit progetto)\s+(.+)$", "progetto"),
+            (r"^(?:analizza log|controlla log)\s+(.+)$", "log"),
         )
         for pattern, tipo in comandi:
             match = re.match(pattern, testo, re.IGNORECASE)
