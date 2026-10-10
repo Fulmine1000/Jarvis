@@ -45,6 +45,8 @@ class TestNormalizzazioneVocale(unittest.TestCase):
         )
         atteso = (
             "jarvis stato cybersecurity",
+            "jarvis stato cybersecurity",
+            "jarvis stato cybersecurity",
             "ehi jarvis stato cybersecurity",
             "hey jarvis stato cybersecurity",
         )
