@@ -160,6 +160,14 @@ class GestoreComandi:
             return None
 
         studio = StudioPresentazioniJarvis()
+        match_riassunto = re.match(
+            r"^riassumi\\s+(?:il\\s+)?file\\s+(.+)$",
+            testo,
+            re.IGNORECASE,
+        )
+        if match_riassunto:
+            dialogo = getattr(self.kernel, "dialogo", None) if self.kernel else None
+            return studio.riassumi_file(match_riassunto.group(1).strip(), dialogo=dialogo)
         if match:
             return studio.crea_da_file(match.group(1).strip())
 
