@@ -48,9 +48,7 @@ class _ResultParser(HTMLParser):
                 self._current = {"title": "", "url": url, "snippet": ""}
                 self._capture = "title"
                 self._buffer = []
-        elif self._current is not None and tag in ("a", "div", "span") and (
-            "result__snippet" in classes
-        ):
+        elif tag in ("a", "div", "span") and "result__snippet" in classes and self.results:
             self._capture = "snippet"
             self._buffer = []
 
@@ -59,6 +57,11 @@ class _ResultParser(HTMLParser):
             self._buffer.append(data)
 
     def handle_endtag(self, tag):
+        if self._capture == "snippet" and tag in ("a", "div", "span"):
+            self.results[-1]["snippet"] = " ".join("".join(self._buffer).split())
+            self._capture = None
+            self._buffer = []
+            return
         if self._current is None:
             return
         if self._capture == "title" and tag == "a":
@@ -67,12 +70,6 @@ class _ResultParser(HTMLParser):
             self._buffer = []
             self.results.append(self._current)
             self._current = None
-        elif self._capture == "snippet" and tag in ("a", "div", "span"):
-            # Attach the snippet to the most recently parsed result.
-            if self.results:
-                self.results[-1]["snippet"] = " ".join("".join(self._buffer).split())
-            self._capture = None
-            self._buffer = []
 
 
 def cerca_web(query: str, limite: int = 5, timeout: int = _TIMEOUT) -> str:
