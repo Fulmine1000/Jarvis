@@ -28,7 +28,7 @@ class TestStudioPresentazioni(unittest.TestCase):
     def test_riassunto_locale_senza_modello(self):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / "appunti.txt"
-            file.write_text("Prima idea.\\nSeconda idea.", encoding="utf-8")
+            file.write_text("Prima idea.\nSeconda idea.", encoding="utf-8")
             studio = StudioPresentazioniJarvis(Path(directory) / "output")
             risposta = studio.riassumi_file(str(file))
             self.assertIn("non è disponibile", risposta)
@@ -42,7 +42,7 @@ class TestStudioPresentazioni(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / "appunti.md"
-            file.write_text("# Titolo\\nContenuto del documento.", encoding="utf-8")
+            file.write_text("# Titolo\nContenuto del documento.", encoding="utf-8")
             dialogo = Dialogo()
             studio = StudioPresentazioniJarvis(Path(directory) / "output")
             self.assertEqual(studio.riassumi_file(str(file), dialogo), "Sintesi fedele.")
