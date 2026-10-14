@@ -239,13 +239,29 @@ class GestoreComandi:
         )
         if match:
             tema = match.group(1).strip()
-            contenuto = (
-                f"# Obiettivo e contesto\nDefinire l'obiettivo della presentazione su {tema}.\n"
-                f"## Aspetti principali\n- Concetti fondamentali da verificare\n"
-                f"- Dati e fonti da raccogliere\n"
-                f"## Esempi e applicazioni\n- Esempi pertinenti a {tema} da documentare\n"
-                f"## Conclusioni\n- Sintesi dei risultati verificati e domande aperte"
-            )
+            try:
+                from moduli.ricerca_web import cerca_web
+                ricerca = cerca_web(tema, limite=5)
+            except Exception:
+                ricerca = "Ricerca web non disponibile."
+            righe = ricerca.splitlines()
+            righe_fonti = [riga.strip() for riga in righe if riga.strip() and (re.match(r"^\\d+\\.\\s+", riga.strip()) or riga.strip().startswith("http://") or riga.strip().startswith("https://") or (riga.startswith("   ") and not riga.strip().startswith("Le informazioni")))]
+            if righe_fonti and "Non ho trovato risultati" not in ricerca and "Non riesco a completare" not in ricerca:
+                punti = "\\n".join("- " + riga.strip() for riga in righe_fonti)
+                contenuto = (
+                    f"# {tema}\\nPresentazione preparata da Jarvis a partire dai risultati web disponibili.\\n"
+                    f"## Risultati raccolti\\n{punti}\\n"
+                    "## Valutazione delle fonti\\n- Verificare data, autore e attendibilità delle pagine prima di usare i dati.\\n"
+                    "- I risultati di ricerca sono indizi iniziali e non sostituiscono la lettura delle fonti originali."
+                )
+            else:
+                contenuto = (
+                    f"# Obiettivo e contesto\\nDefinire l'obiettivo della presentazione su {tema}.\\n"
+                    f"## Aspetti principali\\n- Concetti fondamentali da verificare\\n"
+                    f"- Dati e fonti da raccogliere\\n"
+                    f"## Esempi e applicazioni\\n- Esempi pertinenti a {tema} da documentare\\n"
+                    f"## Conclusioni\\n- Sintesi dei risultati verificati e domande aperte"
+                )
             return studio.crea_da_contenuto(contenuto, tema)
 
         return None
