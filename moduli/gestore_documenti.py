@@ -101,7 +101,7 @@ class GestoreDocumentiJarvis:
             "JSONL, RST, LOG, PY, HTML, PDF, DOCX e PPTX."
         )
 
-    def leggi_file(self, percorso: str, limite_caratteri: int = 1800 -> str:
+    def leggi_file(self, percorso: str, limite_caratteri: int = 1800) -> str:
         """Restituisce una porzione leggibile senza eseguire o modificare il file."""
         try:
             contenuto = self.estrai_testo(percorso).strip()
