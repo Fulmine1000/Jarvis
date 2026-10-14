@@ -36,6 +36,27 @@ class TestSelezioneModelloVosk(unittest.TestCase):
             )
 
 
+class TestDettaglioVosk(unittest.TestCase):
+    def test_calcola_confidenza_media_solo_per_diagnostica(self):
+        riconoscitore = RiconoscitoreVoce()
+        riconoscitore._registra_dettaglio_vosk({
+            "text": "jarvis ciao",
+            "result": [
+                {"word": "jarvis", "conf": 0.8},
+                {"word": "ciao", "conf": 0.6},
+                {"word": "rumore", "conf": -1},
+            ],
+        })
+        self.assertEqual(riconoscitore.ultima_confidenza_media, 0.7)
+        self.assertEqual(riconoscitore.ultime_parole_riconosciute, ["jarvis", "ciao", "rumore"])
+
+    def test_dettaglio_vosk_mancante_non_blocca(self):
+        riconoscitore = RiconoscitoreVoce()
+        riconoscitore._registra_dettaglio_vosk({"text": "jarvis"})
+        self.assertIsNone(riconoscitore.ultima_confidenza_media)
+        self.assertEqual(riconoscitore.ultime_parole_riconosciute, [])
+
+
 class TestNormalizzazioneVocale(unittest.TestCase):
     def test_riconosci_registra_trascrizione_grezza_e_correzione(self):
         class RiconoscitoreFinto:
