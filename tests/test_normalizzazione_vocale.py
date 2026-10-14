@@ -64,7 +64,17 @@ class TestNormalizzazioneVocale(unittest.TestCase):
                 return True
 
             def Result(self):
-                return '{"text": "barry jiu su che ore sono"}'
+                return (
+                    '{"text": "barry jiu su che ore sono", '
+                    '"result": ['
+                    '{"word": "barry", "conf": 0.8}, '
+                    '{"word": "jiu", "conf": 0.6}, '
+                    '{"word": "su", "conf": 0.7}, '
+                    '{"word": "che", "conf": 0.9}, '
+                    '{"word": "ore", "conf": 0.9}, '
+                    '{"word": "sono", "conf": 0.9}'
+                    ']}'
+                )
 
         riconoscitore = RiconoscitoreVoce()
         riconoscitore.attivo = True
@@ -81,6 +91,11 @@ class TestNormalizzazioneVocale(unittest.TestCase):
         self.assertEqual(
             riconoscitore.ultima_trascrizione_normalizzata,
             "jarvis che ore sono",
+        )
+        self.assertEqual(riconoscitore.ultima_confidenza_media, 0.8)
+        self.assertEqual(
+            riconoscitore.ultime_parole_riconosciute,
+            ["barry", "jiu", "su", "che", "ore", "sono"],
         )
 
     def test_stato_cybersecurity_trascritto_male(self):
@@ -120,7 +135,9 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "cerca sul webb ultime novità": "cerca sul web ultime novità",
             "hey jarvis che ore e": "hey jarvis che ore sono",
             "barry jiu su": "jarvis",
+            "Barry Jiu Su,": "jarvis",
             "barry jiu su che ore sono": "jarvis che ore sono",
+            "barry jiu su, che ore sono": "jarvis che ore sono",
             "Barry Jiu Su, che ore sono?": "jarvis che ore sono",
         }
         for testo, atteso in casi.items():
