@@ -89,6 +89,16 @@ class RiconoscitoreVoce:
         confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
         confronto = confronto.replace("’", "'")
 
+        # Variante fonetica osservata nei log del Mac: Vosk trascrive
+        # "Jarvis" come "barry jiu su". Correggiamo soltanto questa
+        # sequenza iniziale esatta, senza fuzzy matching sul resto del testo.
+        alias_wake = "barry jiu su"
+        if confronto == alias_wake:
+            return "jarvis"
+        if confronto.startswith(alias_wake + " "):
+            originale = "jarvis " + originale[len(alias_wake):].lstrip()
+            confronto = "jarvis " + confronto[len(alias_wake):].strip()
+
         prefisso = ""
         wake_errata = False
         resto_originale = ""
