@@ -35,7 +35,9 @@ class GestoreComandi:
             self.kernel.sicurezza.registra("Comando protetto richiesto", originale)
             return "Questo comando richiede conferma. Aggiunga 'confermo' per autorizzarlo."
         try:
-            risposta = self._esegui_cybersecurity_file_command(originale)
+            risposta = self._esegui_studio_presentazioni(originale)
+            if risposta is None:
+                risposta = self._esegui_cybersecurity_file_command(originale)
             if risposta is None:
                 risposta = self._esegui_raw(c)
         except Exception as errore:
@@ -142,6 +144,54 @@ class GestoreComandi:
             return (f"Analisi log completata. Errori: {conteggi['errori']}; "
                     f"autenticazioni fallite: {conteggi['autenticazioni_fallite']}; "
                     f"possibili blocchi o limiti: {conteggi['possibili_blocchi']}.")
+        return None
+
+    def _esegui_studio_presentazioni(self, comando_originale):
+        """Integra lo studio PowerPoint opzionale senza bloccare gli altri comandi."""
+        testo = str(comando_originale or "").strip()
+        match = re.match(
+            r"^(?:crea\s+presentazione|crea\s+powerpoint)\s+(?:da\s+file|dal\s+file)\s+(.+)$",
+            testo,
+            re.IGNORECASE,
+        )
+        try:
+            from moduli.studio_presentazioni import StudioPresentazioniJarvis
+        except Exception:
+            return None
+
+        studio = StudioPresentazioniJarvis()
+        if match:
+            return studio.crea_da_file(match.group(1).strip())
+
+        match = re.match(
+            r"^(?:crea\s+presentazione|crea\s+powerpoint)\s+da\s+testo\s+(.+)$",
+            testo,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if match:
+            contenuto = match.group(1).strip()
+            titolo = "Presentazione Jarvis"
+            intestazione = re.match(r"^#\s+([^\n]+)", contenuto)
+            if intestazione:
+                titolo = intestazione.group(1).strip()
+            return studio.crea_da_contenuto(contenuto, titolo)
+
+        match = re.match(
+            r"^(?:crea\s+presentazione|crea\s+powerpoint)\s+su\s+(.+)$",
+            testo,
+            re.IGNORECASE,
+        )
+        if match:
+            tema = match.group(1).strip()
+            contenuto = (
+                f"# Obiettivo e contesto\nDefinire l'obiettivo della presentazione su {tema}.\n"
+                f"## Aspetti principali\n- Concetti fondamentali da verificare\n"
+                f"- Dati e fonti da raccogliere\n"
+                f"## Esempi e applicazioni\n- Esempi pertinenti a {tema} da documentare\n"
+                f"## Conclusioni\n- Sintesi dei risultati verificati e domande aperte"
+            )
+            return studio.crea_da_contenuto(contenuto, tema)
+
         return None
 
     def _esegui_raw(self, c):
