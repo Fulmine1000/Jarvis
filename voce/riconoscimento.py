@@ -75,10 +75,12 @@ class RiconoscitoreVoce:
 
         prefisso = ""
         wake_errata = False
+        resto_originale = ""
         for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "jervis ", "gervis ", "giardino "):
             if confronto.startswith(wake):
                 prefisso = "jarvis " if wake in ("jervis ", "gervis ", "giardino ") else wake
                 wake_errata = wake in ("jervis ", "gervis ", "giardino ")
+                resto_originale = originale[len(wake):].strip()
                 confronto = confronto[len(wake):].strip()
                 break
 
@@ -112,8 +114,10 @@ class RiconoscitoreVoce:
                 modificato = True
                 break
 
-        if prefisso and (modificato or wake_errata):
+        if prefisso and modificato:
             return (prefisso + confronto).strip() if confronto else prefisso.strip()
+        if prefisso and wake_errata:
+            return (prefisso + resto_originale).strip() if resto_originale else prefisso.strip()
         if modificato:
             return confronto
         return originale
