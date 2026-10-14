@@ -91,7 +91,7 @@ class StudioPresentazioniJarvis:
             return "Il file è vuoto."
         troncato = len(contenuto) > 12000
         contenuto = contenuto[:12000]
-        nota = "\\n\\nNota: ho esaminato solo i primi 12.000 caratteri." if troncato else ""
+        nota = "\n\nNota: ho esaminato solo i primi 12.000 caratteri." if troncato else ""
         if dialogo and hasattr(dialogo, "rispondi"):
             richiesta = (
                 "Riassumi fedelmente il documento qui sotto in italiano. Evidenzia le idee principali, "
