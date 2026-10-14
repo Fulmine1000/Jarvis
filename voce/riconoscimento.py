@@ -20,6 +20,10 @@ class RiconoscitoreVoce:
         self.lingua = "it"
         self.disponibile = self._vosk_disponibile()
         self.ultimo_errore = None
+        # Conserva la coppia grezzo/corretto per diagnosticare le trascrizioni
+        # vocali senza registrare o salvare l'audio.
+        self.ultima_trascrizione_grezza = ""
+        self.ultima_trascrizione_normalizzata = ""
         self._Model = None
         self._KaldiRecognizer = None
         self.multilingue = None
@@ -247,7 +251,11 @@ class RiconoscitoreVoce:
         if self.backend_attivo == "whisper" and self.multilingue is not None:
             testo = self.multilingue.riconosci(audio)
             if testo:
-                return self.normalizza_comando_riconosciuto(testo) or None
+                grezzo = str(testo).strip()
+                normalizzato = self.normalizza_comando_riconosciuto(grezzo)
+                self.ultima_trascrizione_grezza = grezzo
+                self.ultima_trascrizione_normalizzata = normalizzato
+                return normalizzato or None
             return None
         if self.riconoscitore is None:
             return None
@@ -255,7 +263,10 @@ class RiconoscitoreVoce:
             if self.riconoscitore.AcceptWaveform(audio):
                 risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
                 testo = str(risultato.get("text", "")).strip()
-                return self.normalizza_comando_riconosciuto(testo) or None
+                normalizzato = self.normalizza_comando_riconosciuto(testo)
+                self.ultima_trascrizione_grezza = testo
+                self.ultima_trascrizione_normalizzata = normalizzato
+                return normalizzato or None
         except (OSError, RuntimeError, ValueError, TypeError, json.JSONDecodeError) as errore:
             self.ultimo_errore = str(errore)
         return None
@@ -290,4 +301,6 @@ class RiconoscitoreVoce:
             "sample_rate": self.sample_rate,
             "disponibile": self.disponibile,
             "ultimo_errore": self.ultimo_errore,
+            "ultima_trascrizione_grezza": self.ultima_trascrizione_grezza,
+            "ultima_trascrizione_normalizzata": self.ultima_trascrizione_normalizzata,
         }
