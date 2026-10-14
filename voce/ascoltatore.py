@@ -4,11 +4,19 @@ import importlib.util
 import queue
 import sys
 
+from voce.filtro_rumore import FiltroRumore
+
 
 class AscoltatoreVoce:
-    """Acquisisce audio dal microfono senza inizializzare PortAudio in modalita testo."""
+    """Acquisisce PCM dal microfono e riduce il rumore prima di inviarlo a Vosk."""
 
-    def __init__(self, frequenza=16000, blocksize=8000):
+    def __init__(
+        self,
+        frequenza=16000,
+        blocksize=1600,
+        filtro_rumore=True,
+        livello_filtro=2,
+    ):
         self.nome = "Ascoltatore Voce"
         self.frequenza = int(frequenza)
         self.blocksize = int(blocksize)
@@ -18,6 +26,11 @@ class AscoltatoreVoce:
         self.disponibile = self._sounddevice_disponibile()
         self.ultimo_errore = None
         self._sd = None
+        self.filtro = (
+            FiltroRumore(frequenza=self.frequenza, livello=livello_filtro)
+            if filtro_rumore
+            else None
+        )
 
     @staticmethod
     def _sounddevice_disponibile():
@@ -49,12 +62,23 @@ class AscoltatoreVoce:
     def callback(self, ingresso, frames, tempo, stato):
         if stato:
             self.ultimo_errore = str(stato)
+
+        audio = bytes(ingresso)
+        if self.filtro is not None:
+            try:
+                audio = self.filtro.processa(audio)
+            except Exception as errore:
+                # Se il filtro incontra un problema, il microfono continua a
+                # funzionare: il blocco originale viene comunque inoltrato.
+                self.ultimo_errore = f"Filtro rumore: {errore}"
+                audio = bytes(ingresso)
+
         try:
-            self.audio.put_nowait(bytes(ingresso))
+            self.audio.put_nowait(audio)
         except queue.Full:
             try:
                 self.audio.get_nowait()
-                self.audio.put_nowait(bytes(ingresso))
+                self.audio.put_nowait(audio)
             except queue.Empty:
                 pass
 
@@ -72,6 +96,10 @@ class AscoltatoreVoce:
 
         try:
             self.pulisci_buffer()
+            if self.filtro is not None:
+                self.filtro.reset()
+                self.filtro.avvia()
+
             self.stream = self._sd.RawInputStream(
                 samplerate=self.frequenza,
                 blocksize=self.blocksize,
@@ -122,6 +150,8 @@ class AscoltatoreVoce:
                 pass
             self.stream = None
         self.pulisci_buffer()
+        if self.filtro is not None:
+            self.filtro.reset()
         return True
 
     def riavvia(self):
@@ -138,4 +168,8 @@ class AscoltatoreVoce:
             "disponibile": self.disponibile,
             "ultimo_errore": self.ultimo_errore,
             "buffer": self.audio.qsize(),
+            "filtro_rumore": self.filtro.stato() if self.filtro is not None else {
+                "attivo": False,
+                "modalita": "disattivato",
+            },
         }
