@@ -30,6 +30,7 @@ class RiconoscitoreVoce:
         # Se è presente il modello italiano completo, preferiscilo: nei benchmark
         # ufficiali ha un tasso di errore sensibilmente inferiore al modello small.
         # Non scarichiamo modelli grandi automaticamente e manteniamo il fallback.
+        self._modello_auto = True
         self.percorso_modello = self._modello_italiano_predefinito(base)
         self.sample_rate = 16000
 
@@ -37,6 +38,7 @@ class RiconoscitoreVoce:
             voce = self.config.sezione("voce")
             modello = voce.get("modello_riconoscimento", None)
             if modello:
+                self._modello_auto = False
                 self.percorso_modello = (
                     modello if os.path.isabs(modello) else os.path.join(base, modello)
                 )
@@ -185,7 +187,25 @@ class RiconoscitoreVoce:
             if not self._carica_vosk():
                 return False
 
-            self.modello = self._Model(self.percorso_modello)
+            try:
+                self.modello = self._Model(self.percorso_modello)
+            except (OSError, RuntimeError, ValueError) as errore_modello:
+                # Il modello completo può richiedere troppa memoria su hardware
+                # datato. Se la selezione era automatica, ripiega sul modello small.
+                base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                leggero = os.path.join(base, "vosk-model-small-it-0.22")
+                if not (
+                    self._modello_auto
+                    and os.path.basename(self.percorso_modello) == "vosk-model-it-0.22"
+                    and os.path.isdir(leggero)
+                ):
+                    raise
+                self.percorso_modello = leggero
+                self.modello = self._Model(self.percorso_modello)
+                self.ultimo_errore = (
+                    "Modello Vosk completo non caricabile; uso il modello small. "
+                    f"Dettaglio: {errore_modello}"
+                )
             self.riconoscitore = self._KaldiRecognizer(self.modello, self.sample_rate)
             self.backend_attivo = "vosk"
             self.lingua = "it"
