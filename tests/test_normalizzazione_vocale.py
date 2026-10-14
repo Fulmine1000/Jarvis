@@ -73,6 +73,9 @@ class TestNormalizzazioneVocale(unittest.TestCase):
                 "cerca sul web ultime novità sull'intelligenza artificiale",
             "cerca sul webb ultime novità": "cerca sul web ultime novità",
             "hey jarvis che ore e": "hey jarvis che ore sono",
+            "barry jiu su": "jarvis",
+            "barry jiu su che ore sono": "jarvis che ore sono",
+            "Barry Jiu Su, che ore sono?": "jarvis che ore sono",
         }
         for testo, atteso in casi.items():
             with self.subTest(testo=testo):
