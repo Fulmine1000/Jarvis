@@ -86,11 +86,11 @@ class WakeWordJarvis:
                 self.ultimo_comando = ""
                 return {"attivato": True, "comando": ""}
 
-            # In standby, non trasformare una trascrizione casuale in un
-            # comando. Vosk può interpretare rumori o parole ambientali come
-            # testo: un comando è valido solo dopo una wake word esplicita.
-            self.ultimo_comando = ""
-            return {"attivato": False, "comando": ""}
+            # La wake word è già attiva: in questa finestra il testo
+            # riconosciuto è il comando, anche se arriva come frase separata.
+            self.ultimo_comando = frase
+            self.attiva()
+            return {"attivato": True, "comando": frase}
 
         if frase in self.prefissi_attivazione:
             self.attiva()
