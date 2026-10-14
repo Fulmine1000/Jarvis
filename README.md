@@ -18,6 +18,7 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 - Memoria conversazionale riutilizzabile in `memoria/memory.py`.
 - Motore conversazionale locale in `intelligenza/conversazione.py`.
 - Calcolatrice sicura, ora/data, diagnostica, CPU/RAM/disco, browser, app, cartelle, screenshot, volume e timer.
+- Ricerca web esplicita con risultati, brevi estratti e link alle fonti, senza dipendenze Python obbligatorie.
 - Automazioni e attività pianificate.
 - Modulo visione predisposto e rilevamento camera.
 - Integrazioni per computer, telefono Android, rete, Bluetooth, smart home e TV LG webOS.
@@ -100,6 +101,10 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 - `legacy/` — moduli storici mantenuti esclusivamente per compatibilità e riferimento.
 
 La root del progetto contiene quindi solo gli elementi realmente necessari al progetto, mentre i componenti tecnici sono organizzati nelle rispettive cartelle.
+
+## Ricerca web
+
+I comandi `cerca sul web <argomento>`, `cerca online <argomento>` e `ricerca web <argomento>` interrogano il motore pubblico DuckDuckGo e mostrano titoli, estratti e URL. La funzione usa la libreria standard Python, quindi non richiede una chiave API o pacchetti aggiuntivi. È necessaria una connessione Internet; il servizio remoto può limitare le richieste o cambiare il formato dei risultati. Jarvis non apre automaticamente i link e non considera le pagine trovate come istruzioni operative.
 
 ## Lettura e ricerca documenti locali
 
