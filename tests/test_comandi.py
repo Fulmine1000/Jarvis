@@ -8,7 +8,9 @@ mock e viene verificato che ogni comando venga inoltrato una sola volta.
 
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -89,6 +91,21 @@ class TestComandi(unittest.TestCase):
         risposta = self._cmd("chiudi spotify")
         self.assertIsInstance(risposta, str)
         self.assertNotEqual(risposta, "Non ho trovato un comando compatibile.")
+
+    def test_leggi_file_locale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / "appunti con spazi.txt"
+            file.write_text("Contenuto di prova per Jarvis.", encoding="utf-8")
+            risposta = self._cmd("leggi file " + str(file))
+            self.assertIn("Contenuto di prova", risposta)
+
+    def test_cerca_testo_in_file_locale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / "appunti.txt"
+            file.write_text("Una riga\nSimone usa Jarvis\n", encoding="utf-8")
+            risposta = self._cmd("cerca nel file " + str(file) + " la parola Simone")
+            self.assertIn("Riga 2", risposta)
+            self.assertIn("Simone usa Jarvis", risposta)
 
     def test_comando_sconosciuto(self):
         risposta = self._cmd("xyzzy_inesistente_12345")
