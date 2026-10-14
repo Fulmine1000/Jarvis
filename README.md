@@ -101,6 +101,25 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 
 La root del progetto contiene quindi solo gli elementi realmente necessari al progetto, mentre i componenti tecnici sono organizzati nelle rispettive cartelle.
 
+## Lettura e ricerca documenti locali
+
+Jarvis può leggere ed effettuare ricerche letterali in file locali senza eseguirli o modificarli. Sono supportati TXT, Markdown, CSV, JSON, JSONL, RST, LOG, PY e HTML; PDF, DOCX e PPTX vengono estratti localmente con i pacchetti necessari. I contenuti non vengono inviati a servizi remoti da questi comandi.
+
+Per aggiungere il supporto opzionale PDF/DOCX:
+
+```bash
+python -m pip install -r requirements-documenti.txt
+```
+
+Comandi:
+
+- `leggi file /percorso/del/documento.pdf`
+- `cerca nel file /percorso/appunti.md la parola Simone`
+- `riassumi file /percorso/del/documento.docx`
+- `crea presentazione da file /percorso/del/documento.pdf`
+
+La lettura mostra una porzione limitata dei file lunghi; la ricerca restituisce fino a dieci corrispondenze. File oltre 25 MB non vengono analizzati.
+
 ## Studio presentazioni PowerPoint (opzionale)
 
 Jarvis può creare presentazioni PowerPoint modificabili a partire da un file di testo/Markdown o da testo fornito direttamente. Lo studio funziona localmente e non richiede una chiave API; non esegue ricerche né inventa dati. Quando si parte da un semplice argomento, genera una struttura iniziale con punti da completare e verificare.
