@@ -80,12 +80,11 @@ class StudioPresentazioniJarvis:
         sorgente = Path(os.path.expanduser(raw)).resolve()
         if not sorgente.is_file():
             return f"Non trovo il file: {sorgente}"
-        if sorgente.suffix.lower() not in {".txt", ".md", ".markdown", ".csv"}:
-            return "Posso riassumere file testuali .txt, .md, .markdown e .csv. I PDF e i documenti Office non sono ancora supportati."
         try:
-            contenuto = sorgente.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as errore:
-            return f"Non riesco a leggere il file in UTF-8: {errore}"
+            from moduli.gestore_documenti import GestoreDocumentiJarvis
+            contenuto = GestoreDocumentiJarvis().estrai_testo(str(sorgente))
+        except (OSError, UnicodeError, ValueError, RuntimeError) as errore:
+            return f"Non riesco a leggere il documento: {errore}"
         contenuto = contenuto.strip()
         if not contenuto:
             return "Il file è vuoto."
@@ -115,19 +114,20 @@ class StudioPresentazioniJarvis:
         )
 
     def crea_da_file(self, percorso: str) -> str:
-        """Legge solo file testuali supportati e crea una copia .pptx."""
+        """Estrae testo dai formati supportati e crea una presentazione .pptx."""
         raw = str(percorso or "").strip().strip('"').strip("'")
         if not raw:
-            return "Indichi il percorso completo di un file .txt o .md."
+            return "Indichi il percorso completo del documento da usare."
         sorgente = Path(os.path.expanduser(raw)).resolve()
         if not sorgente.is_file():
             return f"Non trovo il file: {sorgente}"
-        if sorgente.suffix.lower() not in {".txt", ".md", ".markdown"}:
-            return "Per ora posso creare presentazioni da file .txt, .md o .markdown."
         try:
-            contenuto = sorgente.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as errore:
-            return f"Non riesco a leggere il file in UTF-8: {errore}"
+            from moduli.gestore_documenti import GestoreDocumentiJarvis
+            contenuto = GestoreDocumentiJarvis().estrai_testo(str(sorgente))
+        except (OSError, UnicodeError, ValueError, RuntimeError) as errore:
+            return f"Non riesco a leggere il documento per la presentazione: {errore}"
+        if not contenuto.strip():
+            return "Il documento non contiene testo estraibile per creare una presentazione."
         return self.crea_da_contenuto(contenuto, sorgente.stem)
 
     def crea_da_contenuto(self, contenuto: str, titolo: str = "Presentazione") -> str:
