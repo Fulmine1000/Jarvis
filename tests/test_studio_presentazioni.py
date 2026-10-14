@@ -53,7 +53,7 @@ class TestStudioPresentazioni(unittest.TestCase):
             file = Path(directory) / "input.pdf"
             file.write_text("contenuto", encoding="utf-8")
             studio = StudioPresentazioniJarvis(Path(directory) / "output")
-            self.assertIn(".txt, .md", studio.crea_da_file(str(file)))
+            self.assertIn("TXT, Markdown", studio.crea_da_file(str(file)))
 
 
 if __name__ == "__main__":
