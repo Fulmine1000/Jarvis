@@ -19,8 +19,15 @@ class ModuloVoce:
         self.ascolto_attivo = False
         self.sintesi_attiva = False
         self.config = kernel.config if kernel else None
-        self.ascoltatore = AscoltatoreVoce()
         self.riconoscitore = RiconoscitoreVoce(self.config)
+        voce_config = self.config.sezione("voce") if self.config else {}
+        filtro_attivo = voce_config.get("filtro_rumore", True)
+        livello_filtro = voce_config.get("livello_filtro_rumore", 2)
+        self.ascoltatore = AscoltatoreVoce(
+            frequenza=self.riconoscitore.sample_rate,
+            filtro_rumore=filtro_attivo,
+            livello_filtro=livello_filtro,
+        )
         self.sintesi = SintesiVocale(self.config)
         self.voce_jarvis = self.sintesi
         self.assistente = AssistenteVoce(self.kernel)
@@ -66,10 +73,20 @@ class ModuloVoce:
             self.ascolto_attivo = True
             if self.kernel and self.kernel.logger:
                 stato = self.riconoscitore.stato()
+                stato_filtro = self.ascoltatore.stato().get("filtro_rumore", {})
                 self.kernel.logger.info(
                     f"Riconoscimento vocale attivo: backend={stato.get('backend')}, "
                     f"sample_rate={stato.get('sample_rate')}, modello={stato.get('modello')}"
                 )
+                self.kernel.logger.info(
+                    "Filtro antirumore: "
+                    f"{stato_filtro.get('modalita', 'sconosciuta')} "
+                    f"(attivo={stato_filtro.get('attivo', False)}, "
+                    f"livello={stato_filtro.get('livello', 'n/d')})"
+                )
+                dettaglio_filtro = stato_filtro.get("ultimo_errore")
+                if dettaglio_filtro:
+                    self.kernel.logger.info(f"Filtro antirumore: {dettaglio_filtro}")
             self.assistente.avvia()
             self.motore.avvia()
             self.attivo = True
@@ -162,6 +179,7 @@ class ModuloVoce:
             "nome": self.nome,
             "stato": "attivo" if self.attivo else "spento",
             "ascolto": "attivo" if self.ascolto_attivo else "spento",
+            "microfono": self.ascoltatore.stato(),
             "sintesi": self.sintesi.stato(),
             "riconoscimento": self.riconoscitore.stato(),
             "assistente": self.assistente.stato(),
