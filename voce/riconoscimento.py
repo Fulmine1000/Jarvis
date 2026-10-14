@@ -24,6 +24,9 @@ class RiconoscitoreVoce:
         # vocali senza registrare o salvare l'audio.
         self.ultima_trascrizione_grezza = ""
         self.ultima_trascrizione_normalizzata = ""
+        # Confidenza Vosk solo diagnostica: non viene usata per scartare comandi.
+        self.ultima_confidenza_media = None
+        self.ultime_parole_riconosciute = []
         self._Model = None
         self._KaldiRecognizer = None
         self.multilingue = None
@@ -233,6 +236,7 @@ class RiconoscitoreVoce:
                     f"Dettaglio: {errore_modello}"
                 )
             self.riconoscitore = self._KaldiRecognizer(self.modello, self.sample_rate)
+            self._abilita_dettaglio_parole()
             self.backend_attivo = "vosk"
             self.lingua = "it"
             self.attivo = True
@@ -244,6 +248,40 @@ class RiconoscitoreVoce:
             self.attivo = False
             self.ultimo_errore = str(errore)
             return False
+
+    def _abilita_dettaglio_parole(self):
+        """Chiede a Vosk i dettagli delle parole quando l’API lo supporta."""
+        metodo = getattr(self.riconoscitore, "SetWords", None)
+        if callable(metodo):
+            try:
+                metodo(True)
+            except (OSError, RuntimeError, TypeError, ValueError):
+                # La trascrizione standard deve continuare anche se i dettagli
+                # non sono supportati da una particolare build di Vosk.
+                pass
+
+    def _registra_dettaglio_vosk(self, risultato):
+        """Memorizza confidenza media e parole per diagnosi, senza filtrare comandi."""
+        parole = risultato.get("result", [])
+        confidenze = []
+        dettagli = []
+        if isinstance(parole, list):
+            for parola in parole:
+                if not isinstance(parola, dict):
+                    continue
+                testo = str(parola.get("word", "")).strip()
+                if testo:
+                    dettagli.append(testo)
+                try:
+                    confidenza = float(parola.get("conf", -1))
+                except (TypeError, ValueError):
+                    continue
+                if 0.0 <= confidenza <= 1.0:
+                    confidenze.append(confidenza)
+        self.ultime_parole_riconosciute = dettagli
+        self.ultima_confidenza_media = (
+            round(sum(confidenze) / len(confidenze), 3) if confidenze else None
+        )
 
     def riconosci(self, audio):
         if not self.attivo or not audio:
@@ -262,8 +300,11 @@ class RiconoscitoreVoce:
         try:
             if self.riconoscitore.AcceptWaveform(audio):
                 risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
+                self._registra_dettaglio_vosk(risultato)
                 testo = str(risultato.get("text", "")).strip()
                 normalizzato = self.normalizza_comando_riconosciuto(testo)
+                self.ultima_confidenza_media = None
+                self.ultime_parole_riconosciute = []
                 self.ultima_trascrizione_grezza = testo
                 self.ultima_trascrizione_normalizzata = normalizzato
                 return normalizzato or None
@@ -275,6 +316,7 @@ class RiconoscitoreVoce:
         if self.modello is not None and self._KaldiRecognizer is not None:
             try:
                 self.riconoscitore = self._KaldiRecognizer(self.modello, self.sample_rate)
+                self._abilita_dettaglio_parole()
             except (OSError, RuntimeError, ValueError) as errore:
                 self.ultimo_errore = str(errore)
                 self.riconoscitore = None
@@ -303,4 +345,6 @@ class RiconoscitoreVoce:
             "ultimo_errore": self.ultimo_errore,
             "ultima_trascrizione_grezza": self.ultima_trascrizione_grezza,
             "ultima_trascrizione_normalizzata": self.ultima_trascrizione_normalizzata,
+            "ultima_confidenza_media": self.ultima_confidenza_media,
+            "ultime_parole_riconosciute": list(self.ultime_parole_riconosciute),
         }
