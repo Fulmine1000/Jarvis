@@ -39,6 +39,8 @@ class GestoreComandi:
             if risposta is None:
                 risposta = self._esegui_comandi_documenti(originale)
             if risposta is None:
+                risposta = self._esegui_ricerca_web(originale)
+            if risposta is None:
                 risposta = self._esegui_cybersecurity_file_command(originale)
             if risposta is None:
                 risposta = self._esegui_raw(c)
@@ -108,6 +110,27 @@ class GestoreComandi:
             termine = match.group(2).strip().strip('"').strip("'")
             return GestoreDocumentiJarvis().cerca_nel_file(percorso, termine)
         return None
+
+    def _esegui_ricerca_web(self, comando_originale):
+        """Ricerca online esplicita con risultati e URL delle fonti."""
+        testo = str(comando_originale or "").strip()
+        match = re.match(
+            r"^(?:cerca\s+(?:sul\s+web|online|su\s+internet)|"
+            r"ricerca\s+(?:sul\s+web|web|online)|"
+            r"fai\s+una\s+ricerca\s+(?:su\s+internet|online|sul\s+web))\s+(.+)$",
+            testo,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        query = match.group(1).strip().strip('"').strip("'")
+        if not query:
+            return "Mi indichi l'argomento da cercare online."
+        try:
+            from moduli.ricerca_web import cerca_web
+        except Exception:
+            return "Il modulo di ricerca web non è disponibile."
+        return cerca_web(query)
 
     def _esegui_cybersecurity_file_command(self, comando_originale):
         """Comandi file cybersecurity; conserva le maiuscole del percorso."""
