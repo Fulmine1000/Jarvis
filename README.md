@@ -101,6 +101,25 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 
 La root del progetto contiene quindi solo gli elementi realmente necessari al progetto, mentre i componenti tecnici sono organizzati nelle rispettive cartelle.
 
+## Studio presentazioni PowerPoint (opzionale)
+
+Jarvis può creare presentazioni PowerPoint modificabili a partire da un file di testo/Markdown o da testo fornito direttamente. Lo studio funziona localmente e non richiede una chiave API; non esegue ricerche né inventa dati. Quando si parte da un semplice argomento, genera una struttura iniziale con punti da completare e verificare.
+
+Installare il componente solo se si desidera usare questa funzione:
+
+```bash
+python -m pip install -r requirements-presentazioni.txt
+```
+
+Comandi vocali o testuali:
+
+- `riassumi file /Users/utente/Desktop/appunti.md` (usa il motore IA locale se disponibile; altrimenti restituisce un estratto iniziale esplicitamente indicato come tale).
+- `crea presentazione da file /Users/utente/Desktop/argomento.md`
+- `crea presentazione da testo # Titolo\nPunto uno\nPunto due`
+- `crea presentazione su energia rinnovabile` (crea una scaletta iniziale, non una ricerca documentata)
+
+I file vengono salvati in `outputs/presentazioni/`. Se un file con lo stesso nome esiste già, Jarvis crea una nuova versione numerata senza sovrascriverlo. Sono supportati file UTF-8 `.txt`, `.md` e `.markdown`. Il pacchetto `python-pptx` resta separato dalle dipendenze principali per non compromettere la compatibilità con macOS High Sierra e l'installazione base.
+
 ## Voice Pack italiano
 
 Il progetto incorpora e adatta alcuni componenti del Voice Pack italiano alla struttura reale di Jarvis, senza creare una seconda applicazione parallela.
