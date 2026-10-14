@@ -2,11 +2,38 @@
 
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from voce.riconoscimento import RiconoscitoreVoce
+
+
+class TestSelezioneModelloVosk(unittest.TestCase):
+    def test_preferisce_modello_completo_se_installato(self):
+        with tempfile.TemporaryDirectory() as base:
+            os.mkdir(os.path.join(base, "vosk-model-small-it-0.22"))
+            os.mkdir(os.path.join(base, "vosk-model-it-0.22"))
+            self.assertEqual(
+                RiconoscitoreVoce._modello_italiano_predefinito(base),
+                os.path.join(base, "vosk-model-it-0.22"),
+            )
+
+    def test_usa_modello_small_se_completo_non_installato(self):
+        with tempfile.TemporaryDirectory() as base:
+            os.mkdir(os.path.join(base, "vosk-model-small-it-0.22"))
+            self.assertEqual(
+                RiconoscitoreVoce._modello_italiano_predefinito(base),
+                os.path.join(base, "vosk-model-small-it-0.22"),
+            )
+
+    def test_fornisce_percorso_small_se_non_ce_nessun_modello(self):
+        with tempfile.TemporaryDirectory() as base:
+            self.assertEqual(
+                RiconoscitoreVoce._modello_italiano_predefinito(base),
+                os.path.join(base, "vosk-model-small-it-0.22"),
+            )
 
 
 class TestNormalizzazioneVocale(unittest.TestCase):
