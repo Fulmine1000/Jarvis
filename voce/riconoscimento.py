@@ -302,9 +302,9 @@ class RiconoscitoreVoce:
                 risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
                 self._registra_dettaglio_vosk(risultato)
                 testo = str(risultato.get("text", "")).strip()
+                # Conserva i dettagli appena estratti da Result(): azzerarli qui
+                # cancellava la diagnostica prima che il modulo voce potesse leggerla.
                 normalizzato = self.normalizza_comando_riconosciuto(testo)
-                self.ultima_confidenza_media = None
-                self.ultime_parole_riconosciute = []
                 self.ultima_trascrizione_grezza = testo
                 self.ultima_trascrizione_normalizzata = normalizzato
                 return normalizzato or None
