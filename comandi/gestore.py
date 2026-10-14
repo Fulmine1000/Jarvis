@@ -161,7 +161,7 @@ class GestoreComandi:
 
         studio = StudioPresentazioniJarvis()
         match_riassunto = re.match(
-            r"^riassumi\\s+(?:il\\s+)?file\\s+(.+)$",
+            r"^riassumi\s+(?:il\s+)?file\s+(.+)$",
             testo,
             re.IGNORECASE,
         )
