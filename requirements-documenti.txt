@@ -1,0 +1,4 @@
+# Dipendenze opzionali per leggere PDF e DOCX localmente.
+# Non sono necessarie per l'avvio standard di Jarvis.
+pypdf>=3.17,<6.0
+python-docx>=0.8.11,<2.0
