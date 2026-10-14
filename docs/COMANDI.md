@@ -33,7 +33,10 @@
 ## Operazioni
 
 - `calcola 25 * 4`
-- `cerca <testo>`
+- `cerca <testo>` (ricerca nella memoria di Jarvis, se disponibile)
+- `cerca sul web <testo>`
+- `cerca online <testo>`
+- `ricerca web <testo>` (risultati con estratti e URL delle fonti; richiede connessione Internet)
 - `leggi file <percorso>` (testo, Markdown, CSV, JSON, HTML e altri formati supportati; PDF/DOCX opzionali)
 - `cerca nel file <percorso> la parola <testo>`
 - `apri sito <sito>`
