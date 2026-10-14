@@ -2,7 +2,24 @@ import time
 
 
 class WakeWordJarvis:
-    """Gestisce l'attivazione vocale e separa sempre la wake word dal comando."""
+    """Gestisce la wake word e impedisce che frammenti isolati diventino comandi."""
+
+    # Parole singole ammesse solo se sono comandi intenzionali e riconoscibili.
+    # Tutte le altre trascrizioni di una sola parola dopo "Jarvis" vengono
+    # trattate come frammenti incompleti, non inviate al gestore comandi.
+    COMANDI_SINGOLA_PAROLA = {
+        "aiuto",
+        "ciao",
+        "salve",
+        "stop",
+        "esci",
+        "chiudi",
+        "ora",
+        "memoria",
+        "diagnostica",
+        "meteo",
+        "grazie",
+    }
 
     def __init__(self, parole=None, timeout=10):
         self.nome = "Wake Word Jarvis"
@@ -33,7 +50,7 @@ class WakeWordJarvis:
         return " ".join(testo.split())
 
     def _estrai_comando_da_wake_word(self, frase):
-        """Rimuove la wake word e restituisce soltanto il comando."""
+        """Restituisce il comando dopo la wake word, oppure None se non c'è."""
         for parola in sorted(self.parole_attivazione, key=len, reverse=True):
             if frase == parola:
                 return ""
@@ -50,6 +67,17 @@ class WakeWordJarvis:
             comando = self._estrai_comando_da_wake_word(frase)
             if comando is not None:
                 self.attiva()
+                if not comando:
+                    self.ultimo_comando = ""
+                    return {"attivato": True, "comando": ""}
+                if len(comando.split()) == 1 and comando not in self.COMANDI_SINGOLA_PAROLA:
+                    self.ultimo_comando = ""
+                    return {
+                        "attivato": True,
+                        "comando": "",
+                        "parziale": True,
+                        "trascrizione": frase,
+                    }
                 self.ultimo_comando = comando
                 return {"attivato": True, "comando": comando}
 
@@ -70,6 +98,17 @@ class WakeWordJarvis:
         comando = self._estrai_comando_da_wake_word(frase)
         if comando is not None:
             self.attiva()
+            if not comando:
+                self.ultimo_comando = ""
+                return {"attivato": True, "comando": ""}
+            if len(comando.split()) == 1 and comando not in self.COMANDI_SINGOLA_PAROLA:
+                self.ultimo_comando = ""
+                return {
+                    "attivato": True,
+                    "comando": "",
+                    "parziale": True,
+                    "trascrizione": frase,
+                }
             self.ultimo_comando = comando
             return {"attivato": True, "comando": comando}
 
