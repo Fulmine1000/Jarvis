@@ -113,6 +113,7 @@ python -m pip install -r requirements-presentazioni.txt
 
 Comandi vocali o testuali:
 
+- `riassumi file /Users/utente/Desktop/appunti.md` (usa il motore IA locale se disponibile; altrimenti restituisce un estratto iniziale esplicitamente indicato come tale).
 - `crea presentazione da file /Users/utente/Desktop/argomento.md`
 - `crea presentazione da testo # Titolo\nPunto uno\nPunto due`
 - `crea presentazione su energia rinnovabile` (crea una scaletta iniziale, non una ricerca documentata)
