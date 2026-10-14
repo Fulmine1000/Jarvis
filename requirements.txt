@@ -6,6 +6,10 @@ sounddevice>=0.4.6
 psutil>=5.9.0
 websocket-client>=1.8.0
 
+# Filtro antirumore avanzato opzionale:
+# pywebrtc-audio (se installabile sulla versione di macOS/Python in uso).
+# Senza questa libreria Jarvis usa il filtro adattivo integrato in voce/filtro_rumore.py.
+
 # HUD grafico definitivo: Qt Quick / QML.
 # PyQt5 5.15.5 fornisce wheel ABI3 compatibili con Python 3.11
 # e macOS 10.13+ Intel, mantenendo Qt Quick/QML senza Tkinter/Canvas.
