@@ -13,10 +13,13 @@ class TestFiltroEcoJarvis(unittest.TestCase):
 
     def test_ignora_risposta_con_wake_word_riconosciuta(self):
         self.assertTrue(self.motore._e_eco_jarvis("jarvis sono qui"))
+        self.assertTrue(self.motore._e_eco_jarvis("jarvis qui"))
 
     def test_ignora_risposta_con_varianti_wake_word(self):
         self.assertTrue(self.motore._e_eco_jarvis("hey jarvis sono qui"))
         self.assertTrue(self.motore._e_eco_jarvis("ehi jarvis sono qui"))
+        self.assertTrue(self.motore._e_eco_jarvis("hey jarvis qui"))
+        self.assertTrue(self.motore._e_eco_jarvis("ehi jarvis qui"))
 
     def test_non_scarta_comandi_reali(self):
         self.assertFalse(self.motore._e_eco_jarvis("jarvis che ore sono"))
