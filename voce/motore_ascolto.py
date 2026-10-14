@@ -8,7 +8,7 @@ class MotoreAscolto:
     """Ascolto continuo: wake word -> comando -> risposta."""
 
     DUPLICATO_TIMEOUT = 1.5
-    RISPOSTE_ECO = {"sono qui", "sono qui.", "sono qui!"}
+    RISPOSTE_ECO = {"sono qui", "sono qui.", "sono qui!", "qui", "qui.", "qui!", "qui?"}
 
     def __init__(self, modulo_voce):
         self.modulo_voce = modulo_voce
@@ -74,8 +74,7 @@ class MotoreAscolto:
     def _e_eco_jarvis(self, testo):
         """Ignora la risposta di Jarvis anche se Vosk include la wake word.
 
-        Il microfono resta aperto mentre Jarvis parla: il riconoscitore puo
-        quindi trascrivere la risposta "Sono qui" come "jarvis sono qui".
+        Il microfono resta aperto mentre Jarvis parla: Vosk puo\n        trascrivere "Sono qui" come "jarvis sono qui" oppure "jarvis qui".
         Prima di confrontare la frase rimuoviamo soltanto un prefisso di
         attivazione noto, senza alterare il testo dei normali comandi.
         """
@@ -139,7 +138,7 @@ class MotoreAscolto:
                 self.log(f"Trascrizione riconosciuta: {normalizzato}")
 
                 if self._e_eco_jarvis(normalizzato):
-                    self.log("Eco della risposta Jarvis ignorata: Sono qui.")
+                    self.log(f"Eco della risposta Jarvis ignorata: {normalizzato}")
                     self._reset_duplicato()
                     continue
 
