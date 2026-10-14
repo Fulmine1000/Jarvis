@@ -137,7 +137,7 @@ Comandi vocali o testuali:
 - `crea presentazione da testo # Titolo\nPunto uno\nPunto due`
 - `crea presentazione su energia rinnovabile` (crea una scaletta iniziale, non una ricerca documentata)
 
-I file vengono salvati in `outputs/presentazioni/`. Se un file con lo stesso nome esiste già, Jarvis crea una nuova versione numerata senza sovrascriverlo. Sono supportati file UTF-8 `.txt`, `.md` e `.markdown`. Il pacchetto `python-pptx` resta separato dalle dipendenze principali per non compromettere la compatibilità con macOS High Sierra e l'installazione base.
+I file vengono salvati in `outputs/presentazioni/`. Se un file con lo stesso nome esiste già, Jarvis crea una nuova versione numerata senza sovrascriverlo. La sorgente può essere un file di testo o uno dei documenti leggibili da `moduli/gestore_documenti.py`; PDF e DOCX richiedono il componente opzionale `requirements-documenti.txt`. Il pacchetto `python-pptx` resta separato dalle dipendenze principali per non compromettere la compatibilità con macOS High Sierra e l'installazione base.
 
 ## Voice Pack italiano
 
