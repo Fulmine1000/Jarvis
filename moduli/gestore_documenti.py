@@ -101,7 +101,7 @@ class GestoreDocumentiJarvis:
             "JSONL, RST, LOG, PY, HTML, PDF, DOCX e PPTX."
         )
 
-    def leggi_file(self, percorso: str, limite_caratteri: int = 5000) -> str:
+    def leggi_file(self, percorso: str, limite_caratteri: int = 1800 -> str:
         """Restituisce una porzione leggibile senza eseguire o modificare il file."""
         try:
             contenuto = self.estrai_testo(percorso).strip()
@@ -109,7 +109,7 @@ class GestoreDocumentiJarvis:
             return str(errore)
         if not contenuto:
             return "Il file non contiene testo estraibile."
-        limite = max(500, min(int(limite_caratteri), 8000))
+        limite = max(500, min(int(limite_caratteri), 3000))
         troncato = len(contenuto) > limite
         risultato = contenuto[:limite].rstrip()
         if troncato:
