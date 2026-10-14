@@ -72,8 +72,19 @@ class MotoreAscolto:
             self._ultimo_testo_timestamp = 0.0
 
     def _e_eco_jarvis(self, testo):
-        """Ignora la frase prodotta da Jarvis e riascoltata dal microfono."""
-        return self._normalizza_testo(testo) in self.RISPOSTE_ECO
+        """Ignora la risposta di Jarvis anche se Vosk include la wake word.
+
+        Il microfono resta aperto mentre Jarvis parla: il riconoscitore puo
+        quindi trascrivere la risposta "Sono qui" come "jarvis sono qui".
+        Prima di confrontare la frase rimuoviamo soltanto un prefisso di
+        attivazione noto, senza alterare il testo dei normali comandi.
+        """
+        normalizzato = self._normalizza_testo(testo)
+        for prefisso in ("hey jarvis ", "ehi jarvis ", "jarvis "):
+            if normalizzato.startswith(prefisso):
+                normalizzato = normalizzato[len(prefisso):].strip()
+                break
+        return normalizzato in self.RISPOSTE_ECO
 
     def _imposta_hud_ascolto(self, attivo):
         """Aggiorna LISTENING solo quando cambia realmente la sessione vocale.
