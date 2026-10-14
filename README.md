@@ -92,7 +92,9 @@ source venv/bin/activate
 python scripts/diagnostica_voce.py 30
 ```
 
-Pronuncia alcune frasi normali e fai una breve pausa dopo ciascuna. Il test mostra il livello audio, le trascrizioni finali, il modello effettivamente caricato e gli errori. Non salva l'audio su disco. Se il livello è quasi zero il problema è prima del riconoscimento; se il livello è buono ma le trascrizioni sono sbagliate, il problema è nel modello, nella pronuncia o nell'acquisizione. Questo risultato consente di scegliere la correzione giusta invece di aggiungere sostituzioni fonetiche alla cieca.
+Pronuncia alcune frasi normali e fai una breve pausa dopo ciascuna. Il test mostra RMS, picco, possibile clipping, trascrizione grezza e normalizzata, modello caricato e, quando Vosk li fornisce, dettagli e confidenza media delle parole. La confidenza è solo indicativa e non viene usata per autorizzare comandi. Non salva l'audio su disco. Se il livello è quasi zero il problema è prima del riconoscimento; se il livello è buono ma le trascrizioni sono sbagliate, il problema è nel modello, nella pronuncia o nell'acquisizione. Questo risultato consente di scegliere la correzione giusta invece di aggiungere sostituzioni fonetiche alla cieca.
+
+La ricerca delle funzioni da integrare e la roadmap tecnica sono documentate in [docs/PIANO_MIGLIORAMENTO_JARVIS.md](docs/PIANO_MIGLIORAMENTO_JARVIS.md).
 
 
 Lo script compila whisper.cpp e scarica il modello Whisper BASE multilingue (circa 150 MB). La prima preparazione richiede una connessione Internet e strumenti di compilazione; il riconoscimento successivo è locale. Sul MacBook Pro Intel del 2010 il modello BASE potrebbe avere una latenza sensibile. Whisper supporta molte lingue, ma non garantisce ogni lingua, dialetto o frase mista; la precisione varia in base all'audio e al modello.
