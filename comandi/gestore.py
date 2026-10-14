@@ -37,6 +37,8 @@ class GestoreComandi:
         try:
             risposta = self._esegui_studio_presentazioni(originale)
             if risposta is None:
+                risposta = self._esegui_comandi_documenti(originale)
+            if risposta is None:
                 risposta = self._esegui_cybersecurity_file_command(originale)
             if risposta is None:
                 risposta = self._esegui_raw(c)
@@ -83,6 +85,29 @@ class GestoreComandi:
                 break
 
         return c.strip()
+
+    def _esegui_comandi_documenti(self, comando_originale):
+        """Lettura e ricerca letterale nei documenti, senza eseguire il contenuto."""
+        testo = str(comando_originale or "").strip()
+        try:
+            from moduli.gestore_documenti import GestoreDocumentiJarvis
+        except Exception:
+            return None
+
+        match = re.match(r"^(?:leggi|apri e leggi) (?:il )?(?:file|documento) (.+)$", testo, re.IGNORECASE)
+        if match:
+            return GestoreDocumentiJarvis().leggi_file(match.group(1).strip())
+
+        match = re.match(
+            r"^(?:cerca|trova) (?:nel file|nel documento) (.+?) (?:la parola|il testo|parola|testo) (.+)$",
+            testo,
+            re.IGNORECASE,
+        )
+        if match:
+            percorso = match.group(1).strip().strip('"').strip("'")
+            termine = match.group(2).strip().strip('"').strip("'")
+            return GestoreDocumentiJarvis().cerca_nel_file(percorso, termine)
+        return None
 
     def _esegui_cybersecurity_file_command(self, comando_originale):
         """Comandi file cybersecurity; conserva le maiuscole del percorso."""
