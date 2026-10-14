@@ -144,5 +144,6 @@ class GestoreDocumentiJarvis:
                     break
         if not trovati:
             return f"Non ho trovato «{termine}» nel file."
-        intestazione = f"Ho trovato «{termine}» in {Path(os.path.expanduser(percorso.strip().strip('"').strip("'"))).name}:"
+        nome_file = Path(os.path.expanduser(str(percorso).strip().strip('"').strip("'"))).name
+        intestazione = f"Ho trovato «{termine}» in {nome_file}:"
         return intestazione + "\n" + "\n".join(trovati)
