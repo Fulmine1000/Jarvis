@@ -71,6 +71,18 @@ cd ~/Desktop/Jarvis
 bash scripts/prepara_riconoscimento_multilingue.sh
 ```
 
+### Migliorare la precisione italiana di Vosk
+
+Il modello predefinito `vosk-model-small-it-0.22` è leggero, ma può confondere parole simili. Vosk pubblica anche il modello italiano completo `vosk-model-it-0.22`, circa 1,2 GB installato, con risultati di benchmark migliori ma un maggiore consumo di memoria. Per provarlo sul Mac Intel:
+
+```bash
+cd ~/Desktop/Jarvis
+bash scripts/prepara_modello_vosk_italiano.sh
+```
+
+Lo script scarica il modello ufficiale, verifica l'archivio e non sovrascrive una cartella esistente. Al successivo avvio Jarvis preferisce automaticamente il modello completo se è presente; altrimenti continua a usare quello small. Non è possibile garantire che il modello completo sia più rapido sul Mac del 2010: se rallenta troppo o il sistema va in pressione di memoria, si può impostare esplicitamente `"modello_riconoscimento": "vosk-model-small-it-0.22"` nella sezione `voce` di `config/config.json`.
+
+
 Lo script compila whisper.cpp e scarica il modello Whisper BASE multilingue (circa 150 MB). La prima preparazione richiede una connessione Internet e strumenti di compilazione; il riconoscimento successivo è locale. Sul MacBook Pro Intel del 2010 il modello BASE potrebbe avere una latenza sensibile. Whisper supporta molte lingue, ma non garantisce ogni lingua, dialetto o frase mista; la precisione varia in base all'audio e al modello.
 
 Per controllare il backend effettivamente attivo, consultare lo stato del modulo voce di Jarvis: il campo `backend` mostra `whisper` oppure `vosk`. Se la compilazione non riesce su High Sierra, Jarvis mantiene il fallback Vosk invece di interrompere l'avvio.
