@@ -34,6 +34,18 @@ class TestWakeWordFrammenti(unittest.TestCase):
         self.assertEqual(risultato["comando"], "")
         self.assertNotIn("parziale", risultato)
 
+    def test_ignora_trascrizione_senza_wake_word_in_standby(self):
+        risultato = self.wake.controlla("che ore sono")
+        self.assertFalse(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+        self.assertFalse(self.wake.attivo)
+
+    def test_ignora_trascrizione_vosk_errata_senza_wake_word(self):
+        risultato = self.wake.controlla("barry jiu su")
+        self.assertFalse(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+        self.assertFalse(self.wake.attivo)
+
 
 if __name__ == "__main__":
     unittest.main()
