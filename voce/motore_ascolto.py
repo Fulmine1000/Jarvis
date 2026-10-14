@@ -158,6 +158,17 @@ class MotoreAscolto:
                 self._imposta_hud_ascolto(True)
                 self._mostra_hud()
 
+                # Una wake word seguita da una sola parola non affidabile
+                # (es. "jarvis su") è spesso un frammento riconosciuto male.
+                # Manteniamo la finestra di ascolto aperta senza eseguire nulla
+                # e senza rispondere a voce, così non generiamo altra eco.
+                if risultato.get("parziale", False):
+                    self.log(
+                        "Frammento vocale incompleto ignorato: "
+                        f"{risultato.get('trascrizione', normalizzato)}"
+                    )
+                    continue
+
                 comando = risultato.get("comando", "").strip()
                 if not comando:
                     self.modulo_voce.rispondi("Sono qui.")
