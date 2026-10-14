@@ -20,7 +20,6 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "controlla la sicurezza",
             "controllare la sicurezza",
             "controllo sicurezza",
-            "giardino controllo la sicurezza",
             "stato sai per giur it",
             "stato sei bersi giur it",
             "sei bersi giur it",
@@ -35,6 +34,32 @@ class TestNormalizzazioneVocale(unittest.TestCase):
                     RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
                     "stato cybersecurity",
                 )
+
+    def test_wake_word_errata_e_comandi_quotidiani(self):
+        casi = {
+            "giardino controllo la sicurezza": "jarvis stato cybersecurity",
+            "jervis che ore sono": "jarvis che ore sono",
+            "gervis che giorno oggi": "jarvis che giorno è",
+            "che ore e": "che ore sono",
+            "che data oggi": "che data è",
+            "ricerca web ultime novità sull'intelligenza artificiale":
+                "cerca sul web ultime novità sull'intelligenza artificiale",
+            "cerca sul webb ultime novità": "cerca sul web ultime novità",
+            "hey jarvis che ore e": "hey jarvis che ore sono",
+        }
+        for testo, atteso in casi.items():
+            with self.subTest(testo=testo):
+                self.assertEqual(
+                    RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
+                    atteso,
+                )
+
+    def test_frase_non_correlata_conserva_maiuscole(self):
+        testo = "Jarvis leggi file /Users/Simone/Documenti/Prova.txt"
+        self.assertEqual(
+            RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
+            testo,
+        )
 
     def test_stato_cybersecurity_con_wake_word(self):
         casi = (
