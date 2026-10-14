@@ -123,6 +123,16 @@ class ModuloVoce:
             testo = self.riconoscitore.riconosci(audio)
             if testo:
                 self.ultimo_errore_ascolto = None
+                grezzo = getattr(self.riconoscitore, "ultima_trascrizione_grezza", "")
+                normalizzato = getattr(
+                    self.riconoscitore, "ultima_trascrizione_normalizzata", ""
+                )
+                if grezzo and normalizzato and grezzo != normalizzato:
+                    if self.kernel and self.kernel.logger:
+                        self.kernel.logger.info(
+                            "Correzione trascrizione vocale: "
+                            f"{grezzo!r} -> {normalizzato!r}"
+                        )
             return testo
         except Exception as errore:
             messaggio = f"{type(errore).__name__}: {errore}"
