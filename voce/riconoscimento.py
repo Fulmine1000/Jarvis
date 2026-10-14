@@ -65,58 +65,56 @@ class RiconoscitoreVoce:
     def normalizza_comando_riconosciuto(testo):
         """Normalizza errori fonetici frequenti senza riscrivere frasi arbitrarie.
 
-        Le regole sono intenzionalmente limitate a frasi complete e non
-        applicano fuzzy matching ai comandi potenzialmente operativi.
+        Le correzioni si applicano a frasi complete e non usano fuzzy matching
+        sui comandi operativi. I testi non riconosciuti restano invariati.
         """
         originale = str(testo or "").strip()
         confronto = re.sub(r"\s+", " ", originale.lower()).strip()
         confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
         confronto = confronto.replace("’", "'")
 
-        # Varianti comuni della wake word. Conserviamo il prefisso valido così
-        # il motore di ascolto può attivarsi anche quando Vosk sbaglia il nome.
         prefisso = ""
+        wake_errata = False
         for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "jervis ", "gervis ", "giardino "):
             if confronto.startswith(wake):
                 prefisso = "jarvis " if wake in ("jervis ", "gervis ", "giardino ") else wake
+                wake_errata = wake in ("jervis ", "gervis ", "giardino ")
                 confronto = confronto[len(wake):].strip()
                 break
 
         alias = (
-            # Stato e cybersecurity: varianti fonetiche già osservate.
-            (r"(?:stato\s+)?sei\s+bersi\s+giur(?:\s+it)?", "stato cybersecurity"),
-            (r"stato\s+sai\s+per\s+giur(?:\s+it)?", "stato cybersecurity"),
-            (r"stato\s+sarebb(?:e|ero)\s+(?:security|servizi|service|giur(?:\s+it)?)", "stato cybersecurity"),
-            (r"stato\s+sarebbe\s+security", "stato cybersecurity"),
-            (r"(?:controlla|controllare|controllo)\s+(?:la\s+)?sicurezza", "stato cybersecurity"),
-            (r"(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)", "stato cybersecurity"),
-            (r"stato\s+sai\s+bersi\s+uniti", "stato cybersecurity"),
-            (r"sai\s+bersi\s+uniti", "cybersecurity"),
-            (r"analizzano\s+(?:il|la)\s+mia\s+rete", "analizza la mia rete"),
-            (r"analizza\s+il\s+mia\s+rete", "analizza la mia rete"),
-            # Domande quotidiane: Vosk a volte omette o deforma parole brevi.
-            (r"(?:che\s+)?ore\s+(?:sono|e|adesso|ora)(?:\s+(?:adesso|ora))?", "che ore sono"),
-            (r"(?:che\s+)?ora\s+e", "che ore sono"),
-            (r"(?:che\s+)?giorno\s+(?:e|è)(?:\s+oggi)?", "che giorno è"),
-            (r"(?:che\s+)?giorno\s+oggi", "che giorno è"),
-            (r"(?:che\s+)?data\s+(?:e|è)(?:\s+oggi)?", "che data è"),
-            (r"(?:che\s+)?data\s+oggi", "che data è"),
-            # Ricerca web: correzioni conservative delle sole formule introduttive.
-            (r"cerca\s+(?:sul\s+web|su\s+internet|online)\s+(.+)", r"cerca sul web \1"),
-            (r"ricerca\s+(?:web|online)\s+(.+)", r"cerca sul web \1"),
-            (r"cerca\s+(?:sul\s+uep|sul\s+webb)\s+(.+)", r"cerca sul web \1"),
+            (r"^(?:stato\s+)?sei\s+bersi\s+giur(?:\s+it)?$", "stato cybersecurity"),
+            (r"^stato\s+sai\s+per\s+giur(?:\s+it)?$", "stato cybersecurity"),
+            (r"^stato\s+sarebb(?:e|ero)\s+(?:security|servizi|service|giur(?:\s+it)?)$", "stato cybersecurity"),
+            (r"^stato\s+sarebbe\s+security$", "stato cybersecurity"),
+            (r"^(?:controlla|controllare|controllo)\s+(?:la\s+)?sicurezza$", "stato cybersecurity"),
+            (r"^(?:stato\s+)?(?:sai\s+per\s+security|cyber\s*security|cybersecurity)$", "stato cybersecurity"),
+            (r"^stato\s+sai\s+bersi\s+uniti$", "stato cybersecurity"),
+            (r"^sai\s+bersi\s+uniti$", "cybersecurity"),
+            (r"^analizzano\s+(?:il|la)\s+mia\s+rete$", "analizza la mia rete"),
+            (r"^analizza\s+il\s+mia\s+rete$", "analizza la mia rete"),
+            (r"^(?:che\s+)?ore\s+(?:sono|e|adesso|ora)(?:\s+(?:adesso|ora))?$", "che ore sono"),
+            (r"^(?:che\s+)?ora\s+e$", "che ore sono"),
+            (r"^(?:che\s+)?giorno\s+(?:e|è)(?:\s+oggi)?$", "che giorno è"),
+            (r"^(?:che\s+)?giorno\s+oggi$", "che giorno è"),
+            (r"^(?:che\s+)?data\s+(?:e|è)(?:\s+oggi)?$", "che data è"),
+            (r"^(?:che\s+)?data\s+oggi$", "che data è"),
+            (r"^ricerca\s+(?:web|online)\s+(.+)$", r"cerca sul web \1"),
+            (r"^cerca\s+(?:sul\s+uep|sul\s+webb)\s+(.+)$", r"cerca sul web \1"),
+            (r"^cerca\s+su\s+internet\s+(.+)$", r"cerca sul web \1"),
+            (r"^cerca\s+online\s+(.+)$", r"cerca sul web \1"),
         )
+        modificato = False
         for pattern, canonico in alias:
             nuovo = re.sub(pattern, canonico, confronto, count=1)
             if nuovo != confronto:
                 confronto = nuovo.strip()
+                modificato = True
                 break
 
-        if prefisso:
+        if prefisso and (modificato or wake_errata):
             return (prefisso + confronto).strip() if confronto else prefisso.strip()
-        # Mantieni il testo originale per frasi che non richiedono una
-        # correzione, evitando modifiche inattese a percorsi o nomi propri.
-        if confronto != re.sub(r"\s+", " ", originale.lower()).strip().rstrip(".,!?;:"):
+        if modificato:
             return confronto
         return originale
 
