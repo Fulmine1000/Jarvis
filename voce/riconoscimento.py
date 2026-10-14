@@ -63,29 +63,27 @@ class RiconoscitoreVoce:
 
     @staticmethod
     def normalizza_comando_riconosciuto(testo):
-        """Corregge trascrizioni Vosk note, anche se precedute dalla wake word.
+        """Normalizza errori fonetici frequenti senza riscrivere frasi arbitrarie.
 
-        Le correzioni sono volutamente limitate a frasi osservate nell'uso
-        reale, per non alterare arbitrariamente altri comandi dell'utente.
+        Le regole sono intenzionalmente limitate a frasi complete e non
+        applicano fuzzy matching ai comandi potenzialmente operativi.
         """
         originale = str(testo or "").strip()
         confronto = re.sub(r"\s+", " ", originale.lower()).strip()
         confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
+        confronto = confronto.replace("’", "'")
 
-        # Vosk può restituire l'intera frase, wake word compresa. In quel caso
-        # normalizziamo solo il comando e manteniamo il prefisso originale.
+        # Varianti comuni della wake word. Conserviamo il prefisso valido così
+        # il motore di ascolto può attivarsi anche quando Vosk sbaglia il nome.
         prefisso = ""
-        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "giardino "):
+        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "jervis ", "gervis ", "giardino "):
             if confronto.startswith(wake):
-                # "giardino" è una trascrizione Vosk già osservata al posto
-                # della wake word: la correzione produce un comando valido
-                # solo se il testo successivo coincide con un alias noto.
-                prefisso = "" if wake == "giardino " else wake
+                prefisso = "jarvis " if wake in ("jervis ", "gervis ", "giardino ") else wake
                 confronto = confronto[len(wake):].strip()
                 break
 
         alias = (
-            # Variante fonetica riportata nei log reali di Vosk.
+            # Stato e cybersecurity: varianti fonetiche già osservate.
             (r"(?:stato\s+)?sei\s+bersi\s+giur(?:\s+it)?", "stato cybersecurity"),
             (r"stato\s+sai\s+per\s+giur(?:\s+it)?", "stato cybersecurity"),
             (r"stato\s+sarebb(?:e|ero)\s+(?:security|servizi|service|giur(?:\s+it)?)", "stato cybersecurity"),
@@ -96,10 +94,30 @@ class RiconoscitoreVoce:
             (r"sai\s+bersi\s+uniti", "cybersecurity"),
             (r"analizzano\s+(?:il|la)\s+mia\s+rete", "analizza la mia rete"),
             (r"analizza\s+il\s+mia\s+rete", "analizza la mia rete"),
+            # Domande quotidiane: Vosk a volte omette o deforma parole brevi.
+            (r"(?:che\s+)?ore\s+(?:sono|e|adesso|ora)(?:\s+(?:adesso|ora))?", "che ore sono"),
+            (r"(?:che\s+)?ora\s+e", "che ore sono"),
+            (r"(?:che\s+)?giorno\s+(?:e|è)(?:\s+oggi)?", "che giorno è"),
+            (r"(?:che\s+)?giorno\s+oggi", "che giorno è"),
+            (r"(?:che\s+)?data\s+(?:e|è)(?:\s+oggi)?", "che data è"),
+            (r"(?:che\s+)?data\s+oggi", "che data è"),
+            # Ricerca web: correzioni conservative delle sole formule introduttive.
+            (r"cerca\s+(?:sul\s+web|su\s+internet|online)\s+(.+)", r"cerca sul web \1"),
+            (r"ricerca\s+(?:web|online)\s+(.+)", r"cerca sul web \1"),
+            (r"cerca\s+(?:sul\s+uep|sul\s+webb)\s+(.+)", r"cerca sul web \1"),
         )
         for pattern, canonico in alias:
-            if re.fullmatch(pattern, confronto):
-                return (prefisso + canonico).strip()
+            nuovo = re.sub(pattern, canonico, confronto, count=1)
+            if nuovo != confronto:
+                confronto = nuovo.strip()
+                break
+
+        if prefisso:
+            return (prefisso + confronto).strip() if confronto else prefisso.strip()
+        # Mantieni il testo originale per frasi che non richiedono una
+        # correzione, evitando modifiche inattese a percorsi o nomi propri.
+        if confronto != re.sub(r"\s+", " ", originale.lower()).strip().rstrip(".,!?;:"):
+            return confronto
         return originale
 
     def _carica_vosk(self):
