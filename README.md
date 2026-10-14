@@ -25,6 +25,7 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 - Plugin caricabili.
 - Sicurezza con conferma per operazioni protette.
 - Suite di test e GitHub Actions CI.
+- Ricerca web e integrazione delle funzioni compatibili di JARVIS-OS-V.2 documentate in `docs/INTEGRAZIONE_JARVIS_OS_V2.md`.
 
 ## Avvio
 
