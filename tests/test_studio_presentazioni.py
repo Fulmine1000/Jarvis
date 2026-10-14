@@ -50,10 +50,10 @@ class TestStudioPresentazioni(unittest.TestCase):
 
     def test_estensione_non_supportata(self):
         with tempfile.TemporaryDirectory() as directory:
-            file = Path(directory) / "input.pdf"
+            file = Path(directory) / "input.bin"
             file.write_text("contenuto", encoding="utf-8")
             studio = StudioPresentazioniJarvis(Path(directory) / "output")
-            self.assertIn("TXT, Markdown", studio.crea_da_file(str(file)))
+            self.assertIn("Formato non supportato", studio.crea_da_file(str(file)))
 
 
 if __name__ == "__main__":
