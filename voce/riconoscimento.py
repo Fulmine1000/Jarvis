@@ -112,6 +112,8 @@ class RiconoscitoreVoce:
             (r"^analizzano\s+(?:il|la)\s+mia\s+rete$", "analizza la mia rete"),
             (r"^analizza\s+il\s+mia\s+rete$", "analizza la mia rete"),
             (r"^(?:che\s+)?ore\s+(?:sono|e|adesso|ora)(?:\s+(?:adesso|ora))?$", "che ore sono"),
+            # Errore fonetico osservato nei log: "che harrison" per "che ore sono".
+            (r"^che\s+harrison$", "che ore sono"),
             (r"^(?:che\s+)?ora\s+e$", "che ore sono"),
             (r"^(?:che\s+)?giorno\s+(?:e|è)(?:\s+oggi)?$", "che giorno è"),
             (r"^(?:che\s+)?giorno\s+oggi$", "che giorno è"),
