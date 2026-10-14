@@ -103,7 +103,7 @@ La root del progetto contiene quindi solo gli elementi realmente necessari al pr
 
 ## Lettura e ricerca documenti locali
 
-Jarvis può leggere ed effettuare ricerche letterali in file locali senza eseguirli o modificarli. Sono supportati TXT, Markdown, CSV, JSON, JSONL, RST, LOG, PY e HTML; PDF, DOCX e PPTX vengono estratti localmente con i pacchetti necessari. I contenuti non vengono inviati a servizi remoti da questi comandi.
+Jarvis può leggere ed effettuare ricerche letterali in file locali senza eseguirli o modificarli. Sono supportati TXT, Markdown, CSV, JSON, JSONL, RST, LOG, PY e HTML; PDF, DOCX e PPTX vengono estratti localmente con i pacchetti necessari. I comandi `leggi file` e `cerca nel file` operano localmente. `riassumi file` usa il provider IA configurato: con un provider remoto il testo del documento potrebbe essere inviato a quel servizio; per mantenere i contenuti locali, configuri un backend IA locale.
 
 Per aggiungere il supporto opzionale PDF/DOCX:
 
