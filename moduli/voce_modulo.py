@@ -133,6 +133,25 @@ class ModuloVoce:
                             "Correzione trascrizione vocale: "
                             f"{grezzo!r} -> {normalizzato!r}"
                         )
+
+                # Diagnostica leggera: non salva né registra audio, mostra solo
+                # il testo già riconosciuto e i dettagli forniti da Vosk.
+                if (
+                    self.riconoscitore.backend_attivo == "vosk"
+                    and grezzo
+                    and self.kernel
+                    and self.kernel.logger
+                ):
+                    confidenza = self.riconoscitore.ultima_confidenza_media
+                    parole = self.riconoscitore.ultime_parole_riconosciute
+                    confidenza_testo = (
+                        f"{confidenza:.3f}" if confidenza is not None else "non disponibile"
+                    )
+                    self.kernel.logger.info(
+                        "Diagnostica Vosk: "
+                        f"confidenza_media={confidenza_testo}; "
+                        f"parole={parole if parole else 'non disponibili'}"
+                    )
             return testo
         except Exception as errore:
             messaggio = f"{type(errore).__name__}: {errore}"
