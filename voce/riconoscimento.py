@@ -95,9 +95,15 @@ class RiconoscitoreVoce:
         alias_wake = "barry jiu su"
         if confronto == alias_wake:
             return "jarvis"
-        if confronto.startswith(alias_wake + " "):
-            originale = "jarvis " + originale[len(alias_wake):].lstrip()
-            confronto = "jarvis " + confronto[len(alias_wake):].strip()
+        if (
+            confronto.startswith(alias_wake)
+            and len(confronto) > len(alias_wake)
+            and confronto[len(alias_wake)] in " ,.!?;:"
+        ):
+            suffisso = confronto[len(alias_wake):].lstrip(" ,.!?;:")
+            resto_originale = originale[len(alias_wake):].lstrip(" ,.!?;:")
+            originale = "jarvis " + resto_originale
+            confronto = "jarvis " + suffisso
 
         prefisso = ""
         wake_errata = False
