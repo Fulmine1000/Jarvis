@@ -34,6 +34,8 @@
 
 - `calcola 25 * 4`
 - `cerca <testo>`
+- `leggi file <percorso>` (testo, Markdown, CSV, JSON, HTML e altri formati supportati; PDF/DOCX opzionali)
+- `cerca nel file <percorso> la parola <testo>`
 - `apri sito <sito>`
 - `meteo <città>`
 - `apri app <app>`
