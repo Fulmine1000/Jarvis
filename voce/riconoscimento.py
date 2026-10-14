@@ -102,6 +102,8 @@ class RiconoscitoreVoce:
         ):
             suffisso = confronto[len(alias_wake):].lstrip(" ,.!?;:")
             resto_originale = originale[len(alias_wake):].lstrip(" ,.!?;:")
+            resto_originale = re.sub(r"[.,!?;:]+$", "", resto_originale).strip()
+            suffisso = re.sub(r"[.,!?;:]+$", "", suffisso).strip()
             originale = "jarvis " + resto_originale
             confronto = "jarvis " + suffisso
 
