@@ -2,6 +2,7 @@ import threading
 import time
 
 from voce.wake_word import WakeWordJarvis
+from voce.riconoscimento import RiconoscitoreVoce
 
 
 class MotoreAscolto:
@@ -51,6 +52,19 @@ class MotoreAscolto:
     @staticmethod
     def _normalizza_testo(testo):
         return " ".join(str(testo or "").lower().strip().split())
+
+    @staticmethod
+    def _normalizza_trascrizione(testo):
+        """Applica una seconda normalizzazione mirata prima di cercare la wake word.
+
+        Il riconoscitore principale normalizza già il testo, ma questo passaggio
+        difensivo protegge il motore se un backend o un test restituisce la
+        trascrizione grezza. Le correzioni restano quelle esplicite e conservative
+        definite in RiconoscitoreVoce; non viene usato fuzzy matching generico.
+        """
+        grezzo = str(testo or "").strip()
+        corretto = RiconoscitoreVoce.normalizza_comando_riconosciuto(grezzo)
+        return " ".join(str(corretto or "").lower().strip().split())
 
     def _e_duplicato_immediato(self, testo):
         normalizzato = self._normalizza_testo(testo)
@@ -134,7 +148,13 @@ class MotoreAscolto:
                     time.sleep(0.1)
                     continue
 
-                normalizzato = self._normalizza_testo(testo)
+                normalizzato = self._normalizza_trascrizione(testo)
+                testo_grezzo = self._normalizza_testo(testo)
+                if normalizzato != testo_grezzo:
+                    self.log(
+                        "Correzione trascrizione vocale (motore): "
+                        f"{testo_grezzo!r} -> {normalizzato!r}"
+                    )
                 self.log(f"Trascrizione riconosciuta: {normalizzato}")
 
                 if self._e_eco_jarvis(normalizzato):
