@@ -37,6 +37,31 @@ class TestSelezioneModelloVosk(unittest.TestCase):
 
 
 class TestNormalizzazioneVocale(unittest.TestCase):
+    def test_riconosci_registra_trascrizione_grezza_e_correzione(self):
+        class RiconoscitoreFinto:
+            def AcceptWaveform(self, audio):
+                return True
+
+            def Result(self):
+                return '{"text": "barry jiu su che ore sono"}'
+
+        riconoscitore = RiconoscitoreVoce()
+        riconoscitore.attivo = True
+        riconoscitore.backend_attivo = "vosk"
+        riconoscitore.riconoscitore = RiconoscitoreFinto()
+
+        comando = riconoscitore.riconosci(b"\\x00\\x00")
+
+        self.assertEqual(comando, "jarvis che ore sono")
+        self.assertEqual(
+            riconoscitore.ultima_trascrizione_grezza,
+            "barry jiu su che ore sono",
+        )
+        self.assertEqual(
+            riconoscitore.ultima_trascrizione_normalizzata,
+            "jarvis che ore sono",
+        )
+
     def test_stato_cybersecurity_trascritto_male(self):
         casi = (
             "stato sai per security",
