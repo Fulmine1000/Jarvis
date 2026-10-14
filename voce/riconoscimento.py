@@ -27,14 +27,19 @@ class RiconoscitoreVoce:
         self.usa_multilingue = False
 
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.percorso_modello = os.path.join(base, "vosk-model-small-it-0.22")
+        # Se è presente il modello italiano completo, preferiscilo: nei benchmark
+        # ufficiali ha un tasso di errore sensibilmente inferiore al modello small.
+        # Non scarichiamo modelli grandi automaticamente e manteniamo il fallback.
+        self.percorso_modello = self._modello_italiano_predefinito(base)
         self.sample_rate = 16000
 
         if self.config:
             voce = self.config.sezione("voce")
             modello = voce.get("modello_riconoscimento", None)
             if modello:
-                self.percorso_modello = os.path.join(base, modello)
+                self.percorso_modello = (
+                    modello if os.path.isabs(modello) else os.path.join(base, modello)
+                )
             self.sample_rate = int(voce.get("sample_rate", 16000))
             self.usa_multilingue = bool(voce.get("riconoscimento_multilingue", False))
             if self.usa_multilingue:
@@ -50,6 +55,15 @@ class RiconoscitoreVoce:
                     )
                 except (ImportError, OSError, ValueError, TypeError) as errore:
                     self.ultimo_errore = str(errore)
+
+    @staticmethod
+    def _modello_italiano_predefinito(base):
+        """Seleziona il modello italiano migliore già installato, senza download impliciti."""
+        completo = os.path.join(base, "vosk-model-it-0.22")
+        leggero = os.path.join(base, "vosk-model-small-it-0.22")
+        if os.path.isdir(completo):
+            return completo
+        return leggero
 
     @staticmethod
     def _vosk_disponibile():
