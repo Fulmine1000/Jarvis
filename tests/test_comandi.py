@@ -11,7 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -107,6 +107,11 @@ class TestComandi(unittest.TestCase):
             self.assertIn("Riga 2", risposta)
             self.assertIn("Simone usa Jarvis", risposta)
 
+    def test_ricerca_web_comando_esplicito(self):
+        with patch("moduli.ricerca_web.cerca_web", return_value="Risultati web di prova") as ricerca:
+            risposta = self._cmd("cerca sul web modelli Jarvis")
+        self.assertEqual(risposta, "Risultati web di prova")
+        ricerca.assert_called_once_with("modelli Jarvis")
     def test_comando_sconosciuto(self):
         risposta = self._cmd("xyzzy_inesistente_12345")
         self.assertEqual(risposta, "Non ho trovato un comando compatibile.")
