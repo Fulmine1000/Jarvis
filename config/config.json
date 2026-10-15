@@ -26,6 +26,7 @@
         "modello_multilingue": "motore_ia/whisper.cpp/models/ggml-base.bin",
         "eseguibile_multilingue": "",
         "timeout_multilingue": 90,
+        "soglia_rms_whisper": 100,
         "motore": "voicepack",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
         "velocita": 0.92,
