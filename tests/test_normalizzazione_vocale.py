@@ -57,6 +57,34 @@ class TestDettaglioVosk(unittest.TestCase):
         self.assertEqual(riconoscitore.ultime_parole_riconosciute, [])
 
 
+class TestAlternativeVosk(unittest.TestCase):
+    def test_preferisce_wake_word_se_alternativa_e_vicina(self):
+        risultato = {
+            "alternatives": [
+                {"text": "barry jiu su", "confidence": 0.81},
+                {"text": "jarvis", "confidence": 0.76},
+                {"text": "vari giù", "confidence": 0.30},
+            ]
+        }
+        scelta = RiconoscitoreVoce._scegli_alternativa_vosk(risultato)
+        self.assertEqual(scelta["text"], "barry jiu su")
+
+    def test_non_preferisce_wake_word_con_confidenza_troppo_bassa(self):
+        risultato = {
+            "alternatives": [
+                {"text": "apri safari", "confidence": 0.91},
+                {"text": "jarvis", "confidence": 0.40},
+            ]
+        }
+        scelta = RiconoscitoreVoce._scegli_alternativa_vosk(risultato)
+        self.assertEqual(scelta["text"], "apri safari")
+
+    def test_risultato_vosk_standard_senza_alternative_invariato(self):
+        risultato = {"text": "jarvis che ore sono", "result": []}
+        self.assertIs(
+            RiconoscitoreVoce._scegli_alternativa_vosk(risultato), risultato
+        )
+
 class TestNormalizzazioneVocale(unittest.TestCase):
     def test_riconosci_registra_trascrizione_grezza_e_correzione(self):
         class RiconoscitoreFinto:
