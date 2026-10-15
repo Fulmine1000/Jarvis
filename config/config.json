@@ -22,7 +22,7 @@
         "lingua": "it-IT",
         "filtro_rumore": true,
         "livello_filtro_rumore": 2,
-        "riconoscimento_multilingue": false,
+        "riconoscimento_multilingue": true,
         "modello_multilingue": "motore_ia/whisper.cpp/models/ggml-base.bin",
         "eseguibile_multilingue": "",
         "timeout_multilingue": 90,
