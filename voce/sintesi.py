@@ -303,19 +303,36 @@ class SintesiVocale:
                     pass
 
     def _parla_con_sistema(self, testo):
-        """Fallback live immediato."""
+        """Fallback live immediato, con secondo tentativo senza voce nominata.
+
+        Su macOS meno recenti una voce può comparire nell'elenco ma non essere
+        utilizzabile. Se il tentativo con la voce scelta fallisce, riprova con
+        la voce predefinita di sistema invece di lasciare Jarvis completamente muto.
+        """
         if platform.system() == "Darwin" and shutil.which("say"):
-            voce = self.voce_sistema
-            try:
-                comando = ["say"]
-                if voce:
-                    comando += ["-v", voce]
-                rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
-                comando += ["-r", str(rate), str(testo)]
-                risultato = subprocess.run(comando, check=False)
-                return risultato.returncode == 0
-            except (OSError, subprocess.SubprocessError):
-                return False
+            rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
+            base = ["say", "-r", str(rate), str(testo)]
+            comandi = []
+            if self.voce_sistema:
+                comandi.append(["say", "-v", self.voce_sistema, "-r", str(rate), str(testo)])
+            comandi.append(base)
+
+            for indice, comando in enumerate(comandi):
+                try:
+                    risultato = subprocess.run(
+                        comando,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if risultato.returncode == 0:
+                        return True
+                    dettaglio = (risultato.stderr or risultato.stdout or "").strip()
+                    if dettaglio:
+                        print(f"⚠️ macOS say (tentativo {indice + 1}): {dettaglio}")
+                except (OSError, subprocess.SubprocessError) as errore:
+                    print(f"⚠️ macOS say (tentativo {indice + 1}): {errore}")
+            return False
 
         if platform.system() == "Linux" and shutil.which("espeak"):
             try:
