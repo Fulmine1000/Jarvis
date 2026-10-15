@@ -236,6 +236,7 @@ class WhisperMultilingue:
 
     def _reset_segmento(self):
         self._in_parlato = False
+        self.stato_segmento = "silenzio"
         self._blocchi = []
         self._blocchi_silenzio = 0
         self._pre_roll = []
