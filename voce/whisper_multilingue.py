@@ -170,7 +170,7 @@ class WhisperMultilingue:
 
             comando = [
                 self.eseguibile, "-m", self.modello, "-f", wav_path,
-                "-l", "auto", "-nt", "-np", "-t", "2",
+                "-l", self.lingua, "-nt", "-np", "-t", "2",
             ]
             # Il prompt fornisce contesto lessicale utile per la wake word,
             # senza forzare una lingua: il rilevamento resta automatico.
