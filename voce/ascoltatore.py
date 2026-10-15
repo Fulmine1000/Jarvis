@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import math
 import queue
+import struct
 import sys
 
 from voce.filtro_rumore import FiltroRumore
@@ -25,6 +27,8 @@ class AscoltatoreVoce:
         self.stream = None
         self.disponibile = self._sounddevice_disponibile()
         self.ultimo_errore = None
+        self.ultimo_rms_ingresso = 0
+        self.ultimo_rms_uscita = 0
         self._sd = None
         self.filtro = (
             FiltroRumore(frequenza=self.frequenza, livello=livello_filtro)
@@ -64,6 +68,7 @@ class AscoltatoreVoce:
             self.ultimo_errore = str(stato)
 
         audio = bytes(ingresso)
+        self.ultimo_rms_ingresso = self._rms(audio)
         if self.filtro is not None:
             try:
                 audio = self.filtro.processa(audio)
@@ -73,6 +78,7 @@ class AscoltatoreVoce:
                 self.ultimo_errore = f"Filtro rumore: {errore}"
                 audio = bytes(ingresso)
 
+        self.ultimo_rms_uscita = self._rms(audio)
         try:
             self.audio.put_nowait(audio)
         except queue.Full:
@@ -81,6 +87,15 @@ class AscoltatoreVoce:
                 self.audio.put_nowait(audio)
             except queue.Empty:
                 pass
+
+    @staticmethod
+    def _rms(audio):
+        """Livello RMS PCM, usato solo per diagnosticare il segnale del microfono."""
+        campioni = len(audio) // 2
+        if campioni <= 0:
+            return 0
+        valori = struct.unpack("<" + "h" * campioni, audio[:campioni * 2])
+        return int(math.sqrt(sum(valore * valore for valore in valori) / campioni))
 
     def avvia(self):
         if self.attivo:
@@ -167,6 +182,8 @@ class AscoltatoreVoce:
             "stream": self.stream is not None,
             "disponibile": self.disponibile,
             "ultimo_errore": self.ultimo_errore,
+            "rms_ingresso": self.ultimo_rms_ingresso,
+            "rms_filtrato": self.ultimo_rms_uscita,
             "buffer": self.audio.qsize(),
             "filtro_rumore": self.filtro.stato() if self.filtro is not None else {
                 "attivo": False,
