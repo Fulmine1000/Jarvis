@@ -16,7 +16,7 @@ class WhisperFinto(WhisperMultilingue):
 class TestWhisperMultilingue(unittest.TestCase):
     def test_default_adatto_a_comandi_brevi_in_italiano(self):
         motore = WhisperMultilingue()
-        self.assertEqual(motore.soglia_rms, 220)
+        self.assertEqual(motore.soglia_rms, 100)
         self.assertEqual(motore.silenzio_blocchi, 5)
         self.assertEqual(motore.pre_roll_blocchi, 5)
         self.assertEqual(motore.lingua, "it")
