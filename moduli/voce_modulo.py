@@ -124,6 +124,44 @@ class ModuloVoce:
                 self.kernel.logger.warning(f"Voce non disponibile: modalita solo-testo attiva ({errore})")
             return True
 
+    def _diagnostica_microfono_senza_trascrizione(self, motivo):
+        """Registra ogni 5 s i livelli audio quando Vosk non produce testo.
+
+        Serve a distinguere un microfono silenzioso/non autorizzato da un
+        problema di riconoscimento. Non registra né salva l'audio.
+        """
+        adesso = time.monotonic()
+        if adesso - self._ultima_diagnostica_microfono < 5.0:
+            return
+        self._ultima_diagnostica_microfono = adesso
+
+        try:
+            stato_audio = self.ascoltatore.stato()
+        except Exception as errore:
+            stato_audio = {}
+            dettaglio_audio = f"impossibile leggere stato microfono: {errore}"
+        else:
+            dettaglio_audio = (
+                f"microfono={stato_audio.get('stato', 'n/d')}, "
+                f"stream={stato_audio.get('stream', 'n/d')}, "
+                f"rms_ingresso={stato_audio.get('rms_ingresso', 'n/d')}, "
+                f"rms_filtrato={stato_audio.get('rms_filtrato', 'n/d')}, "
+                f"buffer={stato_audio.get('buffer', 'n/d')}, "
+                f"errore_microfono={stato_audio.get('ultimo_errore') or 'nessuno'}"
+            )
+
+        errore_riconoscimento = getattr(self.riconoscitore, "ultimo_errore", None)
+        messaggio = (
+            f"Diagnostica audio senza trascrizione: motivo={motivo}; "
+            f"backend={getattr(self.riconoscitore, 'backend_attivo', 'n/d')}; "
+            f"{dettaglio_audio}; "
+            f"errore_riconoscimento={errore_riconoscimento or 'nessuno'}"
+        )
+        if self.kernel and self.kernel.logger:
+            self.kernel.logger.info(messaggio)
+        else:
+            print(messaggio)
+
     def ascolta_comando(self):
         """Acquisisce audio senza modificare lo stato LISTENING dell'HUD.
 
@@ -137,8 +175,11 @@ class ModuloVoce:
         try:
             audio = self.ascoltatore.ascolta()
             if not audio:
+                self._diagnostica_microfono_senza_trascrizione("nessun blocco audio ricevuto")
                 return None
             testo = self.riconoscitore.riconosci(audio)
+            if not testo:
+                self._diagnostica_microfono_senza_trascrizione("Vosk non ha ancora completato una trascrizione")
             if testo:
                 self.ultimo_errore_ascolto = None
                 grezzo = getattr(self.riconoscitore, "ultima_trascrizione_grezza", "")
