@@ -25,6 +25,24 @@ class TestWhisperMultilingue(unittest.TestCase):
         motore = WhisperMultilingue(lingua="auto")
         self.assertEqual(motore.lingua, "auto")
 
+    def test_soglia_bassa_rileva_voce_debole_ma_ignora_fondo(self):
+        motore = WhisperFinto()
+        motore.attivo = True
+
+        # Livello di fondo simile alla diagnostica del Mac: non deve aprire
+        # un segmento vocale.
+        self.assertIsNone(motore.riconosci(blocco(56)))
+        self.assertFalse(motore._in_parlato)
+
+        # Un livello poco sopra la soglia configurata deve invece avviare
+        # la registrazione della frase.
+        self.assertIsNone(motore.riconosci(blocco(120)))
+        self.assertTrue(motore._in_parlato)
+
+        for _ in range(motore.silenzio_blocchi):
+            risultato = motore.riconosci(blocco(0))
+        self.assertEqual(risultato, "Hey Jarvis what time is it")
+
     def test_rms_silenzio_e_voce(self):
         self.assertEqual(WhisperMultilingue._rms(blocco(0)), 0)
         self.assertEqual(WhisperMultilingue._rms(blocco(1000)), 1000)
