@@ -254,6 +254,10 @@ class WhisperMultilingue:
             "modello": self.modello,
             "eseguibile": self.eseguibile,
             "pre_roll_blocchi": self.pre_roll_blocchi,
+            "soglia_rms": self.soglia_rms,
+            "ultimo_rms": self.ultimo_rms,
+            "segmento": self.stato_segmento,
+            "lingua_riconoscimento": self.lingua,
             "prompt_attivo": bool(self.prompt),
             "ultimo_errore": self.ultimo_errore,
         }
