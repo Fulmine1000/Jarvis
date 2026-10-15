@@ -38,6 +38,12 @@ class WhisperMultilingue:
         self.soglia_rms = max(50, int(soglia_rms))
         self.pre_roll_blocchi = max(0, int(pre_roll_blocchi))
         self.prompt = str(prompt or "").strip()
+        # I comandi di Jarvis sono in italiano per impostazione predefinita.
+        # La lingua può essere impostata su "auto" per il rilevamento automatico.
+        lingua = str(lingua or "it-IT").strip().lower()
+        self.lingua = "auto" if lingua in ("auto", "multilingue", "automatico") else lingua[:2]
+        self.ultimo_rms = 0
+        self.stato_segmento = "silenzio"
         base = Path(__file__).resolve().parent.parent
         self.modello = str(Path(modello).expanduser()) if modello else str(
             base / "motore_ia" / "whisper.cpp" / "models" / "ggml-base.bin"
