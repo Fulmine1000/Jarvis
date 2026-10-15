@@ -190,15 +190,32 @@ class RiconoscitoreVoce:
         if self.attivo:
             return True
 
-        # Preferisci Whisper multilingue se richiesto e preparato; altrimenti usa Vosk.
-        if self.usa_multilingue and self.multilingue is not None:
+        # Se Whisper è stato selezionato esplicitamente in configurazione,
+        # non passare silenziosamente a Vosk: sarebbe impossibile capire quale
+        # motore sta riconoscendo la voce e il problema originale resterebbe.
+        if self.usa_multilingue:
+            if self.multilingue is None:
+                self.attivo = False
+                self.ultimo_errore = (
+                    self.ultimo_errore
+                    or "Whisper è selezionato ma non è stato inizializzato."
+                )
+                return False
+
             if self.multilingue.avvia():
                 self.backend_attivo = "whisper"
                 self.lingua = "auto"
                 self.attivo = True
                 self.ultimo_errore = None
                 return True
-            self.ultimo_errore = self.multilingue.ultimo_errore
+
+            self.attivo = False
+            self.backend_attivo = "whisper"
+            self.ultimo_errore = (
+                self.multilingue.ultimo_errore
+                or "Whisper è selezionato ma non è riuscito ad avviarsi."
+            )
+            return False
 
         if not self.disponibile or not self._vosk_disponibile():
             self.disponibile = False
