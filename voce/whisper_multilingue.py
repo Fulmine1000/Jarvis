@@ -26,7 +26,7 @@ class WhisperMultilingue:
         sample_rate=16000,
         timeout=90,
         silenzio_blocchi=5,
-        soglia_rms=220,
+        soglia_rms=100,
         pre_roll_blocchi=5,
         prompt="Jarvis, Ehi Jarvis, Hey Jarvis, Ciao Jarvis, mi senti, che ore sono",
         lingua="it-IT",
