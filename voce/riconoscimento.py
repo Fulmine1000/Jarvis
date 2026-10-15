@@ -268,15 +268,59 @@ class RiconoscitoreVoce:
             return False
 
     def _abilita_dettaglio_parole(self):
-        """Chiede a Vosk i dettagli delle parole quando l’API lo supporta."""
+        """Abilita dettagli e alternative N-best quando Vosk lo supporta."""
         metodo = getattr(self.riconoscitore, "SetWords", None)
         if callable(metodo):
             try:
                 metodo(True)
             except (OSError, RuntimeError, TypeError, ValueError):
-                # La trascrizione standard deve continuare anche se i dettagli
-                # non sono supportati da una particolare build di Vosk.
                 pass
+
+        # Le alternative possono recuperare una wake word trascritta male,
+        # se l'ipotesi alternativa ha confidenza vicina alla migliore.
+        metodo_alternative = getattr(self.riconoscitore, "SetMaxAlternatives", None)
+        if callable(metodo_alternative):
+            try:
+                metodo_alternative(5)
+            except (OSError, RuntimeError, TypeError, ValueError):
+                pass
+
+    @classmethod
+    def _scegli_alternativa_vosk(cls, risultato):
+        """Preferisce una variante vicina alla migliore solo se contiene la wake word."""
+        alternative = risultato.get("alternatives")
+        if not isinstance(alternative, list) or not alternative:
+            return risultato
+        valide = [
+            item for item in alternative
+            if isinstance(item, dict) and str(item.get("text", "")).strip()
+        ]
+        if not valide:
+            return risultato
+
+        def confidenza(item):
+            try:
+                return float(item.get("confidence", -1.0))
+            except (TypeError, ValueError):
+                return -1.0
+
+        migliore = max(valide, key=confidenza)
+        confidenza_migliore = confidenza(migliore)
+        if confidenza_migliore < 0:
+            return migliore
+
+        for candidata in valide:
+            testo = str(candidata.get("text", "")).strip()
+            normalizzato = cls.normalizza_comando_riconosciuto(testo).lower()
+            wake_rilevata = (
+                normalizzato == "jarvis"
+                or normalizzato.startswith("jarvis ")
+                or normalizzato.startswith("hey jarvis ")
+                or normalizzato.startswith("ehi jarvis ")
+            )
+            if wake_rilevata and confidenza(candidata) >= confidenza_migliore - 0.20:
+                return candidata
+        return migliore
 
     def _registra_dettaglio_vosk(self, risultato):
         """Memorizza confidenza media e parole per diagnosi, senza filtrare comandi."""
@@ -318,6 +362,7 @@ class RiconoscitoreVoce:
         try:
             if self.riconoscitore.AcceptWaveform(audio):
                 risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
+                risultato = self._scegli_alternativa_vosk(risultato)
                 self._registra_dettaglio_vosk(risultato)
                 testo = str(risultato.get("text", "")).strip()
                 # Conserva i dettagli appena estratti da Result(): azzerarli qui
