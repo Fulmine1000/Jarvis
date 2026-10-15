@@ -44,6 +44,21 @@ class ModuloVoce:
 
         try:
             self.sintesi_attiva = bool(self.sintesi.avvia())
+            if self.kernel and self.kernel.logger:
+                stato_sintesi = self.sintesi.stato()
+                motore = stato_sintesi.get("motore", "sconosciuto")
+                voce_sistema = stato_sintesi.get("voce_sistema")
+                if self.sintesi_attiva:
+                    self.kernel.logger.info(
+                        "Sintesi vocale inizializzata: "
+                        f"motore={motore}, voce_sistema={voce_sistema or 'predefinita'}, "
+                        f"piper_disponibile={stato_sintesi.get('piper_disponibile', False)}, "
+                        f"campione_locale={stato_sintesi.get('campione_voce_locale', False)}"
+                    )
+                else:
+                    self.kernel.logger.warning(
+                        "Sintesi vocale non disponibile: Jarvis non potrà rispondere a voce."
+                    )
 
             # Prima verifica il microfono. Se non e disponibile non carichiamo
             # Vosk: in questo modo l'avvio solo-testo non tocca librerie native.
