@@ -132,6 +132,7 @@ class WhisperMultilingue:
                 return None
 
             self._in_parlato = True
+            self.stato_segmento = "voce"
             self._blocchi = self._pre_roll[:] + [audio]
             self._pre_roll = []
             self._blocchi_silenzio = 0
