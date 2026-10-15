@@ -125,6 +125,7 @@ class WhisperMultilingue:
         # I blocchi silenziosi precedenti all'inizio della voce vengono
         # conservati per includere l'attacco della prima parola.
         livello = self._rms(audio)
+        self.ultimo_rms = livello
         if not self._in_parlato:
             if livello < self.soglia_rms:
                 self._conserva_pre_roll(audio)
