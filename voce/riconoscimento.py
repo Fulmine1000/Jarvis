@@ -61,6 +61,7 @@ class RiconoscitoreVoce:
                         eseguibile=eseguibile_multi,
                         sample_rate=self.sample_rate,
                         timeout=voce.get("timeout_multilingue", 90),
+                        soglia_rms=voce.get("soglia_rms_whisper", 100),
                         lingua=voce.get("lingua", "it-IT"),
                     )
                 except (ImportError, OSError, ValueError, TypeError) as errore:
