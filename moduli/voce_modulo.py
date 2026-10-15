@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+import time
 
 from voce.ascoltatore import AscoltatoreVoce
 from voce.riconoscimento import RiconoscitoreVoce
@@ -34,6 +35,8 @@ class ModuloVoce:
         self.motore = MotoreAscolto(self)
         self._speech_lock = threading.RLock()
         self.ultimo_errore_ascolto = None
+        self._ultima_diagnostica_microfono = 0.0
+        self._ultimo_errore_whisper_loggato = None
 
     def avvia(self):
         if self.attivo:
@@ -152,6 +155,31 @@ class ModuloVoce:
                         f"confidenza_media={confidenza_testo}; "
                         f"parole={parole if parole else 'non disponibili'}"
                     )
+            if testo:
+                self._ultimo_errore_whisper_loggato = None
+            elif self.riconoscitore.backend_attivo == "whisper":
+                # Whisper non trascrive finché non rileva voce e una pausa.
+                # Rendiamo visibili errori e livelli microfono senza riempire il log.
+                multilingue = self.riconoscitore.multilingue
+                errore_whisper = getattr(multilingue, "ultimo_errore", None)
+                if errore_whisper and errore_whisper != self._ultimo_errore_whisper_loggato:
+                    self._ultimo_errore_whisper_loggato = errore_whisper
+                    if self.kernel and self.kernel.logger:
+                        self.kernel.logger.warning(f"Errore riconoscimento Whisper: {errore_whisper}")
+                adesso = time.monotonic()
+                if adesso - self._ultima_diagnostica_microfono >= 5.0:
+                    self._ultima_diagnostica_microfono = adesso
+                    microfono = self.ascoltatore.stato()
+                    stato_whisper = multilingue.stato() if multilingue else {}
+                    if self.kernel and self.kernel.logger:
+                        self.kernel.logger.info(
+                            "Diagnostica microfono/Whisper: "
+                            f"rms_ingresso={microfono.get('rms_ingresso', 0)}, "
+                            f"rms_filtrato={microfono.get('rms_filtrato', 0)}, "
+                            f"soglia_voce={stato_whisper.get('soglia_rms', 'n/d')}, "
+                            f"segmento={stato_whisper.get('segmento', 'n/d')}, "
+                            f"lingua={stato_whisper.get('lingua_riconoscimento', 'n/d')}"
+                        )
             return testo
         except Exception as errore:
             messaggio = f"{type(errore).__name__}: {errore}"
