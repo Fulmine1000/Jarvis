@@ -61,6 +61,7 @@ class RiconoscitoreVoce:
                         eseguibile=eseguibile_multi,
                         sample_rate=self.sample_rate,
                         timeout=voce.get("timeout_multilingue", 90),
+                        lingua=voce.get("lingua", "it-IT"),
                     )
                 except (ImportError, OSError, ValueError, TypeError) as errore:
                     self.ultimo_errore = str(errore)
@@ -356,7 +357,11 @@ class RiconoscitoreVoce:
             "backend": self.backend_attivo,
             "multilingue_configurato": self.usa_multilingue,
             "stato_multilingue": self.multilingue.stato() if self.multilingue else None,
-            "modello": self.percorso_modello,
+            "modello": (
+                self.multilingue.stato().get("modello", self.percorso_modello)
+                if self.backend_attivo == "whisper" and self.multilingue
+                else self.percorso_modello
+            ),
             "sample_rate": self.sample_rate,
             "disponibile": self.disponibile,
             "ultimo_errore": self.ultimo_errore,
