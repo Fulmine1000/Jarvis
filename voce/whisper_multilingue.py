@@ -25,10 +25,11 @@ class WhisperMultilingue:
         eseguibile=None,
         sample_rate=16000,
         timeout=90,
-        silenzio_blocchi=2,
-        soglia_rms=420,
-        pre_roll_blocchi=3,
+        silenzio_blocchi=5,
+        soglia_rms=220,
+        pre_roll_blocchi=5,
         prompt="Jarvis, Ehi Jarvis, Hey Jarvis, Ciao Jarvis, mi senti, che ore sono",
+        lingua="it-IT",
     ):
         self.nome = "Whisper multilingue (whisper.cpp)"
         self.sample_rate = int(sample_rate)
