@@ -61,9 +61,9 @@ class TestAlternativeVosk(unittest.TestCase):
     def test_preferisce_wake_word_se_alternativa_e_vicina(self):
         risultato = {
             "alternatives": [
-                {"text": "barry jiu su", "confidence": 0.81},
-                {"text": "jarvis", "confidence": 0.76},
-                {"text": "vari giù", "confidence": 0.30},
+                {"text": "vari giù", "confidence": 0.81},
+                {"text": "barry jiu su", "confidence": 0.76},
+                {"text": "rumore", "confidence": 0.30},
             ]
         }
         scelta = RiconoscitoreVoce._scegli_alternativa_vosk(risultato)
