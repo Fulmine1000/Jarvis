@@ -62,9 +62,21 @@ class MotoreAscolto:
         trascrizione grezza. Le correzioni restano quelle esplicite e conservative
         definite in RiconoscitoreVoce; non viene usato fuzzy matching generico.
         """
-        grezzo = str(testo or "").strip()
+        grezzo = " ".join(str(testo or "").lower().strip().split())
         corretto = RiconoscitoreVoce.normalizza_comando_riconosciuto(grezzo)
-        return " ".join(str(corretto or "").lower().strip().split())
+        corretto = " ".join(str(corretto or "").lower().strip().split())
+
+        # Difesa aggiuntiva al confine del motore: alcuni backend possono
+        # restituire il testo grezzo anche se il riconoscitore ha già tentato
+        # la normalizzazione. Correggiamo SOLO l'alias esatto osservato nei log,
+        # mai parole vagamente simili, e solo se è l'inizio della frase.
+        alias = "barry jiu su"
+        if corretto == alias:
+            corretto = "jarvis"
+        elif corretto.startswith(alias + " "):
+            corretto = "jarvis " + corretto[len(alias):].strip()
+
+        return corretto
 
     def _e_duplicato_immediato(self, testo):
         normalizzato = self._normalizza_testo(testo)
@@ -156,6 +168,27 @@ class MotoreAscolto:
                         f"{testo_grezzo!r} -> {normalizzato!r}"
                     )
                 self.log(f"Trascrizione riconosciuta: {normalizzato}")
+
+                # Diagnostica utile per distinguere un errore di STT da un
+                # problema del microfono/filtro. Non registra né salva audio.
+                riconoscitore = getattr(self.modulo_voce, "riconoscitore", None)
+                ascoltatore = getattr(self.modulo_voce, "ascoltatore", None)
+                if riconoscitore is not None:
+                    backend = getattr(riconoscitore, "backend_attivo", "sconosciuto")
+                    confidenza = getattr(riconoscitore, "ultima_confidenza_media", None)
+                    dettagli = getattr(riconoscitore, "ultime_parole_riconosciute", [])
+                    info = f"backend={backend}"
+                    if confidenza is not None:
+                        info += f", confidenza_media={confidenza:.3f}"
+                    if dettagli:
+                        info += f", parole={dettagli}"
+                    if ascoltatore is not None:
+                        stato_audio = ascoltatore.stato()
+                        info += (
+                            f", rms_ingresso={stato_audio.get('rms_ingresso', 'n/d')}"
+                            f", rms_filtrato={stato_audio.get('rms_filtrato', 'n/d')}"
+                        )
+                    self.log(f"Diagnostica riconoscimento: {info}")
 
                 if self._e_eco_jarvis(normalizzato):
                     self.log(f"Eco della risposta Jarvis ignorata: {normalizzato}")
