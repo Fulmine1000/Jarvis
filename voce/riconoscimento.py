@@ -113,6 +113,13 @@ class RiconoscitoreVoce:
         alias_frasi_complete = {
             "barry jiu su che ore sono": "jarvis che ore sono",
             "barry jiu su che harrison": "jarvis che ore sono",
+            # Nel test live Vosk ha chiuso un segmento prematuramente come
+            # "jarvis che risuona", poi ha riconosciuto correttamente la richiesta
+            # completa. Correggiamo solo questa frase esatta con wake word,
+            # senza trasformare "che risuona" detto in una conversazione normale.
+            "jarvis che risuona": "jarvis che ore sono",
+            "jervis che risuona": "jarvis che ore sono",
+            "gervis che risuona": "jarvis che ore sono",
         }
         if confronto in alias_frasi_complete:
             return alias_frasi_complete[confronto]
