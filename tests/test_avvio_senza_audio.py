@@ -49,6 +49,7 @@ class TestAvvioSenzaAudio(unittest.TestCase):
         from voce.ascoltatore import AscoltatoreVoce
         a = AscoltatoreVoce()
         self.assertFalse(a.avvia())
+        self.assertIn("python -m pip install sounddevice", a.ultimo_errore)
 
     def test_riconoscitore_disponibile_false(self):
         """RiconoscitoreVoce.disponibile = False senza vosk."""
