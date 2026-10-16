@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import array
 import importlib.util
+import math
 import sys
 
 
@@ -27,9 +28,23 @@ class FiltroRumore:
         self._attivo = True
         self._ingresso_precedente = 0.0
         self._uscita_precedente = 0.0
+        self._blocchi_protetti = 0
+        self._ultimo_rms_ingresso = 0.0
+        self._ultimo_rms_uscita = 0.0
         # Passa-alto molto leggero: rimuove DC/ronzii bassi senza fare gating.
         self._alpha = 0.985
         self.modalita = "passa-alto-sicuro"
+
+    @staticmethod
+    def _rms_pcm(audio: bytes) -> float:
+        """RMS PCM senza dipendenze esterne, per rilevare output quasi azzerati."""
+        campioni = array.array("h")
+        campioni.frombytes(audio[: len(audio) - (len(audio) % 2)])
+        if not campioni:
+            return 0.0
+        if sys.byteorder != "little":
+            campioni.byteswap()
+        return math.sqrt(sum(int(c) * int(c) for c in campioni) / len(campioni))
 
     def avvia(self) -> bool:
         """Inizializza WebRTC; il microfono resta utilizzabile anche se fallisce."""
@@ -87,9 +102,23 @@ class FiltroRumore:
                         f"attesi {campioni.size}"
                     )
                 risultato = puliti.tobytes() + byte_finale
-                if len(risultato) == len(audio):
-                    return risultato
-                raise ValueError("lunghezza del blocco WebRTC non valida")
+                if len(risultato) != len(audio):
+                    raise ValueError("lunghezza del blocco WebRTC non valida")
+
+                # Fail-safe aggiuntivo: se il DSP cancella quasi tutto un blocco
+                # che aveva energia udibile, preserviamo il PCM originale.
+                # La riduzione del rumore non deve trasformarsi in un mute.
+                rms_ingresso = self._rms_pcm(parte_intera)
+                rms_uscita = self._rms_pcm(risultato)
+                if rms_ingresso >= 120 and rms_uscita < rms_ingresso * 0.04:
+                    self._blocchi_protetti = getattr(self, "_blocchi_protetti", 0) + 1
+                    self._ultimo_rms_ingresso = rms_ingresso
+                    self._ultimo_rms_uscita = rms_uscita
+                    return audio
+
+                self._ultimo_rms_ingresso = rms_ingresso
+                self._ultimo_rms_uscita = rms_uscita
+                return risultato
             except Exception as errore:
                 # Fail-open: il blocco che ha causato l'errore arriva a Vosk
                 # originale, senza attenuazioni o perdita di parole.
@@ -134,6 +163,10 @@ class FiltroRumore:
             "livello": self.livello,
             "webrtc_disponibile": self._processor is not None,
             "ultimo_errore": self._errore,
+            "blocchi_protetti_da_silenziamento": self._blocchi_protetti,
+            "rms_ingresso": round(self._ultimo_rms_ingresso, 1),
+            "rms_uscita": round(self._ultimo_rms_uscita, 1),
+            "noise_gate": False,
         }
 
     def reset(self) -> None:
