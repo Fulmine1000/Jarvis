@@ -34,7 +34,7 @@ class TestFiltroEcoJarvis(unittest.TestCase):
     def test_normalizza_comando_dopo_wake_word_trascritta_male(self):
         self.assertEqual(
             self.motore._normalizza_trascrizione("barry jiu su che ore sono"),
-            "barry jiu su che ore sono",
+            "jarvis che ore sono",
         )
 
     def test_non_corregge_frasi_solo_simili_alla_wake_word(self):
