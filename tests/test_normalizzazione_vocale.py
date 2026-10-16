@@ -203,7 +203,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "hey jarvis che ore e": "hey jarvis che ore sono",
             "barry jiu su": "jarvis",
             "Barry Jiu Su,": "jarvis",
-            "barry jiu su che ore sono": "barry jiu su che ore sono",
+            "barry jiu su che ore sono": "jarvis che ore sono",
             "barry jiu su, che ore sono": "barry jiu su, che ore sono",
             "Barry Jiu Su, che ore sono?": "Barry Jiu Su, che ore sono?",
         }
