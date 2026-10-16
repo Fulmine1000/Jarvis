@@ -98,31 +98,21 @@ class RiconoscitoreVoce:
         confronto = re.sub(r"[.,!?;:]+$", "", confronto).strip()
         confronto = confronto.replace("’", "'")
 
-        # Variante fonetica osservata nei log del Mac: Vosk trascrive
-        # "Jarvis" come "barry jiu su". Correggiamo soltanto questa
-        # sequenza iniziale esatta, senza fuzzy matching sul resto del testo.
+        # Variante osservata nei log del Mac: Vosk può trascrivere
+        # la wake word isolata come "barry jiu su". Correggiamo SOLO la
+        # frase esatta: estendere l'alias a qualunque frase successiva può
+        # trasformare conversazioni ambientali in comandi involontari.
         alias_wake = "barry jiu su"
         if confronto == alias_wake:
             return "jarvis"
-        if (
-            confronto.startswith(alias_wake)
-            and len(confronto) > len(alias_wake)
-            and confronto[len(alias_wake)] in " ,.!?;:"
-        ):
-            suffisso = confronto[len(alias_wake):].lstrip(" ,.!?;:")
-            resto_originale = originale[len(alias_wake):].lstrip(" ,.!?;:")
-            resto_originale = re.sub(r"[.,!?;:]+$", "", resto_originale).strip()
-            suffisso = re.sub(r"[.,!?;:]+$", "", suffisso).strip()
-            originale = "jarvis " + resto_originale
-            confronto = "jarvis " + suffisso
 
         prefisso = ""
         wake_errata = False
         resto_originale = ""
-        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "jervis ", "gervis ", "giardino "):
+        for wake in ("hey jarvis ", "ehi jarvis ", "jarvis ", "jervis ", "gervis "):
             if confronto.startswith(wake):
-                prefisso = "jarvis " if wake in ("jervis ", "gervis ", "giardino ") else wake
-                wake_errata = wake in ("jervis ", "gervis ", "giardino ")
+                prefisso = "jarvis " if wake in ("jervis ", "gervis ") else wake
+                wake_errata = wake in ("jervis ", "gervis ")
                 resto_originale = originale[len(wake):].strip()
                 confronto = confronto[len(wake):].strip()
                 break
