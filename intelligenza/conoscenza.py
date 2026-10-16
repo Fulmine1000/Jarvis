@@ -4,6 +4,7 @@ import html
 import json
 import os
 import re
+import ssl
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -168,7 +169,15 @@ class ConoscenzaJarvis:
                     risultati.append(f"- {titolo}: {descrizione}" if descrizione else f"- {titolo}")
             return "\n".join(risultati)
         except Exception as errore:
-            self._log_debug(f"Ricerca Web non disponibile: {errore}")
+            motivo = getattr(errore, "reason", errore)
+            if isinstance(motivo, ssl.SSLCertVerificationError):
+                self._log_debug(
+                    "Ricerca Web non disponibile: certificato TLS non attendibile. "
+                    "La verifica HTTPS resta attiva; controllare certificati di sistema "
+                    "e l'eventuale proxy/rete."
+                )
+            else:
+                self._log_debug(f"Ricerca Web non disponibile: {errore}")
             return ""
 
     def necessita_web(self, testo: str) -> bool:
