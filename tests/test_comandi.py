@@ -22,6 +22,13 @@ class TestComandi(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # I test dei comandi devono essere ripetibili e non dipendere da Internet,
+        # proxy o certificati TLS presenti sulla macchina che esegue la suite.
+        cls._ricerca_web_patcher = patch(
+            "intelligenza.conoscenza.ConoscenzaJarvis.cerca_web",
+            return_value="",
+        )
+        cls._ricerca_web_patcher.start()
         cls.kernel = KernelJarvis()
         cls.kernel.avvia()
         cls.parla_mock = Mock(return_value=True)
@@ -29,7 +36,10 @@ class TestComandi(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.kernel.arresta()
+        try:
+            cls.kernel.arresta()
+        finally:
+            cls._ricerca_web_patcher.stop()
 
     def setUp(self):
         self.parla_mock.reset_mock()
