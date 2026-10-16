@@ -106,6 +106,17 @@ class RiconoscitoreVoce:
         if confronto == alias_wake:
             return "jarvis"
 
+        # Correggi anche la sola frase completa osservata nei log quando
+        # Vosk unisce wake word e richiesta dell'ora. La correzione è
+        # intenzionalmente esatta: non correggere prefissi ambigui o frasi
+        # con punteggiatura interna, che potrebbero essere conversazioni.
+        alias_frasi_complete = {
+            "barry jiu su che ore sono": "jarvis che ore sono",
+            "barry jiu su che harrison": "jarvis che ore sono",
+        }
+        if confronto in alias_frasi_complete:
+            return alias_frasi_complete[confronto]
+
         prefisso = ""
         wake_errata = False
         resto_originale = ""
