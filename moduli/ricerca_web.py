@@ -7,7 +7,9 @@ solo quando l'utente richiede esplicitamente una ricerca online.
 from __future__ import annotations
 
 from html.parser import HTMLParser
+import ssl
 from urllib.parse import parse_qs, unquote, urlencode, urlparse
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 
@@ -96,6 +98,14 @@ def cerca_web(query: str, limite: int = 5, timeout: int = _TIMEOUT) -> str:
             raw = response.read(2_000_000)
         html = raw.decode("utf-8", errors="replace")
     except Exception as exc:
+        motivo = exc.reason if isinstance(exc, URLError) else exc
+        if isinstance(motivo, ssl.SSLCertVerificationError):
+            # Non disabilitare mai la verifica TLS per aggirare certificati non attendibili.
+            return (
+                "La ricerca web è bloccata: il certificato HTTPS non è attendibile. "
+                "Controlli data e ora del Mac, certificati di sistema e l'eventuale "
+                "proxy/rete. Jarvis mantiene attiva la verifica TLS."
+            )
         return "Non riesco a completare la ricerca online. Controlli la connessione e riprovi. " + str(exc)[:180]
 
     parser = _ResultParser()
