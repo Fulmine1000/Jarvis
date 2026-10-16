@@ -206,6 +206,9 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "barry jiu su": "jarvis",
             "Barry Jiu Su,": "jarvis",
             "barry jiu su che ore sono": "jarvis che ore sono",
+            "jarvis che risuona": "jarvis che ore sono",
+            "jervis che risuona": "jarvis che ore sono",
+            "gervis che risuona": "jarvis che ore sono",
             "barry jiu su, che ore sono": "barry jiu su, che ore sono",
             "Barry Jiu Su, che ore sono?": "Barry Jiu Su, che ore sono?",
         }
@@ -279,7 +282,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
         )
 
     def test_frasi_non_correlate_restano_invariate(self):
-        for testo in ("che ore sono", "apri Safari", "ricorda colore è blu"):
+        for testo in ("che ore sono", "che risuona", "apri Safari", "ricorda colore è blu"):
             with self.subTest(testo=testo):
                 self.assertEqual(
                     RiconoscitoreVoce.normalizza_comando_riconosciuto(testo),
