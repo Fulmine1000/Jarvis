@@ -81,6 +81,47 @@ class TestFiltroRumore(unittest.TestCase):
         self.assertEqual(self.filtro.stato()["modalita"], "passa-alto-sicuro")
         self.assertIn("errore simulato", self.filtro.stato()["ultimo_errore"])
 
+    def test_webrtc_non_puo_silenziarе_completamente_un_blocco_udibile(self):
+        class FakeSamples:
+            def __init__(self, values):
+                self.values = array.array("h", values)
+
+            @property
+            def size(self):
+                return len(self.values)
+
+            def tobytes(self):
+                return self.values.tobytes()
+
+        class FakeNumpy:
+            int16 = object()
+
+            @staticmethod
+            def frombuffer(audio, dtype):
+                valori = array.array("h")
+                valori.frombytes(audio)
+                return FakeSamples(valori)
+
+            @staticmethod
+            def asarray(values, dtype):
+                return values if isinstance(values, FakeSamples) else FakeSamples(values)
+
+        class SilencingProcessor:
+            @staticmethod
+            def process(campioni):
+                return FakeSamples([0] * campioni.size)
+
+        self.filtro._numpy = FakeNumpy()
+        self.filtro._processor = SilencingProcessor()
+        self.filtro.modalita = "webrtc"
+        audio = array.array("h", [1000, -1000, 800, -800] * 400).tobytes()
+
+        # Se WebRTC cancella quasi tutto, il blocco originale deve arrivare a Vosk.
+        self.assertEqual(self.filtro.processa(audio), audio)
+        stato = self.filtro.stato()
+        self.assertEqual(stato["blocchi_protetti_da_silenziamento"], 1)
+        self.assertFalse(stato["noise_gate"])
+
     def test_filtro_disponibile_senza_dipendenze_opzionali(self):
         audio = array.array("h", [220] * 1600).tobytes()
         filtrato = self.filtro.processa(audio)
