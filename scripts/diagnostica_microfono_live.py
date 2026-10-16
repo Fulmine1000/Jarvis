@@ -7,6 +7,16 @@ il microfono. Il programma mostra il testo grezzo e quello normalizzato da Vosk.
 from __future__ import annotations
 
 import time
+import sys
+from pathlib import Path
+
+# Quando lo script viene eseguito come:
+#   python scripts/diagnostica_microfono_live.py
+# Python mette "scripts/" in sys.path, non necessariamente la root del repo.
+# Aggiungiamo quindi la root del progetto per rendere importabili i moduli Jarvis.
+ROOT_PROGETTO = Path(__file__).resolve().parents[1]
+if str(ROOT_PROGETTO) not in sys.path:
+    sys.path.insert(0, str(ROOT_PROGETTO))
 
 
 def main() -> int:
