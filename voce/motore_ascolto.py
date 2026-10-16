@@ -66,16 +66,10 @@ class MotoreAscolto:
         corretto = RiconoscitoreVoce.normalizza_comando_riconosciuto(grezzo)
         corretto = " ".join(str(corretto or "").lower().strip().split())
 
-        # Difesa aggiuntiva al confine del motore: alcuni backend possono
-        # restituire il testo grezzo anche se il riconoscitore ha già tentato
-        # la normalizzazione. Correggiamo SOLO l'alias esatto osservato nei log,
-        # mai parole vagamente simili, e solo se è l'inizio della frase.
-        alias = "barry jiu su"
-        if corretto == alias:
-            corretto = "jarvis"
-        elif corretto.startswith(alias + " "):
-            corretto = "jarvis " + corretto[len(alias):].strip()
-
+        # Non correggere qui "barry jiu su" quando è seguito da altre parole:
+        # potrebbe essere una frase ambientale. Le frasi complete con comando
+        # vengono recuperate tramite le alternative N-best di Vosk, se presenti.
+        # In assenza di un'alternativa affidabile, manteniamo il testo originale.
         return corretto
 
     def _e_duplicato_immediato(self, testo):
