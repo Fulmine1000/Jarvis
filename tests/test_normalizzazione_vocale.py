@@ -95,7 +95,7 @@ class TestAlternativeVosk(unittest.TestCase):
             ]
         }
         scelta = RiconoscitoreVoce._scegli_alternativa_vosk(risultato)
-        self.assertEqual(scelta["text"], "barry jiu su")
+        self.assertEqual(scelta["text"], "jarvis")
 
     def test_recupera_comando_se_alternativa_contiene_wake_word(self):
         risultato = {
