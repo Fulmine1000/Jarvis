@@ -87,8 +87,7 @@ def main() -> int:
     print("Non vengono salvati file audio.")
     print("Pronuncia più volte: 'Jarvis', pausa, 'Jarvis, che ore sono?'")
     print("Il confronto è indicativo: due riconoscitori ricevono lo stesso audio,")
-    print("uno grezzo e uno filtrato.
-")
+    print("uno grezzo e uno filtrato.")
 
     try:
         model = Model(modello_path)
