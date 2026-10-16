@@ -81,7 +81,7 @@ class TestFiltroRumore(unittest.TestCase):
         self.assertEqual(self.filtro.stato()["modalita"], "passa-alto-sicuro")
         self.assertIn("errore simulato", self.filtro.stato()["ultimo_errore"])
 
-    def test_webrtc_non_puo_silenziarе_completamente_un_blocco_udibile(self):
+    def test_webrtc_non_puo_silenziare_completamente_un_blocco_udibile(self):
         class FakeSamples:
             def __init__(self, values):
                 self.values = array.array("h", values)
