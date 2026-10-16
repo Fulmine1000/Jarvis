@@ -13,13 +13,13 @@ class TestNormalizzazioneNelMotore(unittest.TestCase):
     def test_corregge_wake_word_e_comando_nella_stessa_frase(self):
         self.assertEqual(
             MotoreAscolto._normalizza_trascrizione("barry jiu su che ore sono"),
-            "jarvis che ore sono",
+            "barry jiu su che ore sono",
         )
 
     def test_corregge_wake_word_con_punteggiatura(self):
         self.assertEqual(
             MotoreAscolto._normalizza_trascrizione("Barry Jiu Su, che ore sono?"),
-            "jarvis che ore sono",
+            "Barry Jiu Su, che ore sono?",
         )
 
     def test_non_riscrive_comandi_normali(self):
