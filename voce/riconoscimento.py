@@ -270,24 +270,18 @@ class RiconoscitoreVoce:
             return False
 
     def _abilita_dettaglio_parole(self):
-        """Abilita confidenze e alternative N-best quando Vosk lo supporta."""
+        """Abilita le confidenze senza attivare il formato N-best di Vosk.
+
+        Su alcune build/versioni di Vosk, SetMaxAlternatives insieme a
+        SetWords può produrre risultati non validi o incompatibili. Per
+        mantenere stabile il riconoscimento live usiamo il risultato standard
+        e conserviamo soltanto i dettagli delle parole quando supportati.
+        La wake word viene gestita dalla normalizzazione conservativa.
+        """
         metodo = getattr(self.riconoscitore, "SetWords", None)
         if callable(metodo):
             try:
                 metodo(True)
-            except (OSError, RuntimeError, TypeError, ValueError):
-                pass
-
-        # Le alternative sono importanti per la wake word: Vosk può preferire
-        # una frase italiana plausibile ("barry jiu su") alla parola "Jarvis".
-        # _scegli_alternativa_vosk considera soltanto alternative vicine alla
-        # migliore e sceglie quella che contiene la wake word; altrimenti lascia
-        # invariato il risultato principale. Se una versione Vosk non supporta
-        # SetMaxAlternatives, il riconoscimento continua normalmente.
-        metodo_alternative = getattr(self.riconoscitore, "SetMaxAlternatives", None)
-        if callable(metodo_alternative):
-            try:
-                metodo_alternative(5)
             except (OSError, RuntimeError, TypeError, ValueError):
                 pass
 
