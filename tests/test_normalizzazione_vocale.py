@@ -150,14 +150,14 @@ class TestNormalizzazioneVocale(unittest.TestCase):
 
         comando = riconoscitore.riconosci(b"\\x00\\x00")
 
-        self.assertEqual(comando, "barry jiu su che ore sono")
+        self.assertEqual(comando, "jarvis che ore sono")
         self.assertEqual(
             riconoscitore.ultima_trascrizione_grezza,
             "barry jiu su che ore sono",
         )
         self.assertEqual(
             riconoscitore.ultima_trascrizione_normalizzata,
-            "barry jiu su che ore sono",
+            "jarvis che ore sono",
         )
         self.assertEqual(riconoscitore.ultima_confidenza_media, 0.8)
         self.assertEqual(
