@@ -103,7 +103,11 @@ class AscoltatoreVoce:
         if not self.disponibile or not self._sounddevice_disponibile():
             self.attivo = False
             self.disponibile = False
-            self.ultimo_errore = "sounddevice/PortAudio non disponibile"
+            self.ultimo_errore = (
+                "Il pacchetto Python 'sounddevice' non è installato "
+                "nell'ambiente attivo. Per abilitarlo esegui: "
+                "python -m pip install sounddevice"
+            )
             return False
         if not self._carica_sounddevice():
             self.attivo = False
