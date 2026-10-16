@@ -325,7 +325,13 @@ class RiconoscitoreVoce:
                 or normalizzato.startswith("ehi jarvis ")
             )
             if wake_rilevata and confidenza(candidata) >= confidenza_migliore - 0.20:
-                return candidata
+                # Restituisci anche il testo normalizzato: prima la funzione
+                # sceglieva l'alternativa corretta per la wake word, ma
+                # lasciava "barry jiu su..." nel campo text, vanificando
+                # la scelta quando il chiamante leggeva il risultato.
+                scelta = dict(candidata)
+                scelta["text"] = normalizzato
+                return scelta
         return migliore
 
     def _registra_dettaglio_vosk(self, risultato):
