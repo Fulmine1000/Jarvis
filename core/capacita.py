@@ -93,9 +93,19 @@ class CapacitaJarvis:
         if sistema == "Darwin":
             for app in candidati:
                 try:
-                    subprocess.Popen(["open", "-a", app], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    return f"Apro {app}."
-                except Exception:
+                    # Il comando macOS "open" consegna l'app al sistema e termina
+                    # rapidamente. run() attende quel processo breve e impedisce
+                    # ResourceWarning dovuti a Popen lasciati senza wait().
+                    risultato = subprocess.run(
+                        ["open", "-a", app],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                        timeout=8,
+                    )
+                    if risultato.returncode == 0:
+                        return f"Apro {app}."
+                except (OSError, subprocess.SubprocessError):
                     continue
         elif sistema == "Linux":
             try:
