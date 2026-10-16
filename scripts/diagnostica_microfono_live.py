@@ -50,8 +50,13 @@ def main() -> int:
 
     from voce.ascoltatore import AscoltatoreVoce
     from voce.riconoscimento import RiconoscitoreVoce
+    from voce.wake_word import WakeWordJarvis
 
     riconoscitore = RiconoscitoreVoce()
+    # Verifica anche la logica wake-word -> comando, ma non esegue comandi
+    # né attiva la sintesi vocale: la diagnostica resta sicura e non invasiva.
+    wake_word = WakeWordJarvis(timeout=10)
+    comandi_rilevati = []
     print(f"\nModello Vosk: {riconoscitore.percorso_modello}")
     print("Caricamento del modello...")
     if not riconoscitore.avvia():
@@ -86,10 +91,20 @@ def main() -> int:
                     normalizzato = riconoscitore.ultima_trascrizione_normalizzata
                     confidenza = riconoscitore.ultima_confidenza_media
                     parole = riconoscitore.ultime_parole_riconosciute
+                    esito = wake_word.controlla(normalizzato)
+                    comando = str(esito.get("comando", "")).strip()
+                    if comando:
+                        comandi_rilevati.append(comando)
                     print(
                         f"TRASCRIZIONE grezza={grezzo!r} | "
                         f"normalizzata={normalizzato!r} | "
                         f"confidenza={confidenza!r} | parole={parole!r}"
+                    )
+                    print(
+                        "WAKE_WORD "
+                        f"attivato={esito.get('attivato', False)} | "
+                        f"comando={comando!r} | "
+                        f"parziale={esito.get('parziale', False)}"
                     )
 
             adesso = time.monotonic()
@@ -115,7 +130,14 @@ def main() -> int:
         return 2
 
     print("\nESITO: microfono e Vosk hanno prodotto almeno una trascrizione.")
-    print("Confrontare il testo grezzo con quello normalizzato per individuare l'errore.")
+    if comandi_rilevati:
+        print("Comandi riconosciuti dalla logica wake word (non eseguiti):")
+        for comando in comandi_rilevati:
+            print(f"  - {comando}")
+    else:
+        print("La logica wake word non ha estratto comandi completi durante questa prova.")
+        print("Ripetere: «Jarvis», pausa breve, poi «che ore sono».")
+    print("Questa prova non esegue comandi e non salva audio.")
     return 0
 
 
