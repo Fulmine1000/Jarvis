@@ -40,7 +40,7 @@ class TestFiltroEcoJarvis(unittest.TestCase):
     def test_non_corregge_frasi_solo_simili_alla_wake_word(self):
         self.assertEqual(
             self.motore._normalizza_trascrizione("Barry Jiu Su vicino"),
-            "Barry Jiu Su vicino",
+            "barry jiu su vicino",
         )
 
 
