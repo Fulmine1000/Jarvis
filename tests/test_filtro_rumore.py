@@ -55,10 +55,10 @@ class TestFiltroRumore(unittest.TestCase):
         self.assertGreater(self._rms(filtrato), self._rms(audio) * 0.75)
 
     def test_byte_finale_incompleto_non_viene_perso(self):
-        audio = array.array("h", [1000, -1000, 500, -500]).tobytes() + b"\\x7f"
+        audio = array.array("h", [1000, -1000, 500, -500]).tobytes() + bytes([0x7F])
         filtrato = self.filtro.processa(audio)
         self.assertEqual(len(filtrato), len(audio))
-        self.assertEqual(filtrato[-1:], b"\\x7f")
+        self.assertEqual(filtrato[-1:], bytes([0x7F]))
 
     def test_errore_webrtc_fa_passare_il_blocco_originale(self):
         class FakeNumpy:
