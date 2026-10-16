@@ -1,6 +1,8 @@
 """Test offline per la ricerca web di Jarvis."""
+import ssl
 import sys
 import unittest
+from urllib.error import URLError
 from pathlib import Path
 from unittest.mock import patch
 
@@ -46,6 +48,13 @@ class TestRicercaWeb(unittest.TestCase):
         with patch.object(ricerca_web, "urlopen", side_effect=OSError("offline")):
             result = ricerca_web.cerca_web("Jarvis")
         self.assertIn("connessione", result)
+
+    def test_certificato_tls_non_attendibile_segnalato_senza_disabilitare_verifica(self):
+        errore_tls = ssl.SSLCertVerificationError("self signed certificate in certificate chain")
+        with patch.object(ricerca_web, "urlopen", side_effect=URLError(errore_tls)):
+            result = ricerca_web.cerca_web("Jarvis")
+        self.assertIn("certificato HTTPS non è attendibile", result)
+        self.assertIn("verifica TLS", result)
 
 
 if __name__ == "__main__":
