@@ -106,6 +106,8 @@ def main() -> int:
         count = 0
         raw_rms_sum = 0
         filtered_rms_sum = 0
+        raw_segments = []
+        filtered_segments = []
         with sd.RawInputStream(
             device=device,
             samplerate=16000,
@@ -125,11 +127,25 @@ def main() -> int:
                 raw_done = raw_rec.AcceptWaveform(raw)
                 filtered_done = filtered_rec.AcceptWaveform(filtered)
                 if raw_done:
-                    result = json.loads(raw_rec.Result())
-                    print(f"GREZZO    finale: {result.get('text', '') or '(vuoto)'}")
+                    try:
+                        result = json.loads(raw_rec.Result())
+                        testo_segmento = str(result.get("text", "")).strip() if isinstance(result, dict) else ""
+                    except (json.JSONDecodeError, TypeError, ValueError) as errore_json:
+                        testo_segmento = ""
+                        print(f"AVVISO GREZZO: risultato JSON Vosk non valido ({errore_json})")
+                    if testo_segmento:
+                        raw_segments.append(testo_segmento)
+                    print(f"GREZZO    finale: {testo_segmento or '(vuoto)'}")
                 if filtered_done:
-                    result = json.loads(filtered_rec.Result())
-                    print(f"FILTRATO  finale: {result.get('text', '') or '(vuoto)'}")
+                    try:
+                        result = json.loads(filtered_rec.Result())
+                        testo_segmento = str(result.get("text", "")).strip() if isinstance(result, dict) else ""
+                    except (json.JSONDecodeError, TypeError, ValueError) as errore_json:
+                        testo_segmento = ""
+                        print(f"AVVISO FILTRATO: risultato JSON Vosk non valido ({errore_json})")
+                    if testo_segmento:
+                        filtered_segments.append(testo_segmento)
+                    print(f"FILTRATO  finale: {testo_segmento or '(vuoto)'}")
 
                 now = time.monotonic()
                 if now - last_report >= 3.0:
@@ -146,14 +162,28 @@ def main() -> int:
                         print("AVVISO: il flusso audio ha segnalato un overflow.")
                     last_report = now
 
-        raw_final = json.loads(raw_rec.FinalResult()).get("text", "")
-        filtered_final = json.loads(filtered_rec.FinalResult()).get("text", "")
+        try:
+            risultato_finale = json.loads(raw_rec.FinalResult())
+            raw_final = str(risultato_finale.get("text", "")).strip() if isinstance(risultato_finale, dict) else ""
+        except (json.JSONDecodeError, TypeError, ValueError) as errore_json:
+            raw_final = ""
+            print(f"AVVISO GREZZO: risultato finale JSON non valido ({errore_json})")
+        try:
+            risultato_finale = json.loads(filtered_rec.FinalResult())
+            filtered_final = str(risultato_finale.get("text", "")).strip() if isinstance(risultato_finale, dict) else ""
+        except (json.JSONDecodeError, TypeError, ValueError) as errore_json:
+            filtered_final = ""
+            print(f"AVVISO FILTRATO: risultato finale JSON non valido ({errore_json})")
+        if raw_final:
+            raw_segments.append(raw_final)
+        if filtered_final:
+            filtered_segments.append(filtered_final)
         print("\n=== RIEPILOGO ===")
         print(f"Blocchi analizzati: {count}")
         print(f"RMS medio grezzo: {raw_rms_sum // max(count, 1)}")
         print(f"RMS medio filtrato: {filtered_rms_sum // max(count, 1)}")
-        print(f"Finale grezzo: {raw_final!r}")
-        print(f"Finale filtrato: {filtered_final!r}")
+        print(f"Trascrizione completa grezza: {' '.join(raw_segments)!r}")
+        print(f"Trascrizione completa filtrata: {' '.join(filtered_segments)!r}")
         print("\nConfronta soprattutto se 'Jarvis' appare nel grezzo ma scompare nel filtrato.")
         return 0
     except (OSError, RuntimeError, ValueError, TypeError) as errore:
