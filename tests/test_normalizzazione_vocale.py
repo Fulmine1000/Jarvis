@@ -58,7 +58,7 @@ class TestDettaglioVosk(unittest.TestCase):
 
 
 class TestAlternativeVosk(unittest.TestCase):
-    def test_abilita_alternative_vosk_per_la_wake_word(self):
+    def test_abilita_dettagli_senza_attivare_alternative_nbest(self):
         class RiconoscitoreFinto:
             def __init__(self):
                 self.words = None
@@ -75,7 +75,9 @@ class TestAlternativeVosk(unittest.TestCase):
         riconoscitore._abilita_dettaglio_parole()
 
         self.assertTrue(riconoscitore.riconoscitore.words)
-        self.assertEqual(riconoscitore.riconoscitore.alternative_count, 5)
+        # La modalità N-best è disattivata per evitare risultati JSON
+        # incompatibili osservati sulla macchina dell'utente.
+        self.assertIsNone(riconoscitore.riconoscitore.alternative_count)
 
     def test_compatibile_se_vosk_non_supporta_alternative(self):
         class RiconoscitoreFinto:
