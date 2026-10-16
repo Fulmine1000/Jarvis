@@ -277,14 +277,10 @@ class RiconoscitoreVoce:
             except (OSError, RuntimeError, TypeError, ValueError):
                 pass
 
-        # Le alternative possono recuperare una wake word trascritta male,
-        # se l'ipotesi alternativa ha confidenza vicina alla migliore.
-        metodo_alternative = getattr(self.riconoscitore, "SetMaxAlternatives", None)
-        if callable(metodo_alternative):
-            try:
-                metodo_alternative(5)
-            except (OSError, RuntimeError, TypeError, ValueError):
-                pass
+        # Non abilitiamo SetMaxAlternatives per impostazione predefinita:
+        # il risultato standard è più semplice e riduce i problemi di compatibilità
+        # fra versioni/binari Vosk. La normalizzazione conservativa gestisce le
+        # varianti della wake word senza sostituire il risultato principale.
 
     @classmethod
     def _scegli_alternativa_vosk(cls, risultato):
@@ -356,22 +352,52 @@ class RiconoscitoreVoce:
                 normalizzato = self.normalizza_comando_riconosciuto(grezzo)
                 self.ultima_trascrizione_grezza = grezzo
                 self.ultima_trascrizione_normalizzata = normalizzato
+                self.ultimo_errore = None
                 return normalizzato or None
             return None
         if self.riconoscitore is None:
             return None
         try:
-            if self.riconoscitore.AcceptWaveform(audio):
-                risultato: dict[str, Any] = json.loads(self.riconoscitore.Result())
-                risultato = self._scegli_alternativa_vosk(risultato)
-                self._registra_dettaglio_vosk(risultato)
-                testo = str(risultato.get("text", "")).strip()
-                # Conserva i dettagli appena estratti da Result(): azzerarli qui
-                # cancellava la diagnostica prima che il modulo voce potesse leggerla.
-                normalizzato = self.normalizza_comando_riconosciuto(testo)
-                self.ultima_trascrizione_grezza = testo
-                self.ultima_trascrizione_normalizzata = normalizzato
-                return normalizzato or None
+            if not self.riconoscitore.AcceptWaveform(audio):
+                return None
+
+            risposta = self.riconoscitore.Result()
+            try:
+                risultato = json.loads(risposta)
+            except json.JSONDecodeError as errore_json:
+                # Non propagare una risposta malformata al motore di ascolto.
+                # Non registriamo il testo grezzo: potrebbe contenere parole private.
+                lunghezza = (
+                    len(risposta)
+                    if isinstance(risposta, (str, bytes, bytearray))
+                    else "n/d"
+                )
+                self.ultimo_errore = (
+                    "Risultato JSON Vosk non valido "
+                    f"(riga={errore_json.lineno}, colonna={errore_json.colno}, "
+                    f"lunghezza={lunghezza}); riconoscitore reimpostato"
+                )
+                self.reset()
+                return None
+
+            if not isinstance(risultato, dict):
+                self.ultimo_errore = (
+                    "Risultato Vosk inatteso: era atteso un oggetto JSON; "
+                    "riconoscitore reimpostato"
+                )
+                self.reset()
+                return None
+
+            risultato = self._scegli_alternativa_vosk(risultato)
+            self._registra_dettaglio_vosk(risultato)
+            testo = str(risultato.get("text", "")).strip()
+            # Conserva i dettagli appena estratti da Result(): azzerarli qui
+            # cancellava la diagnostica prima che il modulo voce potesse leggerli.
+            normalizzato = self.normalizza_comando_riconosciuto(testo)
+            self.ultima_trascrizione_grezza = testo
+            self.ultima_trascrizione_normalizzata = normalizzato
+            self.ultimo_errore = None
+            return normalizzato or None
         except (OSError, RuntimeError, ValueError, TypeError, json.JSONDecodeError) as errore:
             self.ultimo_errore = str(errore)
         return None
