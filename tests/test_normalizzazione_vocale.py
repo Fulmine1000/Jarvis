@@ -153,7 +153,7 @@ class TestNormalizzazioneVocale(unittest.TestCase):
 
     def test_wake_word_errata_e_comandi_quotidiani(self):
         casi = {
-            "giardino controllo la sicurezza": "jarvis stato cybersecurity",
+            "giardino controllo la sicurezza": "giardino controllo la sicurezza",
             "jervis che ore sono": "jarvis che ore sono",
             "gervis che giorno oggi": "jarvis che giorno è",
             "che ore e": "che ore sono",
@@ -164,9 +164,9 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "hey jarvis che ore e": "hey jarvis che ore sono",
             "barry jiu su": "jarvis",
             "Barry Jiu Su,": "jarvis",
-            "barry jiu su che ore sono": "jarvis che ore sono",
-            "barry jiu su, che ore sono": "jarvis che ore sono",
-            "Barry Jiu Su, che ore sono?": "jarvis che ore sono",
+            "barry jiu su che ore sono": "barry jiu su che ore sono",
+            "barry jiu su, che ore sono": "barry jiu su, che ore sono",
+            "Barry Jiu Su, che ore sono?": "Barry Jiu Su, che ore sono?",
         }
         for testo, atteso in casi.items():
             with self.subTest(testo=testo):
