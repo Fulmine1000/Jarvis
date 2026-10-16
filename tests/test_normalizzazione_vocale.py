@@ -58,6 +58,34 @@ class TestDettaglioVosk(unittest.TestCase):
 
 
 class TestAlternativeVosk(unittest.TestCase):
+    def test_abilita_alternative_vosk_per_la_wake_word(self):
+        class RiconoscitoreFinto:
+            def __init__(self):
+                self.words = None
+                self.alternative_count = None
+
+            def SetWords(self, valore):
+                self.words = valore
+
+            def SetMaxAlternatives(self, numero):
+                self.alternative_count = numero
+
+        riconoscitore = RiconoscitoreVoce()
+        riconoscitore.riconoscitore = RiconoscitoreFinto()
+        riconoscitore._abilita_dettaglio_parole()
+
+        self.assertTrue(riconoscitore.riconoscitore.words)
+        self.assertEqual(riconoscitore.riconoscitore.alternative_count, 5)
+
+    def test_compatibile_se_vosk_non_supporta_alternative(self):
+        class RiconoscitoreFinto:
+            def SetWords(self, valore):
+                pass
+
+        riconoscitore = RiconoscitoreVoce()
+        riconoscitore.riconoscitore = RiconoscitoreFinto()
+        riconoscitore._abilita_dettaglio_parole()
+
     def test_preferisce_wake_word_se_alternativa_e_vicina(self):
         risultato = {
             "alternatives": [
