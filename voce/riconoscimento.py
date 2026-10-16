@@ -259,7 +259,7 @@ class RiconoscitoreVoce:
             return False
 
     def _abilita_dettaglio_parole(self):
-        """Abilita dettagli e alternative N-best quando Vosk lo supporta."""
+        """Abilita confidenze e alternative N-best quando Vosk lo supporta."""
         metodo = getattr(self.riconoscitore, "SetWords", None)
         if callable(metodo):
             try:
@@ -267,10 +267,18 @@ class RiconoscitoreVoce:
             except (OSError, RuntimeError, TypeError, ValueError):
                 pass
 
-        # Non abilitiamo SetMaxAlternatives per impostazione predefinita:
-        # il risultato standard è più semplice e riduce i problemi di compatibilità
-        # fra versioni/binari Vosk. La normalizzazione conservativa gestisce le
-        # varianti della wake word senza sostituire il risultato principale.
+        # Le alternative sono importanti per la wake word: Vosk può preferire
+        # una frase italiana plausibile ("barry jiu su") alla parola "Jarvis".
+        # _scegli_alternativa_vosk considera soltanto alternative vicine alla
+        # migliore e sceglie quella che contiene la wake word; altrimenti lascia
+        # invariato il risultato principale. Se una versione Vosk non supporta
+        # SetMaxAlternatives, il riconoscimento continua normalmente.
+        metodo_alternative = getattr(self.riconoscitore, "SetMaxAlternatives", None)
+        if callable(metodo_alternative):
+            try:
+                metodo_alternative(5)
+            except (OSError, RuntimeError, TypeError, ValueError):
+                pass
 
     @classmethod
     def _scegli_alternativa_vosk(cls, risultato):
