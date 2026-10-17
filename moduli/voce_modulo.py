@@ -28,6 +28,7 @@ class ModuloVoce:
             frequenza=self.riconoscitore.sample_rate,
             filtro_rumore=filtro_attivo,
             livello_filtro=livello_filtro,
+            soglia_rms_minima=voce_config.get("soglia_rms_minima", 12),
         )
         self.sintesi = SintesiVocale(self.config)
         self.voce_jarvis = self.sintesi
