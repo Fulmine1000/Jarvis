@@ -26,7 +26,7 @@ class TestSogliaAudio(unittest.TestCase):
     def test_voce_sopra_soglia_viene_preservata(self):
         audio = array.array("h", [120, -120, 80, -80] * 400).tobytes()
         self.ascoltatore.callback(audio, 1600, None, None)
-        ricevuto = self.ascoltatore.ascolta(timeout=0.01)
+        ricevuto = self.ascoltatore.audio.get_nowait()
         self.assertEqual(ricevuto, audio)
         self.assertEqual(self.ascoltatore.blocchi_sotto_soglia, 0)
 
@@ -34,7 +34,7 @@ class TestSogliaAudio(unittest.TestCase):
         self.ascoltatore.soglia_rms_minima = 0
         audio = array.array("h", [1, -1] * 800).tobytes()
         self.ascoltatore.callback(audio, 1600, None, None)
-        self.assertEqual(self.ascoltatore.ascolta(timeout=0.01), audio)
+        self.assertEqual(self.ascoltatore.audio.get_nowait(), audio)
         self.assertEqual(self.ascoltatore.blocchi_sotto_soglia, 0)
 
 
