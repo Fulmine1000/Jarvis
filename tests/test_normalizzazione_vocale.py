@@ -209,8 +209,12 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "jarvis che risuona": "jarvis che ore sono",
             "jervis che risuona": "jarvis che ore sono",
             "gervis che risuona": "jarvis che ore sono",
-            "barry jiu su, che ore sono": "barry jiu su, che ore sono",
-            "Barry Jiu Su, che ore sono?": "Barry Jiu Su, che ore sono?",
+            "barry jiu su, che ore sono": "jarvis che ore sono",
+            "Barry Jiu Su, che ore sono?": "jarvis che ore sono",
+            "barry jiu su; che ore e": "jarvis che ore sono",
+            "barry jiu su, george harrison": "jarvis che ore sono",
+            # Non correggere testo libero dopo una wake word ambigua.
+            "barry jiu su, vicino alla porta": "barry jiu su, vicino alla porta",
         }
         for testo, atteso in casi.items():
             with self.subTest(testo=testo):
