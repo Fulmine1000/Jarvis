@@ -294,19 +294,20 @@ class RiconoscitoreVoce:
             return False
 
     def _abilita_dettaglio_parole(self):
-        """Abilita alternative N-best senza attivare il JSON dettagliato per parola.
+        """Configura dettagli vocali senza attivare JSON opzionale instabile.
 
-        Su macOS High Sierra SetWords(True) può produrre JSON Vosk malformato,
-        quindi non lo abilitiamo. SetMaxAlternatives è separato: quando il
-        backend lo supporta, chiediamo fino a 5 ipotesi per poter preferire una
-        trascrizione che contenga la wake word se la sua confidenza è vicina
-        alla migliore. Se il metodo manca o fallisce, il riconoscimento normale
-        continua senza alternative.
+        Sul Mac dell'utente (macOS High Sierra) Vosk restituisce ripetutamente
+        JSON malformato quando sono abilitate le alternative N-best. Questo
+        interrompe la trascrizione e forza un reset continuo del riconoscitore.
+        Su macOS manteniamo quindi il risultato standard, più compatibile.
+        Su altri sistemi le alternative restano abilitate per recuperare la
+        wake word quando una variante plausibile è vicina alla migliore.
+        SetWords(True) non viene mai usato perché può alterare il JSON.
         """
         self.ultima_confidenza_media = None
         self.ultime_parole_riconosciute = []
         riconoscitore = self.riconoscitore
-        if riconoscitore is not None:
+        if riconoscitore is not None and sys.platform != "darwin":
             imposta_alternative = getattr(riconoscitore, "SetMaxAlternatives", None)
             if callable(imposta_alternative):
                 try:
