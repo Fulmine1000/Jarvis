@@ -116,7 +116,7 @@ class RiconoscitoreVoce:
             "georges harrison": "che ore sono",
             "george harrison": "che ore sono",
         }
-        prefisso_errato = re.match(r"^barry jiu su\\s*[,;:]\\s*(.+)$", confronto)
+        prefisso_errato = re.match(r"^barry jiu su\s*[,;:]\s*(.+)$", confronto)
         if prefisso_errato:
             comando_dopo_wake = prefisso_errato.group(1).strip()
             comando_canonico = correzioni_comando_dopo_wake.get(comando_dopo_wake)
