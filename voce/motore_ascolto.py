@@ -151,7 +151,14 @@ class MotoreAscolto:
 
                 testo = self.modulo_voce.ascolta_comando()
                 if not testo:
-                    time.sleep(0.1)
+                    # ascolta_comando() ha già consumato un blocco audio (circa
+                    # 100 ms) oppure ha atteso la coda. Dormire qui rallenta il
+                    # consumer rispetto al microfono e accumula fino a 4 secondi
+                    # di audio vecchio, facendo perdere la wake word.
+                    ascoltatore = getattr(self.modulo_voce, "ascoltatore", None)
+                    if ascoltatore is not None and not getattr(ascoltatore, "attivo", True):
+                        # Evita un busy-loop solo se il listener si è fermato.
+                        time.sleep(0.05)
                     continue
 
                 normalizzato = self._normalizza_trascrizione(testo)
@@ -245,7 +252,8 @@ class MotoreAscolto:
                 self.log(f"Errore motore ascolto: {errore}")
                 self._imposta_hud_ascolto(False)
                 time.sleep(1)
-            time.sleep(0.2)
+            # La coda audio regola già il ritmo del ciclo: una pausa qui
+            # farebbe accumulare blocchi più velocemente di quanto vengano letti.
 
     def ferma(self):
         self.attivo = False
