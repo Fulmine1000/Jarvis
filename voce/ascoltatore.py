@@ -18,6 +18,7 @@ class AscoltatoreVoce:
         blocksize=1600,
         filtro_rumore=True,
         livello_filtro=2,
+        soglia_rms_minima=12,
     ):
         self.nome = "Ascoltatore Voce"
         self.frequenza = int(frequenza)
@@ -29,6 +30,8 @@ class AscoltatoreVoce:
         self.ultimo_errore = None
         self.ultimo_rms_ingresso = 0
         self.ultimo_rms_uscita = 0
+        self.soglia_rms_minima = max(0, int(soglia_rms_minima))
+        self.blocchi_sotto_soglia = 0
         self._sd = None
         self.filtro = (
             FiltroRumore(frequenza=self.frequenza, livello=livello_filtro)
@@ -79,6 +82,13 @@ class AscoltatoreVoce:
                 audio = bytes(ingresso)
 
         self.ultimo_rms_uscita = self._rms(audio)
+        # Vosk può interpretare il rumore di fondo quasi silenzioso come parole.
+        # Inviamo zeri sotto una soglia molto bassa invece di saltare il blocco:
+        # così Vosk continua a ricevere il silenzio necessario a chiudere le frasi.
+        # La soglia è configurabile e resta abbastanza bassa da preservare la voce.
+        if self.soglia_rms_minima and self.ultimo_rms_uscita < self.soglia_rms_minima:
+            audio = bytes(len(audio))
+            self.blocchi_sotto_soglia += 1
         try:
             self.audio.put_nowait(audio)
         except queue.Full:
@@ -188,6 +198,8 @@ class AscoltatoreVoce:
             "ultimo_errore": self.ultimo_errore,
             "rms_ingresso": self.ultimo_rms_ingresso,
             "rms_filtrato": self.ultimo_rms_uscita,
+            "soglia_rms_minima": self.soglia_rms_minima,
+            "blocchi_sotto_soglia": self.blocchi_sotto_soglia,
             "buffer": self.audio.qsize(),
             "filtro_rumore": self.filtro.stato() if self.filtro is not None else {
                 "attivo": False,
