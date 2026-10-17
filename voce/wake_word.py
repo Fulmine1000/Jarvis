@@ -86,8 +86,20 @@ class WakeWordJarvis:
                 self.ultimo_comando = ""
                 return {"attivato": True, "comando": ""}
 
-            # La wake word è già attiva: in questa finestra il testo
-            # riconosciuto è il comando, anche se arriva come frase separata.
+            # La wake word è già attiva: il comando può arrivare in un
+            # segmento audio separato. Tuttavia Vosk può emettere frammenti
+            # isolati ("su", "georges", ecc.) che non devono essere eseguiti.
+            # Manteniamo la finestra attiva e aspettiamo una frase completa.
+            if len(frase.split()) == 1 and frase not in self.COMANDI_SINGOLA_PAROLA:
+                self.ultimo_comando = ""
+                self.attiva()
+                return {
+                    "attivato": True,
+                    "comando": "",
+                    "parziale": True,
+                    "trascrizione": frase,
+                }
+
             self.ultimo_comando = frase
             self.attiva()
             return {"attivato": True, "comando": frase}
