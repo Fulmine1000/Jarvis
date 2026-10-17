@@ -18,7 +18,7 @@ class TestSogliaAudio(unittest.TestCase):
         # Un rumore di fondo con RMS inferiore alla soglia deve essere silenziato.
         audio = array.array("h", [5, -5, 4, -4] * 400).tobytes()
         self.ascoltatore.callback(audio, 1600, None, None)
-        ricevuto = self.ascoltatore.ascolta(timeout=0.01)
+        ricevuto = self.ascoltatore.audio.get_nowait()
         self.assertEqual(ricevuto, bytes(len(audio)))
         self.assertEqual(self.ascoltatore.blocchi_sotto_soglia, 1)
         self.assertEqual(self.ascoltatore.ultimo_rms_uscita, 4)
