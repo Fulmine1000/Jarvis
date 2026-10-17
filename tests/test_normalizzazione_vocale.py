@@ -58,7 +58,9 @@ class TestDettaglioVosk(unittest.TestCase):
 
 
 class TestAlternativeVosk(unittest.TestCase):
-    def test_abilita_alternative_nbest_senza_setwords(self):
+    def test_abilita_alternative_nbest_solo_fuori_da_macos(self):
+        from unittest.mock import patch
+
         class RiconoscitoreFinto:
             def __init__(self):
                 self.words_calls = []
@@ -72,11 +74,16 @@ class TestAlternativeVosk(unittest.TestCase):
 
         riconoscitore = RiconoscitoreVoce()
         riconoscitore.riconoscitore = RiconoscitoreFinto()
-        riconoscitore._abilita_dettaglio_parole()
 
-        # SetWords ha causato JSON malformato sul Mac; N-best è un'opzione
-        # separata e permette di recuperare la wake word tra le alternative.
+        # Sul Mac disabilitiamo N-best perché i log live hanno mostrato
+        # ripetuti JSON Vosk malformati. Su Linux/Windows resta disponibile.
+        with patch("voce.riconoscimento.sys.platform", "darwin"):
+            riconoscitore._abilita_dettaglio_parole()
         self.assertEqual(riconoscitore.riconoscitore.words_calls, [])
+        self.assertIsNone(riconoscitore.riconoscitore.alternative_count)
+
+        with patch("voce.riconoscimento.sys.platform", "linux"):
+            riconoscitore._abilita_dettaglio_parole()
         self.assertEqual(riconoscitore.riconoscitore.alternative_count, 5)
 
     def test_compatibile_se_vosk_non_supporta_metodi_opzionali(self):
