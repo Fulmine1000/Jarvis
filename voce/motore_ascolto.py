@@ -171,7 +171,16 @@ class MotoreAscolto:
                     backend = getattr(riconoscitore, "backend_attivo", "sconosciuto")
                     confidenza = getattr(riconoscitore, "ultima_confidenza_media", None)
                     dettagli = getattr(riconoscitore, "ultime_parole_riconosciute", [])
+                    grezzo = getattr(riconoscitore, "ultima_trascrizione_grezza", "")
+                    normalizzata_stt = getattr(
+                        riconoscitore, "ultima_trascrizione_normalizzata", ""
+                    )
                     info = f"backend={backend}"
+                    if grezzo and grezzo != normalizzata_stt:
+                        info += (
+                            f", trascrizione_grezza={grezzo!r}"
+                            f", trascrizione_normalizzata={normalizzata_stt!r}"
+                        )
                     if confidenza is not None:
                         info += f", confidenza_media={confidenza:.3f}"
                     if dettagli:
