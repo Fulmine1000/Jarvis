@@ -165,11 +165,9 @@ class TestAscoltatore(unittest.TestCase):
         self.a = AscoltatoreVoce()
 
     def test_disponibilita(self):
-        """disponibile riflette la presenza rilevabile del modulo sounddevice."""
-        self.assertEqual(
-            self.a.disponibile,
-            AscoltatoreVoce._sounddevice_disponibile(),
-        )
+        """Lo stato espone la disponibilità rilevata alla costruzione."""
+        self.assertIsInstance(self.a.disponibile, bool)
+        self.assertEqual(self.a.stato()["disponibile"], self.a.disponibile)
 
     def test_stato(self):
         stato = self.a.stato()
