@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from voce.motore_ascolto import MotoreAscolto
 
@@ -42,6 +43,38 @@ class TestFiltroEcoJarvis(unittest.TestCase):
             self.motore._normalizza_trascrizione("Barry Jiu Su vicino"),
             "barry jiu su vicino",
         )
+
+
+    def test_ciclo_non_rallenta_la_coda_con_blocchi_senza_trascrizione(self):
+        class ListenerFinto:
+            attivo = True
+
+        class VoceFinta:
+            def __init__(self):
+                self.config = None
+                self.kernel = SimpleNamespace(hud=None, logger=None)
+                self.ascoltatore = ListenerFinto()
+                self.ascolto_attivo = True
+                self.chiamate = 0
+
+            def ascolta_comando(self):
+                self.chiamate += 1
+                if self.chiamate >= 3:
+                    self.ascolto_attivo = False
+                return None
+
+        voce = VoceFinta()
+        motore = MotoreAscolto(voce)
+        motore.attivo = True
+
+        # Ogni None rappresenta un blocco audio senza una trascrizione finale.
+        # Il ciclo deve consumare subito il blocco successivo, senza pause
+        # artificiali che porterebbero la coda audio a saturazione.
+        with patch("voce.motore_ascolto.time.sleep") as dormi:
+            motore.ciclo()
+
+        self.assertEqual(voce.chiamate, 3)
+        dormi.assert_not_called()
 
 
 if __name__ == "__main__":
