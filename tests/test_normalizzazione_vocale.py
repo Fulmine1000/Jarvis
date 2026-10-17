@@ -58,7 +58,7 @@ class TestDettaglioVosk(unittest.TestCase):
 
 
 class TestAlternativeVosk(unittest.TestCase):
-    def test_non_abilita_setwords_per_mantenere_json_vosk_compatibile(self):
+    def test_abilita_alternative_nbest_senza_setwords(self):
         class RiconoscitoreFinto:
             def __init__(self):
                 self.words_calls = []
@@ -74,10 +74,10 @@ class TestAlternativeVosk(unittest.TestCase):
         riconoscitore.riconoscitore = RiconoscitoreFinto()
         riconoscitore._abilita_dettaglio_parole()
 
-        # Le opzioni di dettaglio hanno causato JSON malformato sul Mac:
-        # il riconoscitore deve restare nel formato standard.
+        # SetWords ha causato JSON malformato sul Mac; N-best è un'opzione
+        # separata e permette di recuperare la wake word tra le alternative.
         self.assertEqual(riconoscitore.riconoscitore.words_calls, [])
-        self.assertIsNone(riconoscitore.riconoscitore.alternative_count)
+        self.assertEqual(riconoscitore.riconoscitore.alternative_count, 5)
 
     def test_compatibile_se_vosk_non_supporta_metodi_opzionali(self):
         class RiconoscitoreFinto:
