@@ -4,6 +4,7 @@ import importlib
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -13,6 +14,15 @@ from core.kernel import KernelJarvis
 class TestAvvio(unittest.TestCase):
 
     def setUp(self):
+        # I test d'integrazione non devono aprire il microfono reale né caricare
+        # il modello Vosk a ogni avvio. Simuliamo l'audio non disponibile:
+        # il kernel deve comunque avviarsi correttamente in modalità solo testo.
+        patch_microfono = patch(
+            "voce.ascoltatore.AscoltatoreVoce.avvia",
+            return_value=False,
+        )
+        patch_microfono.start()
+        self.addCleanup(patch_microfono.stop)
         self.kernel = KernelJarvis()
 
     def test_costruzione_kernel(self):
