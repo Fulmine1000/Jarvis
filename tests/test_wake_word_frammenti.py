@@ -34,6 +34,29 @@ class TestWakeWordFrammenti(unittest.TestCase):
         self.assertEqual(risultato["comando"], "")
         self.assertNotIn("parziale", risultato)
 
+    def test_ignora_parola_isolata_in_segmento_separato_dopo_wake_word(self):
+        prima = self.wake.controlla("jarvis")
+        self.assertTrue(prima["attivato"])
+        self.assertEqual(prima["comando"], "")
+
+        risultato = self.wake.controlla("su")
+        self.assertTrue(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+        self.assertTrue(risultato["parziale"])
+        self.assertTrue(self.wake.attivo)
+
+    def test_accetta_comando_singolo_affidabile_in_segmento_separato(self):
+        self.wake.controlla("jarvis")
+        risultato = self.wake.controlla("aiuto")
+        self.assertEqual(risultato["comando"], "aiuto")
+        self.assertNotIn("parziale", risultato)
+
+    def test_accetta_comando_mult_parola_in_segmento_separato(self):
+        self.wake.controlla("jarvis")
+        risultato = self.wake.controlla("che ore sono")
+        self.assertEqual(risultato["comando"], "che ore sono")
+        self.assertNotIn("parziale", risultato)
+
     def test_ignora_trascrizione_senza_wake_word_in_standby(self):
         risultato = self.wake.controlla("che ore sono")
         self.assertFalse(risultato["attivato"])
