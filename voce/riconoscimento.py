@@ -126,7 +126,7 @@ class RiconoscitoreVoce:
             "george harrison": "che ore sono",
         }
         prefisso_errato = re.match(
-            r"^(barry jiu su|barry giu su|barry giù su|barri jiu su|vari giu su|vari giù su)\\s*[,;:]\\s*(.+)$",
+            r"^(barry jiu su|barry giu su|barry giù su|barri jiu su|vari giu su|vari giù su)\s*[,;:]\s*(.+)$",
             confronto,
         )
         if prefisso_errato:
