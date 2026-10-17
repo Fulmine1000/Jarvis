@@ -102,13 +102,22 @@ class RiconoscitoreVoce:
         # la wake word isolata come "barry jiu su". Correggiamo SOLO la
         # frase esatta: estendere l'alias a qualunque frase successiva può
         # trasformare conversazioni ambientali in comandi involontari.
-        alias_wake = "barry jiu su"
-        if confronto == alias_wake:
+        # Vosk su alcuni microfoni può rendere "Jarvis" come varianti
+        # fonetiche molto specifiche. Accettiamo soltanto frasi complete note:
+        # non usiamo similarità generica, per evitare attivazioni casuali.
+        alias_wake = {
+            "barry jiu su",
+            "barry giu su",
+            "barry giù su",
+            "barri jiu su",
+            "vari giu su",
+            "vari giù su",
+        }
+        if confronto in alias_wake:
             return "jarvis"
 
-        # Vosk a volte inserisce una virgola tra la wake word trascritta male
-        # e il comando. Recuperiamo soltanto richieste note, non testo libero:
-        # questo evita di convertire conversazioni ambientali in comandi.
+        # Se Vosk separa la wake word errata dal comando con punteggiatura,
+        # correggiamo solo le richieste note. Non trasformiamo testo libero.
         correzioni_comando_dopo_wake = {
             "che ore sono": "che ore sono",
             "che ore e": "che ore sono",
@@ -116,20 +125,26 @@ class RiconoscitoreVoce:
             "georges harrison": "che ore sono",
             "george harrison": "che ore sono",
         }
-        prefisso_errato = re.match(r"^barry jiu su\s*[,;:]\s*(.+)$", confronto)
+        prefisso_errato = re.match(
+            r"^(barry jiu su|barry giu su|barry giù su|barri jiu su|vari giu su|vari giù su)\\s*[,;:]\\s*(.+)$",
+            confronto,
+        )
         if prefisso_errato:
-            comando_dopo_wake = prefisso_errato.group(1).strip()
+            comando_dopo_wake = prefisso_errato.group(2).strip()
             comando_canonico = correzioni_comando_dopo_wake.get(comando_dopo_wake)
             if comando_canonico:
                 return "jarvis " + comando_canonico
 
-        # Correggi anche la sola frase completa osservata nei log quando
-        # Vosk unisce wake word e richiesta dell'ora. La correzione è
-        # intenzionalmente esatta: non correggere prefissi ambigui o frasi
-        # con punteggiatura interna, che potrebbero essere conversazioni.
+        # Correggi anche frasi complete note quando Vosk unisce wake word e
+        # comando. Le sostituzioni sono esatte e limitate a richieste note.
         alias_frasi_complete = {
             "barry jiu su che ore sono": "jarvis che ore sono",
             "barry jiu su che harrison": "jarvis che ore sono",
+            "barry giu su che ore sono": "jarvis che ore sono",
+            "barry giù su che ore sono": "jarvis che ore sono",
+            "barri jiu su che ore sono": "jarvis che ore sono",
+            "vari giu su che ore sono": "jarvis che ore sono",
+            "vari giù su che ore sono": "jarvis che ore sono",
             # Nel test live Vosk ha chiuso un segmento prematuramente come
             # "jarvis che risuona", poi ha riconosciuto correttamente la richiesta
             # completa. Correggiamo solo questa frase esatta con wake word,
