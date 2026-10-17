@@ -106,6 +106,23 @@ class RiconoscitoreVoce:
         if confronto == alias_wake:
             return "jarvis"
 
+        # Vosk a volte inserisce una virgola tra la wake word trascritta male
+        # e il comando. Recuperiamo soltanto richieste note, non testo libero:
+        # questo evita di convertire conversazioni ambientali in comandi.
+        correzioni_comando_dopo_wake = {
+            "che ore sono": "che ore sono",
+            "che ore e": "che ore sono",
+            "che harrison": "che ore sono",
+            "georges harrison": "che ore sono",
+            "george harrison": "che ore sono",
+        }
+        prefisso_errato = re.match(r"^barry jiu su\\s*[,;:]\\s*(.+)$", confronto)
+        if prefisso_errato:
+            comando_dopo_wake = prefisso_errato.group(1).strip()
+            comando_canonico = correzioni_comando_dopo_wake.get(comando_dopo_wake)
+            if comando_canonico:
+                return "jarvis " + comando_canonico
+
         # Correggi anche la sola frase completa osservata nei log quando
         # Vosk unisce wake word e richiesta dell'ora. La correzione è
         # intenzionalmente esatta: non correggere prefissi ambigui o frasi
