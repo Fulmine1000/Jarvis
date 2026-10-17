@@ -294,20 +294,18 @@ class RiconoscitoreVoce:
             return False
 
     def _abilita_dettaglio_parole(self):
-        """Abilita le confidenze senza attivare il formato N-best di Vosk.
+        """Mantiene il formato JSON standard di Vosk per la massima compatibilità.
 
-        Su alcune build/versioni di Vosk, SetMaxAlternatives insieme a
-        SetWords può produrre risultati non validi o incompatibili. Per
-        mantenere stabile il riconoscimento live usiamo il risultato standard
-        e conserviamo soltanto i dettagli delle parole quando supportati.
-        La wake word viene gestita dalla normalizzazione conservativa.
+        Su macOS High Sierra è stato osservato che i risultati restituiti da
+        Vosk diventano JSON non valido quando si abilita SetWords(True).
+        La diagnostica per parola è facoltativa: non deve compromettere
+        l'ascolto continuo. Lasciamo quindi disattivato SetWords e usiamo il
+        campo text standard; le confidenze restano disponibili se un backend
+        o un test le fornisce senza richiedere questa opzione.
         """
-        metodo = getattr(self.riconoscitore, "SetWords", None)
-        if callable(metodo):
-            try:
-                metodo(True)
-            except (OSError, RuntimeError, TypeError, ValueError):
-                pass
+        self.ultima_confidenza_media = None
+        self.ultime_parole_riconosciute = []
+        return True
 
     @classmethod
     def _scegli_alternativa_vosk(cls, risultato):
