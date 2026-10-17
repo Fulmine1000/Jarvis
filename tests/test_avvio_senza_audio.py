@@ -10,16 +10,36 @@ import os
 import io
 import unittest
 
-# Blocca sounddevice e vosk come se non fossero installati
-sys.modules['sounddevice'] = None
-sys.modules['vosk'] = None
-
 # Assicura che la directory del progetto sia nel path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 class TestAvvioSenzaAudio(unittest.TestCase):
-    """Verifica che Jarvis si avvii senza sounddevice né vosk."""
+    """Verifica che Jarvis si avvii senza sounddevice né vosk.
+
+    I moduli audio vengono simulati come assenti soltanto durante questa
+    classe: modificarli all'import del file contaminava tutti gli altri test
+    e faceva risultare sounddevice mancante anche quando era installato.
+    """
+
+    _moduli_originali = {}
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        for nome in ("sounddevice", "vosk"):
+            cls._moduli_originali[nome] = sys.modules.get(nome, ...)
+            sys.modules[nome] = None
+
+    @classmethod
+    def tearDownClass(cls):
+        for nome, originale in cls._moduli_originali.items():
+            if originale is ...:
+                sys.modules.pop(nome, None)
+            else:
+                sys.modules[nome] = originale
+        cls._moduli_originali.clear()
+        super().tearDownClass()
 
     def test_import_voce_package(self):
         """voce/__init__.py si importa senza sounddevice/vosk."""
