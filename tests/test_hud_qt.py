@@ -28,6 +28,12 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("Repeater", source)
         self.assertIn("Timer", source)
 
+    def test_hud_include_scansione_olografica(self):
+        source = HUD_QML.read_text(encoding="utf-8")
+        self.assertIn("Holographic scan plane", source)
+        self.assertIn("orbiting holographic markers", source)
+        self.assertIn('rotation: root.t * 52', source)
+
 
 if __name__ == "__main__":
     unittest.main()
