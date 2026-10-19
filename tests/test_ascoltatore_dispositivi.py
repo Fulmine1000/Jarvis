@@ -2,6 +2,7 @@ import os
 import sys
 import types
 import unittest
+from unittest.mock import patch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -40,6 +41,39 @@ class TestSelezioneDispositivoAudio(unittest.TestCase):
         ascoltatore = self.crea_ascoltatore_senza_hardware()
         self.assertEqual(ascoltatore._candidati_dispositivo(), [1, 0])
         self.assertNotIn(2, ascoltatore._candidati_dispositivo())
+
+
+    def test_avvia_prova_il_dispositivo_successivo_se_il_default_fallisce(self):
+        tentativi = []
+
+        class StreamFinto:
+            def __init__(self, device):
+                self.device = device
+
+            def start(self):
+                tentativi.append(self.device)
+                if self.device == 1:
+                    raise RuntimeError("PortAudio: ingresso non disponibile")
+
+            def close(self):
+                pass
+
+        class SoundDeviceFinto:
+            def RawInputStream(self, **kwargs):
+                return StreamFinto(kwargs["device"])
+
+        ascoltatore = AscoltatoreVoce(filtro_rumore=False)
+        ascoltatore._sd = SoundDeviceFinto()
+        ascoltatore.disponibile = True
+        ascoltatore._candidati_dispositivo = lambda: [1, 0]
+
+        with patch.object(AscoltatoreVoce, "_sounddevice_disponibile", return_value=True):
+            self.assertTrue(ascoltatore.avvia())
+
+        self.assertEqual(tentativi, [1, 0])
+        self.assertEqual(ascoltatore.dispositivo_attivo, 0)
+        self.assertTrue(ascoltatore.attivo)
+        ascoltatore.ferma()
 
 
 if __name__ == "__main__":
