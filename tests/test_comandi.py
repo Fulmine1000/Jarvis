@@ -88,6 +88,24 @@ class TestComandi(unittest.TestCase):
         risposta = self._cmd("come mi chiamo")
         self.assertIn("testuser", risposta.lower())
 
+    def test_cosa_ricordi_di_me_include_ricordi_salvati(self):
+        with patch.object(
+            self.kernel.memoria.profilo,
+            "mostra_profilo",
+            return_value="Profilo vuoto.",
+        ), patch.object(
+            self.kernel.memoria,
+            "elenco_ricordi",
+            return_value={"animale_preferito": {"valore": "cane"}},
+        ):
+            risposta = self._cmd("jarvis cosa ricordi di me")
+        self.assertIn("animale preferito", risposta.lower())
+        self.assertIn("cane", risposta.lower())
+
+    def test_ricorda_colore_preferito_normalizza_la_chiave(self):
+        risposta = self._cmd("ricorda che il mio colore preferito è blu")
+        self.assertIn("colore_preferito", risposta)
+
     def test_accendi_luce(self):
         risposta = self._cmd("accendi luce soggiorno")
         self.assertIsInstance(risposta, str)
