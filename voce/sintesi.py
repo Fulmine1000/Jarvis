@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import hashlib
+import re
 
 from voce.elevenlabs import ElevenLabsVoce
 
@@ -355,6 +356,16 @@ class SintesiVocale:
         testo = " ".join(str(testo).strip().split())
 
         try:
+            # Per la parola italiana "blu" evitiamo audio clonati o cache
+            # voicepack: alcune registrazioni pre-generate possono pronunciarla
+            # male. Su macOS forziamo la sintesi italiana di sistema.
+            if (
+                platform.system() == "Darwin"
+                and re.search(r"(?<!\\w)blu(?!\\w)", testo, flags=re.IGNORECASE)
+                and self._parla_con_sistema(testo)
+            ):
+                return True
+
             if self._parla_con_voce_clonata(testo):
                 return True
 
