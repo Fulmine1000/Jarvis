@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 
 
 BASE_JARVIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -64,6 +65,7 @@ class ConfigJarvis:
         }
         self.config = {}
         self.ultimo_errore_caricamento = None
+        self._config_non_valida = False
         self.carica()
 
     def carica(self):
@@ -90,6 +92,7 @@ class ConfigJarvis:
             # dell'utente e rendere impossibile recuperarle.
             self.config = json.loads(json.dumps(self.default))
             self.ultimo_errore_caricamento = str(errore)
+            self._config_non_valida = True
 
     def _completa(self, dati):
         """Completa configurazioni precedenti ignorando sezioni malformate."""
@@ -114,6 +117,16 @@ class ConfigJarvis:
         return configurazione
 
     def salva(self):
+        # Se una configurazione corrotta viene poi modificata, conserva una
+        # copia del file originale prima di scrivere i valori recuperati.
+        if self._config_non_valida and os.path.isfile(PERCORSO_CONFIG):
+            backup = PERCORSO_CONFIG + ".corrotto"
+            indice = 1
+            while os.path.exists(backup):
+                backup = PERCORSO_CONFIG + f".corrotto.{indice}"
+                indice += 1
+            shutil.copy2(PERCORSO_CONFIG, backup)
+
         cartella = os.path.dirname(PERCORSO_CONFIG)
         if cartella and not os.path.exists(cartella):
             os.makedirs(cartella)
@@ -126,6 +139,8 @@ class ConfigJarvis:
             except OSError:
                 pass
         os.replace(temporaneo, PERCORSO_CONFIG)
+        self._config_non_valida = False
+        self.ultimo_errore_caricamento = None
 
     def ottieni(self, chiave, default=None):
         return self.config.get(chiave, default)
