@@ -28,7 +28,7 @@ class TestAudioTempoReale(unittest.TestCase):
         ascoltatore = AscoltatoreVoce(filtro_rumore=False)
         self.assertEqual(ascoltatore.audio.maxsize, 12)
 
-        for valore in range(1, 14):
+        for valore in range(101, 114):
             blocco = array.array("h", [valore] * 1600).tobytes()
             ascoltatore.callback(blocco, 1600, None, None)
 
@@ -39,7 +39,7 @@ class TestAudioTempoReale(unittest.TestCase):
         campione.frombytes(primo)
         if sys.byteorder != "little":
             campione.byteswap()
-        self.assertEqual(campione[0], 2)
+        self.assertEqual(campione[0], 102)
         stato = ascoltatore.stato()
         self.assertEqual(stato["buffer_massimo"], 12)
         self.assertEqual(stato["blocchi_audio_scartati"], 1)
