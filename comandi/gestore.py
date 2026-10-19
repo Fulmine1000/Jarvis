@@ -266,6 +266,60 @@ class GestoreComandi:
 
         return None
 
+    def _mostra_ricordi_personali(self):
+        """Unisce profilo, ricordi espliciti e nome configurato in una risposta."""
+        if not self.memoria:
+            return "Memoria non disponibile."
+
+        parti = []
+        profilo = ""
+        try:
+            profilo = self.memoria.profilo.mostra_profilo()
+            if profilo and profilo.strip().lower() not in {
+                "profilo vuoto.",
+                "profilo vuoto",
+            }:
+                parti.append(profilo.strip())
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError):
+            pass
+
+        try:
+            ricordi = self.memoria.elenco_ricordi()
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError):
+            ricordi = {}
+
+        if isinstance(ricordi, dict):
+            etichette = {
+                "colore_preferito": "colore preferito",
+                "nome_utente": "nome",
+                "animale_preferito": "animale preferito",
+            }
+            for chiave, dato in ricordi.items():
+                valore = dato.get("valore") if isinstance(dato, dict) else dato
+                if valore is None or not str(valore).strip():
+                    continue
+                etichetta = etichette.get(
+                    str(chiave),
+                    str(chiave).replace("_", " ").replace("che il mio ", ""),
+                )
+                frase = f"Ricordo anche {etichetta}: {valore}."
+                if frase not in " ".join(parti):
+                    parti.append(frase)
+
+        # Il nome può essere salvato nelle preferenze anziché nel profilo.
+        try:
+            nome = self.kernel.preferenze.leggi("nome_utente") if self.kernel else None
+            nome_profilo = self.memoria.profilo.leggi("nome_utente")
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError):
+            nome = None
+            nome_profilo = None
+        if nome and not nome_profilo:
+            parti.append(f"Il suo nome è {nome}.")
+
+        if not parti:
+            return "Al momento non ho informazioni personali salvate."
+        return " ".join(parti)
+
     def _esegui_raw(self, c):
         k = self.kernel
         cap = getattr(k, "capacita", None) if k else None
@@ -408,6 +462,18 @@ class GestoreComandi:
             return str(cap.sistema()) if cap else "Informazioni di sistema non disponibili."
         if c.startswith("ricorda "):
             ricordo = c[8:].strip()
+            # Canonicalizza alcune formulazioni personali comuni prima del
+            # salvataggio, così i ricordi sono leggibili e facili da ritrovare.
+            ricordo = re.sub(
+                r"^(?:che )?il mio colore preferito è ",
+                "colore_preferito è ",
+                ricordo,
+            )
+            ricordo = re.sub(
+                r"^(?:che )?mi chiamo ",
+                "nome_utente è ",
+                ricordo,
+            )
             if self.memoria:
                 parti = ricordo.split(" è ", 1)
                 if len(parti) == 2:
@@ -415,7 +481,7 @@ class GestoreComandi:
                 return self.memoria.ricorda("nota", ricordo)
             return "Memoria non disponibile."
         if any(x in c for x in ("cosa ricordi di me", "cosa ricordi", "ricordi qualcosa")):
-            return self.memoria.profilo.mostra_profilo() if self.memoria else "Memoria non disponibile."
+            return self._mostra_ricordi_personali()
         if c.startswith("dimentica ") and self.memoria:
             return self.memoria.dimentica(c[10:].strip())
         if c.startswith("chiamami ") and k:
