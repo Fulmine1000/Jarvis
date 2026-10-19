@@ -69,6 +69,23 @@ class TestWakeWordFrammenti(unittest.TestCase):
         self.assertEqual(risultato["comando"], "")
         self.assertFalse(self.wake.attivo)
 
+    def test_trascrizioni_non_rinnovano_timeout_della_sessione(self):
+        from unittest.mock import patch
+
+        with patch("voce.wake_word.time.time", return_value=100.0):
+            self.wake.controlla("jarvis")
+        with patch("voce.wake_word.time.time", return_value=104.0):
+            parziale = self.wake.controlla("su")
+        self.assertTrue(parziale["parziale"])
+        self.assertEqual(self.wake.ultimo_rilevamento, 100.0)
+
+        # Scaduti i 10 secondi originali, una frase ambientale non è comando.
+        with patch("voce.wake_word.time.time", return_value=111.0):
+            risultato = self.wake.controlla("già il rischio risuona")
+        self.assertFalse(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+        self.assertFalse(self.wake.attivo)
+
 
 if __name__ == "__main__":
     unittest.main()
