@@ -12,7 +12,7 @@ class MemoriaJarvis:
         self.attiva = False
         self.logger = logger
         self.database = DatabaseMemoria()
-        self.profilo = ProfiloJarvis(logger)
+        self.profilo = ProfiloJarvis(logger, database=self.database)
 
     def avvia(self):
         self.attiva = True
