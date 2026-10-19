@@ -50,6 +50,7 @@ if QT_DISPONIBILE:
         stateChanged = Signal(str)
         hideRequested = Signal()
         showRequested = Signal()
+        stopTimerRequested = Signal()
 
         @Slot()
         def hide(self):
@@ -128,6 +129,10 @@ class HUDJarvis:
             self.timer = QTimer()
             self.timer.setInterval(750)
             self.timer.timeout.connect(self._tick)
+            # Il timer appartiene al thread Qt. Collegare il segnale direttamente
+            # al metodo del QTimer fa accodare lo stop sul thread proprietario,
+            # anche quando ferma() viene chiamato dal thread audio di Jarvis.
+            self.bridge.stopTimerRequested.connect(self.timer.stop)
             self.timer.start()
             self._ready.set()
             self.registra_evento("HUD Qt Quick operativo")
@@ -157,10 +162,14 @@ class HUDJarvis:
             self.finestra = None
 
     def ferma(self):
+        """Arresta l'HUD senza manipolare il QTimer da un thread esterno."""
         self.attivo = False
         self._stop.set()
         try:
-            if self.timer:
+            if self.bridge and self.timer:
+                # Il segnale viene consegnato al thread Qt, proprietario del timer.
+                self.bridge.stopTimerRequested.emit()
+            elif self.timer and threading.current_thread() is threading.main_thread():
                 self.timer.stop()
         except Exception:
             pass
