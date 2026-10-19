@@ -234,6 +234,15 @@ class MotoreAscolto:
 
                 comando = risultato.get("comando", "").strip()
                 if not comando:
+                    # Vosk può dividere "Ehi Jarvis" in due segmenti:
+                    # "ehi" e poi "jarvis". Non rispondere al solo prefisso,
+                    # altrimenti la sintesi parte prima che arrivi il comando
+                    # e può rientrare nel microfono come eco.
+                    if normalizzato in self.wake_word.prefissi_attivazione:
+                        self.log(
+                            f"Prefisso di attivazione incompleto ignorato: {normalizzato}"
+                        )
+                        continue
                     self.modulo_voce.rispondi("Sono qui.")
                     continue
 
