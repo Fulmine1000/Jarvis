@@ -59,6 +59,15 @@ class TestMemoria(unittest.TestCase):
         stato = self.memoria.stato()
         self.assertIsInstance(stato, dict)
 
+    def test_profilo_e_ricordi_condividono_database(self):
+        """Scrivere nel profilo non sovrascrive i ricordi e viceversa."""
+        self.assertIs(self.memoria.profilo.database, self.memoria.database)
+        self.memoria.profilo.imposta("nome_utente", "Simone")
+        self.memoria.ricorda("animale_preferito", "cane")
+        dati = self.memoria.database.tutto()
+        self.assertEqual(dati["profilo"]["nome_utente"]["valore"], "Simone")
+        self.assertEqual(dati["ricordi"]["animale_preferito"]["valore"], "cane")
+
     def tearDown(self):
         pass
 
