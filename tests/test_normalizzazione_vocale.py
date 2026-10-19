@@ -11,14 +11,33 @@ from voce.riconoscimento import RiconoscitoreVoce
 
 
 class TestSelezioneModelloVosk(unittest.TestCase):
-    def test_preferisce_modello_completo_se_installato(self):
+    def test_preferisce_modello_completo_se_installato_fuori_da_mac_intel(self):
+        from unittest.mock import patch
+
         with tempfile.TemporaryDirectory() as base:
             os.mkdir(os.path.join(base, "vosk-model-small-it-0.22"))
             os.mkdir(os.path.join(base, "vosk-model-it-0.22"))
-            self.assertEqual(
-                RiconoscitoreVoce._modello_italiano_predefinito(base),
-                os.path.join(base, "vosk-model-it-0.22"),
-            )
+            with patch("voce.riconoscimento.sys.platform", "linux"), patch(
+                "voce.riconoscimento.platform.machine", return_value="x86_64"
+            ):
+                self.assertEqual(
+                    RiconoscitoreVoce._modello_italiano_predefinito(base),
+                    os.path.join(base, "vosk-model-it-0.22"),
+                )
+
+    def test_preferisce_modello_small_su_mac_intel_anche_se_completo_installato(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as base:
+            os.mkdir(os.path.join(base, "vosk-model-small-it-0.22"))
+            os.mkdir(os.path.join(base, "vosk-model-it-0.22"))
+            with patch("voce.riconoscimento.sys.platform", "darwin"), patch(
+                "voce.riconoscimento.platform.machine", return_value="x86_64"
+            ):
+                self.assertEqual(
+                    RiconoscitoreVoce._modello_italiano_predefinito(base),
+                    os.path.join(base, "vosk-model-small-it-0.22"),
+                )
 
     def test_usa_modello_small_se_completo_non_installato(self):
         with tempfile.TemporaryDirectory() as base:
