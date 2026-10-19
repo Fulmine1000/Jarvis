@@ -72,7 +72,26 @@ def main():
     print(f"Frequenza prevista: {riconoscitore.sample_rate} Hz")
     if not ascoltatore.avvia():
         print(f"ERRORE MICROFONO: {ascoltatore.ultimo_errore}")
+        print("Ingressi audio disponibili:")
+        try:
+            import sounddevice as sd
+            for indice, dispositivo in enumerate(sd.query_devices()):
+                if int(dispositivo.get("max_input_channels", 0) or 0) > 0:
+                    print(
+                        f"  {indice}: {dispositivo.get('name')} "
+                        f"({dispositivo.get('max_input_channels')} canali in ingresso)"
+                    )
+        except Exception as errore:
+            print(f"Impossibile elencare gli ingressi: {errore}")
+        print("Per forzare un ingresso: JARVIS_AUDIO_DEVICE=0 python scripts/diagnostica_voce.py 30")
         return 1
+
+    stato_microfono = ascoltatore.stato()
+    print(
+        "Ingresso audio attivo: "
+        f"{stato_microfono.get('dispositivo_attivo')} "
+        f"(richiesto: {stato_microfono.get('dispositivo_richiesto')})"
+    )
 
     try:
         if not riconoscitore.avvia():
