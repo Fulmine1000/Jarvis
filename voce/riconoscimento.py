@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import platform
 import re
 import sys
 from typing import Any
@@ -69,9 +70,22 @@ class RiconoscitoreVoce:
 
     @staticmethod
     def _modello_italiano_predefinito(base):
-        """Seleziona il modello italiano migliore già installato, senza download impliciti."""
+        """Sceglie un modello adatto all'hardware senza scaricare nulla.
+
+        Sul vecchio Mac Intel il modello completo può rallentare l'inferenza
+        oltre il tempo reale, accumulando secondi di audio nella coda. Se il
+        modello small è già presente, lo preferiamo su macOS Intel; altrove
+        manteniamo la preferenza per il modello completo. Una configurazione
+        esplicita in modello_riconoscimento continua ad avere la precedenza.
+        """
         completo = os.path.join(base, "vosk-model-it-0.22")
         leggero = os.path.join(base, "vosk-model-small-it-0.22")
+        mac_intel = (
+            sys.platform == "darwin"
+            and platform.machine().lower() in {"x86_64", "i386", "i686"}
+        )
+        if mac_intel and os.path.isdir(leggero):
+            return leggero
         if os.path.isdir(completo):
             return completo
         return leggero
