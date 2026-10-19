@@ -150,6 +150,7 @@ class ModuloVoce:
                 f"buffer={stato_audio.get('buffer', 'n/d')}/"
                 f"{stato_audio.get('buffer_massimo', 'n/d')}, "
                 f"blocchi_scartati={stato_audio.get('blocchi_audio_scartati', 'n/d')}, "
+                f"blocchi_uniti={stato_audio.get('ultimi_blocchi_aggregati', 'n/d')}, "
                 f"errore_microfono={stato_audio.get('ultimo_errore') or 'nessuno'}"
             )
 
@@ -176,13 +177,13 @@ class ModuloVoce:
         if not self.ascolto_attivo:
             return None
         try:
-            audio = self.ascoltatore.ascolta()
+            audio = self.ascoltatore.ascolta_batch(max_blocchi=3)
             if not audio:
                 self._diagnostica_microfono_senza_trascrizione("nessun blocco audio ricevuto")
                 return None
             testo = self.riconoscitore.riconosci(audio)
             if not testo:
-                self._diagnostica_microfono_senza_trascrizione("Vosk non ha ancora completato una trascrizione")
+                self._diagnostica_microfono_senza_trascrizione("in attesa che il riconoscitore completi una frase")
             if testo:
                 self.ultimo_errore_ascolto = None
                 grezzo = getattr(self.riconoscitore, "ultima_trascrizione_grezza", "")
