@@ -55,6 +55,9 @@ class TestSelezioneDispositivoAudio(unittest.TestCase):
                 if self.device == 1:
                     raise RuntimeError("PortAudio: ingresso non disponibile")
 
+            def stop(self):
+                pass
+
             def close(self):
                 pass
 
