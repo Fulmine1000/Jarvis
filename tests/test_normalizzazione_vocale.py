@@ -223,6 +223,9 @@ class TestNormalizzazioneVocale(unittest.TestCase):
             "jervis che ore sono": "jarvis che ore sono",
             "gervis che giorno oggi": "jarvis che giorno è",
             "che ore e": "che ore sono",
+            "che chiuri sono": "che ore sono",
+            "jarvis che chiuri sono": "jarvis che ore sono",
+            "hey jarvis che chiuri sono": "hey jarvis che ore sono",
             "che data oggi": "che data è",
             "ricerca web ultime novità sull'intelligenza artificiale":
                 "cerca sul web ultime novità sull'intelligenza artificiale",
