@@ -5,12 +5,15 @@ class ProfiloJarvis:
 
     def __init__(
         self,
-        logger=None
+        logger=None,
+        database=None,
     ):
         self.nome = "Profilo Jarvis"
         self.attivo = False
         self.logger = logger
-        self.database = DatabaseMemoria()
+        # Il profilo e i ricordi devono usare la stessa istanza: istanze
+        # separate del medesimo JSON possono sovrascriversi con dati obsoleti.
+        self.database = database if database is not None else DatabaseMemoria()
         self.categoria = "profilo"
 
     def avvia(self):
