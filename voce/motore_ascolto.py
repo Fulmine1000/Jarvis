@@ -91,6 +91,11 @@ class MotoreAscolto:
             self._ultimo_testo = None
             self._ultimo_testo_timestamp = 0.0
 
+    @staticmethod
+    def _e_prefisso_attivazione_incompleto(testo):
+        """True quando Vosk ha riconosciuto solo 'ehi' o 'hey', non la wake word."""
+        return " ".join(str(testo or "").lower().strip().split()) in {"ehi", "hey"}
+
     def _e_eco_jarvis(self, testo):
         """Ignora la risposta di Jarvis anche se Vosk include la wake word.
 
@@ -238,7 +243,7 @@ class MotoreAscolto:
                     # "ehi" e poi "jarvis". Non rispondere al solo prefisso,
                     # altrimenti la sintesi parte prima che arrivi il comando
                     # e può rientrare nel microfono come eco.
-                    if normalizzato in self.wake_word.prefissi_attivazione:
+                    if self._e_prefisso_attivazione_incompleto(normalizzato):
                         self.log(
                             f"Prefisso di attivazione incompleto ignorato: {normalizzato}"
                         )
