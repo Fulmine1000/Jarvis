@@ -5,7 +5,6 @@ import subprocess
 import sys
 import tempfile
 import hashlib
-import re
 
 from voce.elevenlabs import ElevenLabsVoce
 
@@ -361,15 +360,10 @@ class SintesiVocale:
         testo = " ".join(str(testo).strip().split())
 
         try:
-            # La voce clonata attuale pronuncia "blu" in modo errato.
-            # Per le frasi che contengono questa parola usiamo Alice, che
-            # e stata verificata sul Mac dell'utente, prima di provare altri
-            # motori. Le altre frasi continuano a usare la voce Jarvis.
-            if platform.system() == "Darwin" and re.search(
-                r"\bblu\b", testo, flags=re.IGNORECASE
-            ):
-                if self._parla_con_sistema(testo, voce_forzata="Alice"):
-                    return True
+            # Non forzare mai una voce di sistema per singole parole:
+            # tutte le frasi devono seguire lo stesso percorso vocale Jarvis.
+            # La correzione della pronuncia va fatta nel motore personalizzato,
+            # non sostituendo Alice alla voce scelta per il progetto.
 
             if self._parla_con_voce_clonata(testo):
                 return True
