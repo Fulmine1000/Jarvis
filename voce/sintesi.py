@@ -361,7 +361,7 @@ class SintesiVocale:
             # male. Su macOS forziamo la sintesi italiana di sistema.
             if (
                 platform.system() == "Darwin"
-                and re.search(r"\\bblu\\b", testo, flags=re.IGNORECASE)
+                and re.search(r"\bblu\b", testo, flags=re.IGNORECASE)
                 and self._parla_con_sistema(testo)
             ):
                 return True
