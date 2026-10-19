@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import math
+import os
 import queue
 import struct
 import sys
@@ -23,9 +24,11 @@ class AscoltatoreVoce:
         self.nome = "Ascoltatore Voce"
         self.frequenza = int(frequenza)
         self.blocksize = int(blocksize)
-        # Una coda da 40 blocchi può accumulare 4 secondi di ritardo.
-        # Su hardware lento è meglio mantenere poca latenza e scartare il blocco
-        # più vecchio quando il consumer resta indietro.
+        # JARVIS_AUDIO_DEVICE può essere un indice PortAudio o parte del nome.
+        # Se non è impostato, viene usato il dispositivo predefinito e poi
+        # provati gli altri ingressi disponibili in caso di errore.
+        self.dispositivo_richiesto = os.environ.get("JARVIS_AUDIO_DEVICE", "").strip()
+        self.dispositivo_attivo = None
         self.audio = queue.Queue(maxsize=12)
         self.blocchi_audio_scartati = 0
         self.attivo = False
@@ -70,6 +73,53 @@ class AscoltatoreVoce:
         self.disponibile = True
         return True
 
+    def _candidati_dispositivo(self):
+        """Ordina i dispositivi: scelta esplicita, default, poi ingressi validi."""
+        sd = self._sd
+        candidati = []
+
+        def aggiungi(valore):
+            if valore is None:
+                return
+            try:
+                indice = int(valore)
+            except (TypeError, ValueError):
+                return
+            if indice >= 0 and indice not in candidati:
+                candidati.append(indice)
+
+        richiesto = self.dispositivo_richiesto
+        if richiesto:
+            try:
+                aggiungi(int(richiesto))
+            except ValueError:
+                try:
+                    dispositivi = sd.query_devices()
+                    for indice, dispositivo in enumerate(dispositivi):
+                        nome = str(dispositivo.get("name", ""))
+                        ingressi = int(dispositivo.get("max_input_channels", 0) or 0)
+                        if ingressi > 0 and richiesto.lower() in nome.lower():
+                            aggiungi(indice)
+                except Exception:
+                    pass
+
+        try:
+            predefinito = sd.default.device
+            if isinstance(predefinito, (tuple, list)):
+                predefinito = predefinito[0] if predefinito else None
+            aggiungi(predefinito)
+        except Exception:
+            pass
+
+        try:
+            for indice, dispositivo in enumerate(sd.query_devices()):
+                if int(dispositivo.get("max_input_channels", 0) or 0) > 0:
+                    aggiungi(indice)
+        except Exception:
+            pass
+
+        return candidati
+
     def callback(self, ingresso, frames, tempo, stato):
         if stato:
             self.ultimo_errore = str(stato)
@@ -80,16 +130,10 @@ class AscoltatoreVoce:
             try:
                 audio = self.filtro.processa(audio)
             except Exception as errore:
-                # Se il filtro incontra un problema, il microfono continua a
-                # funzionare: il blocco originale viene comunque inoltrato.
                 self.ultimo_errore = f"Filtro rumore: {errore}"
                 audio = bytes(ingresso)
 
         self.ultimo_rms_uscita = self._rms(audio)
-        # Vosk può interpretare il rumore di fondo quasi silenzioso come parole.
-        # Inviamo zeri sotto una soglia molto bassa invece di saltare il blocco:
-        # così Vosk continua a ricevere il silenzio necessario a chiudere le frasi.
-        # La soglia è configurabile e resta abbastanza bassa da preservare la voce.
         if self.soglia_rms_minima and self.ultimo_rms_uscita < self.soglia_rms_minima:
             audio = bytes(len(audio))
             self.blocchi_sotto_soglia += 1
@@ -128,33 +172,53 @@ class AscoltatoreVoce:
             self.attivo = False
             return False
 
-        try:
-            self.pulisci_buffer()
-            if self.filtro is not None:
+        self.pulisci_buffer()
+        if self.filtro is not None:
+            try:
                 self.filtro.reset()
                 self.filtro.avvia()
+            except Exception as errore:
+                # Il filtro è opzionale: un suo errore non deve disabilitare
+                # l'ingresso audio, perché callback() inoltra il PCM originale.
+                self.ultimo_errore = f"Filtro rumore non avviato: {errore}"
+                self.filtro = None
 
-            self.stream = self._sd.RawInputStream(
-                samplerate=self.frequenza,
-                blocksize=self.blocksize,
-                dtype="int16",
-                channels=1,
-                callback=self.callback,
-            )
-            self.stream.start()
-            self.attivo = True
-            self.ultimo_errore = None
-            return True
-        except (OSError, RuntimeError, ValueError) as errore:
-            self.attivo = False
-            self.ultimo_errore = str(errore)
-            if self.stream is not None:
-                try:
-                    self.stream.close()
-                except (OSError, RuntimeError):
-                    pass
-                self.stream = None
-            return False
+        errori = []
+        candidati = self._candidati_dispositivo()
+        if not candidati:
+            candidati = [None]  # lascia scegliere a PortAudio se non può enumerare
+        for dispositivo in candidati:
+            stream = None
+            try:
+                stream = self._sd.RawInputStream(
+                    samplerate=self.frequenza,
+                    blocksize=self.blocksize,
+                    dtype="int16",
+                    channels=1,
+                    device=dispositivo,
+                    callback=self.callback,
+                )
+                stream.start()
+                self.stream = stream
+                self.dispositivo_attivo = dispositivo
+                self.attivo = True
+                self.ultimo_errore = None
+                return True
+            except Exception as errore:
+                # PortAudio può sollevare eccezioni proprie, non solo OSError.
+                # Proviamo il prossimo ingresso prima di dichiarare l'audio KO.
+                errori.append(f"dispositivo {dispositivo}: {errore}")
+                if stream is not None:
+                    try:
+                        stream.close()
+                    except Exception:
+                        pass
+
+        self.attivo = False
+        self.stream = None
+        self.dispositivo_attivo = None
+        self.ultimo_errore = "Impossibile aprire un ingresso audio. " + " | ".join(errori)
+        return False
 
     def ascolta(self, timeout=1):
         if not self.attivo:
@@ -183,6 +247,7 @@ class AscoltatoreVoce:
             except (OSError, RuntimeError):
                 pass
             self.stream = None
+        self.dispositivo_attivo = None
         self.pulisci_buffer()
         if self.filtro is not None:
             self.filtro.reset()
@@ -200,6 +265,8 @@ class AscoltatoreVoce:
             "blocksize": self.blocksize,
             "stream": self.stream is not None,
             "disponibile": self.disponibile,
+            "dispositivo_richiesto": self.dispositivo_richiesto or "predefinito",
+            "dispositivo_attivo": self.dispositivo_attivo,
             "ultimo_errore": self.ultimo_errore,
             "rms_ingresso": self.ultimo_rms_ingresso,
             "rms_filtrato": self.ultimo_rms_uscita,
