@@ -61,6 +61,7 @@ class TestConfigJarvis(unittest.TestCase):
 
             with patch.object(config_module, "PERCORSO_CONFIG", percorso):
                 config = ConfigJarvis()
+                config.config["utente"] = "sezione malformata"
                 config.modifica("utente", "nome", "Simone")
 
             with open(percorso, "r", encoding="utf-8") as file:
