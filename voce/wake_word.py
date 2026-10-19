@@ -91,8 +91,10 @@ class WakeWordJarvis:
             # isolati ("su", "georges", ecc.) che non devono essere eseguiti.
             # Manteniamo la finestra attiva e aspettiamo una frase completa.
             if len(frase.split()) == 1 and frase not in self.COMANDI_SINGOLA_PAROLA:
+                # Non rinnovare il timeout su frammenti casuali: altrimenti
+                # il rumore/il parlato ambientale può mantenere la sessione
+                # aperta indefinitamente e far eseguire frasi non intenzionali.
                 self.ultimo_comando = ""
-                self.attiva()
                 return {
                     "attivato": True,
                     "comando": "",
@@ -100,8 +102,10 @@ class WakeWordJarvis:
                     "trascrizione": frase,
                 }
 
+            # La finestra è misurata dall'ultima wake word, non da ogni
+            # trascrizione. Il comando viene consumato dal motore che poi
+            # disattiva la sessione; non estendere qui il timeout.
             self.ultimo_comando = frase
-            self.attiva()
             return {"attivato": True, "comando": frase}
 
         if frase in self.prefissi_attivazione:
