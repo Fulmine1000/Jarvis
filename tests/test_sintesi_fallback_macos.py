@@ -17,31 +17,16 @@ class TestFallbackSintesiMacOS(unittest.TestCase):
     @patch.object(SintesiVocale, "_parla_con_voce_clonata", return_value=True)
     @patch.object(SintesiVocale, "_parla_con_sistema", return_value=True)
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_blu_usa_prima_la_sintesi_di_sistema(
+    def test_blu_mantiene_il_percorso_vocale_jarvis(
         self, _sistema, parla_sistema, parla_clonata, parla_voicepack
     ):
         self.sintesi.attivo = True
+        self.sintesi.motore = "elevenlabs"
 
         self.assertTrue(self.sintesi.parla("Il mio colore preferito è blu."))
-        parla_sistema.assert_called_once_with(
-            "Il mio colore preferito è blu.", voce_forzata="Alice"
-        )
-        parla_clonata.assert_not_called()
+        parla_clonata.assert_called_once_with("Il mio colore preferito è blu.")
+        parla_sistema.assert_not_called()
         parla_voicepack.assert_not_called()
-
-    @patch("voce.sintesi.subprocess.run")
-    @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
-    @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_usa_alice_quando_la_voce_e_forzata(self, _sistema, _which, run):
-        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout="")
-
-        self.assertTrue(
-            self.sintesi._parla_con_sistema(
-                "Il mio colore preferito è blu.", voce_forzata="Alice"
-            )
-        )
-        comando = run.call_args.args[0]
-        self.assertEqual(comando[:3], ["say", "-v", "Alice"])
 
     @patch("voce.sintesi.subprocess.run")
     @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
