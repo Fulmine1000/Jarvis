@@ -23,7 +23,11 @@ class AscoltatoreVoce:
         self.nome = "Ascoltatore Voce"
         self.frequenza = int(frequenza)
         self.blocksize = int(blocksize)
-        self.audio = queue.Queue(maxsize=40)
+        # Una coda da 40 blocchi può accumulare 4 secondi di ritardo.
+        # Su hardware lento è meglio mantenere poca latenza e scartare il blocco
+        # più vecchio quando il consumer resta indietro.
+        self.audio = queue.Queue(maxsize=12)
+        self.blocchi_audio_scartati = 0
         self.attivo = False
         self.stream = None
         self.disponibile = self._sounddevice_disponibile()
@@ -94,6 +98,7 @@ class AscoltatoreVoce:
         except queue.Full:
             try:
                 self.audio.get_nowait()
+                self.blocchi_audio_scartati += 1
                 self.audio.put_nowait(audio)
             except queue.Empty:
                 pass
@@ -201,6 +206,8 @@ class AscoltatoreVoce:
             "soglia_rms_minima": self.soglia_rms_minima,
             "blocchi_sotto_soglia": self.blocchi_sotto_soglia,
             "buffer": self.audio.qsize(),
+            "buffer_massimo": self.audio.maxsize,
+            "blocchi_audio_scartati": self.blocchi_audio_scartati,
             "filtro_rumore": self.filtro.stato() if self.filtro is not None else {
                 "attivo": False,
                 "modalita": "disattivato",
