@@ -31,6 +31,7 @@ class AscoltatoreVoce:
         self.dispositivo_attivo = None
         self.audio = queue.Queue(maxsize=12)
         self.blocchi_audio_scartati = 0
+        self.ultimi_blocchi_aggregati = 0
         self.attivo = False
         self.stream = None
         self.disponibile = self._sounddevice_disponibile()
@@ -228,6 +229,32 @@ class AscoltatoreVoce:
         except queue.Empty:
             return None
 
+    def ascolta_batch(self, timeout=1, max_blocchi=3):
+        """Legge fino a N blocchi già disponibili per ridurre l'overhead Vosk.
+
+        Non aspetta che si riempia il batch: se l'audio arriva in tempo reale,
+        restituisce subito il primo blocco. Se la coda è in ritardo, consuma
+        fino a max_blocchi in un'unica chiamata, mantenendo l'ordine e
+        limitando la latenza. Il PCM resta concatenato senza conversioni.
+        """
+        primo = self.ascolta(timeout=timeout)
+        if primo is None:
+            self.ultimi_blocchi_aggregati = 0
+            return None
+
+        blocchi = [primo]
+        limite = max(1, int(max_blocchi))
+        while len(blocchi) < limite:
+            try:
+                blocco = self.audio.get_nowait()
+            except queue.Empty:
+                break
+            if blocco:
+                blocchi.append(blocco)
+
+        self.ultimi_blocchi_aggregati = len(blocchi)
+        return b"".join(blocchi)
+
     def pulisci_buffer(self):
         while True:
             try:
@@ -275,6 +302,7 @@ class AscoltatoreVoce:
             "buffer": self.audio.qsize(),
             "buffer_massimo": self.audio.maxsize,
             "blocchi_audio_scartati": self.blocchi_audio_scartati,
+            "ultimi_blocchi_aggregati": self.ultimi_blocchi_aggregati,
             "filtro_rumore": self.filtro.stato() if self.filtro is not None else {
                 "attivo": False,
                 "modalita": "disattivato",
