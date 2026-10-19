@@ -13,6 +13,20 @@ class TestFallbackSintesiMacOS(unittest.TestCase):
         self.sintesi.rate_cinematico = 156
         self.sintesi.velocita = 0.92
 
+    @patch.object(SintesiVocale, "_parla_con_voicepack", return_value=True)
+    @patch.object(SintesiVocale, "_parla_con_voce_clonata", return_value=True)
+    @patch.object(SintesiVocale, "_parla_con_sistema", return_value=True)
+    @patch("voce.sintesi.platform.system", return_value="Darwin")
+    def test_blu_usa_prima_la_sintesi_di_sistema(
+        self, _sistema, parla_sistema, parla_clonata, parla_voicepack
+    ):
+        self.sintesi.attivo = True
+
+        self.assertTrue(self.sintesi.parla("Il mio colore preferito è blu."))
+        parla_sistema.assert_called_once_with("Il mio colore preferito è blu.")
+        parla_clonata.assert_not_called()
+        parla_voicepack.assert_not_called()
+
     @patch("voce.sintesi.subprocess.run")
     @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
     @patch("voce.sintesi.platform.system", return_value="Darwin")
