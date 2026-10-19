@@ -16,6 +16,7 @@ from core.istanza import IstanzaUnicaJarvis
 from core.kernel import KernelJarvis
 from dispositivi.telefono import TelefonoJarvis
 from interfaccia.hud import HUDJarvis
+from interfaccia.gesti import ControlloGesti
 
 
 class JarvisOS:
@@ -25,6 +26,7 @@ class JarvisOS:
         self.kernel: KernelJarvis | None = None
         self.hud: HUDJarvis | None = None
         self.telefono: TelefonoJarvis | None = None
+        self.gesti: ControlloGesti | None = None
         self.indirizzo_telefono: str | None = None
         self._worker: threading.Thread | None = None
         self._chiusura = threading.Event()
@@ -80,6 +82,20 @@ class JarvisOS:
                 self.kernel.logger.warning(f"HUD non disponibile: {errore}")
                 print(f"Avviso: HUD non disponibile, Jarvis continua senza interfaccia grafica: {errore}")
 
+            # La camera è opzionale e si attiva solo con consenso esplicito.
+            if os.environ.get("JARVIS_GESTI") == "1":
+                try:
+                    self.gesti = ControlloGesti(
+                        callback=self._gesto_rilevato,
+                        logger=self.kernel.logger,
+                    )
+                    if not self.gesti.avvia():
+                        self.gesti = None
+                        print("Controllo gestuale non disponibile; Jarvis continua normalmente.")
+                except Exception as errore:
+                    self.gesti = None
+                    self.kernel.logger.warning(f"Controllo gestuale non avviato: {errore}")
+
             self._worker = threading.Thread(
                 target=self._attesa_sessione,
                 name="JarvisCore",
@@ -129,6 +145,22 @@ class JarvisOS:
             self.arresta()
             return False
 
+    def _gesto_rilevato(self, gesto: str) -> None:
+        """Mostra nell'HUD gli eventi gestuali senza simulare azioni di sistema."""
+        descrizioni = {
+            "mano_aperta": "Mano aperta rilevata",
+            "pizzico": "Pizzico: selezione/afferra",
+            "scorri_destra": "Gesto: scorri a destra",
+            "scorri_sinistra": "Gesto: scorri a sinistra",
+            "zoom_avanti": "Gesto: zoom avanti",
+            "zoom_indietro": "Gesto: zoom indietro",
+        }
+        messaggio = descrizioni.get(gesto, f"Gesto rilevato: {gesto}")
+        if self.hud:
+            self.hud.registra_evento(messaggio)
+        if self.kernel and getattr(self.kernel, "logger", None):
+            self.kernel.logger.info(messaggio)
+
     def _attesa_sessione(self) -> None:
         """Mantiene viva la sessione; l'ascolto è gestito dal ModuloVoce."""
         try:
@@ -152,6 +184,13 @@ class JarvisOS:
     def arresta(self) -> bool:
         """Arresta ordinatamente server telefono, HUD, voce e kernel."""
         self._chiusura.set()
+
+        if self.gesti:
+            try:
+                self.gesti.ferma()
+            except Exception:
+                pass
+            self.gesti = None
 
         if self.telefono:
             try:
