@@ -303,7 +303,7 @@ class SintesiVocale:
                 except OSError:
                     pass
 
-    def _parla_con_sistema(self, testo):
+    def _parla_con_sistema(self, testo, voce_forzata=None):
         """Fallback live immediato, con secondo tentativo senza voce nominata.
 
         Su macOS meno recenti una voce può comparire nell'elenco ma non essere
@@ -314,7 +314,12 @@ class SintesiVocale:
             rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
             base = ["say", "-r", str(rate), str(testo)]
             comandi = []
-            if self.voce_sistema:
+            # Una voce scelta esplicitamente ha priorita: serve, ad esempio,
+            # per la parola "blu", che sul Mac dell'utente e pronunciata
+            # correttamente da Alice ma non dalla voce clonata di Jarvis.
+            if voce_forzata:
+                comandi.append(["say", "-v", voce_forzata, "-r", str(rate), str(testo)])
+            if self.voce_sistema and self.voce_sistema != voce_forzata:
                 comandi.append(["say", "-v", self.voce_sistema, "-r", str(rate), str(testo)])
             comandi.append(base)
 
@@ -356,15 +361,15 @@ class SintesiVocale:
         testo = " ".join(str(testo).strip().split())
 
         try:
-            # Per la parola italiana "blu" evitiamo audio clonati o cache
-            # voicepack: alcune registrazioni pre-generate possono pronunciarla
-            # male. Su macOS forziamo la sintesi italiana di sistema.
-            if (
-                platform.system() == "Darwin"
-                and re.search(r"\bblu\b", testo, flags=re.IGNORECASE)
-                and self._parla_con_sistema(testo)
+            # La voce clonata attuale pronuncia "blu" in modo errato.
+            # Per le frasi che contengono questa parola usiamo Alice, che
+            # e stata verificata sul Mac dell'utente, prima di provare altri
+            # motori. Le altre frasi continuano a usare la voce Jarvis.
+            if platform.system() == "Darwin" and re.search(
+                r"\bblu\b", testo, flags=re.IGNORECASE
             ):
-                return True
+                if self._parla_con_sistema(testo, voce_forzata="Alice"):
+                    return True
 
             if self._parla_con_voce_clonata(testo):
                 return True
