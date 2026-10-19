@@ -1,0 +1,5 @@
+# Dipendenze opzionali per il controllo gestuale della mano.
+# Verificare la compatibilità delle wheel con macOS High Sierra, Intel e Python
+# del virtualenv prima di installare: alcuni rilasci recenti non supportano OS X 10.13.
+opencv-python==4.8.1.78
+mediapipe==0.10.9
