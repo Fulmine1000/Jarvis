@@ -24,6 +24,14 @@ class TestConfigJarvis(unittest.TestCase):
             self.assertEqual(config.sezione("utente")["nome"], "Simone")
             self.assertTrue(config.ultimo_errore_caricamento)
 
+            # Una modifica successiva può riparare il file, ma prima deve
+            # conservare una copia recuperabile del contenuto originale.
+            config.modifica("utente", "nome", "Simone")
+            with open(percorso + ".corrotto", "r", encoding="utf-8") as file:
+                self.assertEqual(file.read(), originale)
+            with open(percorso, "r", encoding="utf-8") as file:
+                self.assertEqual(json.load(file)["utente"]["nome"], "Simone")
+
     def test_sezione_nota_con_tipo_errato_usa_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             percorso = os.path.join(tmp, "config.json")
