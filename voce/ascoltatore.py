@@ -100,7 +100,7 @@ class AscoltatoreVoce:
                         ingressi = int(dispositivo.get("max_input_channels", 0) or 0)
                         if ingressi > 0 and richiesto.lower() in nome.lower():
                             aggiungi(indice)
-                except (OSError, RuntimeError, TypeError, ValueError):
+                except Exception:
                     pass
 
         try:
@@ -108,14 +108,14 @@ class AscoltatoreVoce:
             if isinstance(predefinito, (tuple, list)):
                 predefinito = predefinito[0] if predefinito else None
             aggiungi(predefinito)
-        except (AttributeError, OSError, RuntimeError, TypeError, ValueError):
+        except Exception:
             pass
 
         try:
             for indice, dispositivo in enumerate(sd.query_devices()):
                 if int(dispositivo.get("max_input_channels", 0) or 0) > 0:
                     aggiungi(indice)
-        except (OSError, RuntimeError, TypeError, ValueError):
+        except Exception:
             pass
 
         return candidati
@@ -174,8 +174,14 @@ class AscoltatoreVoce:
 
         self.pulisci_buffer()
         if self.filtro is not None:
-            self.filtro.reset()
-            self.filtro.avvia()
+            try:
+                self.filtro.reset()
+                self.filtro.avvia()
+            except Exception as errore:
+                # Il filtro è opzionale: un suo errore non deve disabilitare
+                # l'ingresso audio, perché callback() inoltra il PCM originale.
+                self.ultimo_errore = f"Filtro rumore non avviato: {errore}"
+                self.filtro = None
 
         errori = []
         candidati = self._candidati_dispositivo()
@@ -198,12 +204,14 @@ class AscoltatoreVoce:
                 self.attivo = True
                 self.ultimo_errore = None
                 return True
-            except (OSError, RuntimeError, ValueError) as errore:
+            except Exception as errore:
+                # PortAudio può sollevare eccezioni proprie, non solo OSError.
+                # Proviamo il prossimo ingresso prima di dichiarare l'audio KO.
                 errori.append(f"dispositivo {dispositivo}: {errore}")
                 if stream is not None:
                     try:
                         stream.close()
-                    except (OSError, RuntimeError):
+                    except Exception:
                         pass
 
         self.attivo = False
