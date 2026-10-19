@@ -147,7 +147,9 @@ class ModuloVoce:
                 f"stream={stato_audio.get('stream', 'n/d')}, "
                 f"rms_ingresso={stato_audio.get('rms_ingresso', 'n/d')}, "
                 f"rms_filtrato={stato_audio.get('rms_filtrato', 'n/d')}, "
-                f"buffer={stato_audio.get('buffer', 'n/d')}, "
+                f"buffer={stato_audio.get('buffer', 'n/d')}/"
+                f"{stato_audio.get('buffer_massimo', 'n/d')}, "
+                f"blocchi_scartati={stato_audio.get('blocchi_audio_scartati', 'n/d')}, "
                 f"errore_microfono={stato_audio.get('ultimo_errore') or 'nessuno'}"
             )
 
