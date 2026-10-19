@@ -194,7 +194,9 @@ class RiconoscitoreVoce:
             (r"^analizza\s+il\s+mia\s+rete$", "analizza la mia rete"),
             (r"^(?:che\s+)?ore\s+(?:sono|e|adesso|ora)(?:\s+(?:adesso|ora))?$", "che ore sono"),
             # Errore fonetico osservato nei log: "che harrison" per "che ore sono".
+            # Correzioni fonetiche esatte osservate nei log live del Mac.
             (r"^che\s+harrison$", "che ore sono"),
+            (r"^che\s+chiuri\s+sono$", "che ore sono"),
             # Altre trascrizioni fonetiche osservate per la richiesta dell’ora.
             (r"^(?:georges|george)\s+harrison$", "che ore sono"),
             (r"^(?:che\s+)?ora\s+e$", "che ore sono"),
