@@ -177,7 +177,7 @@ class ModuloVoce:
         if not self.ascolto_attivo:
             return None
         try:
-            audio = self.ascoltatore.ascolta_batch(max_blocchi=3)
+            audio = self.ascoltatore.ascolta()
             if not audio:
                 self._diagnostica_microfono_senza_trascrizione("nessun blocco audio ricevuto")
                 return None
