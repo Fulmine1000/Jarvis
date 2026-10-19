@@ -28,6 +28,16 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("Repeater", source)
         self.assertIn("Timer", source)
 
+    def test_arresto_timer_hud_usa_il_thread_qt(self):
+        source = HUD_PY.read_text(encoding="utf-8")
+        self.assertIn("stopTimerRequested = Signal()", source)
+        self.assertIn("self.bridge.stopTimerRequested.connect(self.timer.stop)", source)
+        inizio = source.index("    def ferma(self):")
+        fine = source.index("    def mostra(self):", inizio)
+        metodo_ferma = source[inizio:fine]
+        self.assertIn("self.bridge.stopTimerRequested.emit()", metodo_ferma)
+        self.assertIn("threading.current_thread() is threading.main_thread()", metodo_ferma)
+
     def test_hud_include_scansione_olografica(self):
         source = HUD_QML.read_text(encoding="utf-8")
         self.assertIn("Holographic scan plane", source)
