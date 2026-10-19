@@ -7,7 +7,7 @@ PERCORSO_CONFIG = os.path.join(BASE_JARVIS, "config", "config.json")
 
 
 class ConfigJarvis:
-    """Gestisce la configurazione persistente di Jarvis."""
+    """Gestisce la configurazione persistente di Jarvis senza perdere dati corrotti."""
 
     def __init__(self):
         self.default = {
@@ -63,9 +63,11 @@ class ConfigJarvis:
             },
         }
         self.config = {}
+        self.ultimo_errore_caricamento = None
         self.carica()
 
     def carica(self):
+        """Carica la configurazione; non sovrascrive file esistenti non leggibili."""
         cartella = os.path.dirname(PERCORSO_CONFIG)
         if cartella and not os.path.exists(cartella):
             os.makedirs(cartella)
@@ -78,21 +80,34 @@ class ConfigJarvis:
         try:
             with open(PERCORSO_CONFIG, "r", encoding="utf-8") as file:
                 dati = json.load(file)
+            if not isinstance(dati, dict):
+                raise ValueError("La radice di config.json deve essere un oggetto JSON.")
             self.config = self._completa(dati)
-        except (OSError, ValueError, TypeError):
+            self.ultimo_errore_caricamento = None
+        except (OSError, ValueError, TypeError) as errore:
+            # Mantieni i valori predefiniti in memoria, ma conserva il file
+            # originale: riscriverlo qui potrebbe cancellare le impostazioni
+            # dell'utente e rendere impossibile recuperarle.
             self.config = json.loads(json.dumps(self.default))
-            self.salva()
+            self.ultimo_errore_caricamento = str(errore)
 
     def _completa(self, dati):
-        """Completa configurazioni precedenti senza perdere valori esistenti."""
+        """Completa configurazioni precedenti ignorando sezioni malformate."""
         configurazione = json.loads(json.dumps(self.default))
         if not isinstance(dati, dict):
             return configurazione
 
         for sezione, valori in dati.items():
-            if isinstance(valori, dict) and isinstance(configurazione.get(sezione), dict):
-                configurazione[sezione].update(valori)
-            else:
+            valore_predefinito = configurazione.get(sezione)
+            if isinstance(valore_predefinito, dict):
+                # Una sezione nota deve restare un dizionario: un valore di
+                # tipo stringa/lista non deve rompere le chiamate a sezione().get().
+                if isinstance(valori, dict):
+                    valore_predefinito.update(valori)
+                continue
+
+            # Le sezioni aggiuntive sono ammesse solo come dizionari.
+            if isinstance(valori, dict):
                 configurazione[sezione] = valori
 
         configurazione.setdefault("jarvis", {})["versione"] = "definitiva"
@@ -116,10 +131,15 @@ class ConfigJarvis:
         return self.config.get(chiave, default)
 
     def sezione(self, nome):
-        return self.config.get(nome, {})
+        valore = self.config.get(nome, {})
+        return valore if isinstance(valore, dict) else {}
 
     def modifica(self, sezione, chiave, valore):
-        self.config.setdefault(sezione, {})[chiave] = valore
+        valori = self.config.get(sezione)
+        if not isinstance(valori, dict):
+            valori = {}
+            self.config[sezione] = valori
+        valori[chiave] = valore
         self.salva()
 
     def tutto(self):
