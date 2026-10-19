@@ -236,6 +236,36 @@ ApplicationWindow {
             }
         }
 
+        // Holographic scan plane: sweeps through the reactor like a live projection.
+        Rectangle {
+            anchors.centerIn: parent
+            width: 218
+            height: 1
+            rotation: root.t * 52
+            transformOrigin: Item.Center
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#0054f4ff" }
+                GradientStop { position: 0.48; color: "#8aff9d" }
+                GradientStop { position: 0.52; color: "#54f4ff" }
+                GradientStop { position: 1.0; color: "#0054f4ff" }
+            }
+            opacity: 0.58 + root.activity * 0.25
+        }
+
+        // Three orbiting holographic markers react to the voice channel.
+        Repeater {
+            model: 3
+            Rectangle {
+                width: index === 1 ? 7 : 4
+                height: width
+                radius: width / 2
+                x: 215 + Math.cos(root.t * (index % 2 === 0 ? 0.9 : -0.65) + index * 2.094) * (index === 1 ? 122 : 145) - width / 2
+                y: 215 + Math.sin(root.t * (index % 2 === 0 ? 0.9 : -0.65) + index * 2.094) * (index === 1 ? 122 : 145) - height / 2
+                color: index === 1 ? "#8aff9d" : "#54f4ff"
+                opacity: 0.55 + root.activity * 0.45
+            }
+        }
+
         // Energy rings
         Rectangle {
             anchors.centerIn: parent
