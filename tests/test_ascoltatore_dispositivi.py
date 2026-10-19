@@ -43,6 +43,24 @@ class TestSelezioneDispositivoAudio(unittest.TestCase):
         self.assertNotIn(2, ascoltatore._candidati_dispositivo())
 
 
+    def test_ascolta_batch_unisce_solo_blocchi_gia_disponibili(self):
+        ascoltatore = AscoltatoreVoce(filtro_rumore=False)
+        ascoltatore.attivo = True
+        blocchi = [bytes([valore, 0]) * 8 for valore in (1, 2, 3)]
+        for blocco in blocchi:
+            ascoltatore.audio.put_nowait(blocco)
+
+        ricevuto = ascoltatore.ascolta_batch(timeout=0.01, max_blocchi=2)
+
+        self.assertEqual(ricevuto, blocchi[0] + blocchi[1])
+        self.assertEqual(ascoltatore.audio.get_nowait(), blocchi[2])
+        self.assertEqual(ascoltatore.ultimi_blocchi_aggregati, 2)
+
+    def test_ascolta_batch_con_coda_vuota_restituisce_none(self):
+        ascoltatore = AscoltatoreVoce(filtro_rumore=False)
+        self.assertIsNone(ascoltatore.ascolta_batch(timeout=0.001, max_blocchi=3))
+        self.assertEqual(ascoltatore.ultimi_blocchi_aggregati, 0)
+
     def test_avvia_prova_il_dispositivo_successivo_se_il_default_fallisce(self):
         tentativi = []
 
