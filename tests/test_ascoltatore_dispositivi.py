@@ -45,6 +45,7 @@ class TestSelezioneDispositivoAudio(unittest.TestCase):
 
     def test_ascolta_batch_unisce_solo_blocchi_gia_disponibili(self):
         ascoltatore = AscoltatoreVoce(filtro_rumore=False)
+        ascoltatore.attivo = True
         blocchi = [bytes([valore, 0]) * 8 for valore in (1, 2, 3)]
         for blocco in blocchi:
             ascoltatore.audio.put_nowait(blocco)
