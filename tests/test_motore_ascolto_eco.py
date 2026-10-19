@@ -44,6 +44,12 @@ class TestFiltroEcoJarvis(unittest.TestCase):
             "barry jiu su vicino",
         )
 
+    def test_prefisso_ehi_non_deve_generare_risposta_vocale(self):
+        # "Ehi Jarvis" può essere diviso da Vosk in due risultati.
+        # Il solo "ehi" non deve far parlare Jarvis prima del comando.
+        self.assertIn("ehi", self.motore.wake_word.prefissi_attivazione)
+        self.assertIn("hey", self.motore.wake_word.prefissi_attivazione)
+
 
     def test_ciclo_non_rallenta_la_coda_con_blocchi_senza_trascrizione(self):
         class ListenerFinto:
