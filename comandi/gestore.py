@@ -35,7 +35,9 @@ class GestoreComandi:
             self.kernel.sicurezza.registra("Comando protetto richiesto", originale)
             return "Questo comando richiede conferma. Aggiunga 'confermo' per autorizzarlo."
         try:
-            risposta = self._esegui_studio_presentazioni(originale)
+            risposta = self._esegui_controllo_telefono_video(originale)
+            if risposta is None:
+                risposta = self._esegui_studio_presentazioni(originale)
             if risposta is None:
                 risposta = self._esegui_comandi_documenti(originale)
             if risposta is None:
@@ -87,6 +89,17 @@ class GestoreComandi:
                 break
 
         return c.strip()
+
+    def _esegui_controllo_telefono_video(self, comando_originale):
+        """Comandi vocali del video: schermo, app e avvio sicuro delle chiamate."""
+        try:
+            from dispositivi.controllo_android import ControlloAndroidVideo
+            controller = ControlloAndroidVideo(logger=self.logger)
+            return controller.gestisci_comando(comando_originale)
+        except Exception as errore:
+            if self.logger:
+                self.logger.warning(f"Controllo telefono Android non disponibile: {errore}")
+            return None
 
     def _esegui_comandi_documenti(self, comando_originale):
         """Lettura e ricerca letterale nei documenti, senza eseguire il contenuto."""
