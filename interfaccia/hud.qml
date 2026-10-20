@@ -239,163 +239,201 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Central holographic 3D object: wireframe scan instead of the old reactor.
+    // Central hologram matched to the Instagram reference: cyan arc-reactor
+    // projection floating above luminous elliptical emitter rings.
     Item {
         id: hologram
         x: root.width / 2 - 180
-        y: 92
+        y: 86
         width: 360
         height: 360
         property real zoom: 1.0
         property real gestureTurn: 0
 
-        // Subtle floor projection and scan reticle.
+        // Atmospheric cyan glow behind the projected object.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 286
-            width: 250
-            height: 1
-            color: "#ffb347"
-            opacity: 0.38
+            y: 35
+            width: 248 * hologram.zoom
+            height: 248 * hologram.zoom
+            radius: width / 2
+            color: "#073d43"
+            opacity: 0.22 + root.activity * 0.12
         }
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 294
-            width: 190
-            height: 1
-            color: "#d97716"
-            opacity: 0.22
+            y: 50
+            width: 214 * hologram.zoom
+            height: 214 * hologram.zoom
+            radius: width / 2
+            color: "transparent"
+            border.color: "#00f5ff"
+            border.width: 2
+            opacity: 0.38 + root.activity * 0.22
         }
 
-        Canvas {
-            id: hologramCanvas
-            anchors.fill: parent
-            renderTarget: Canvas.FramebufferObject
-            antialiasing: true
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.clearRect(0, 0, width, height);
-                var cx = width / 2;
-                var cy = height / 2 - 12;
-                var scale = 1.0 * hologram.zoom;
-                var angle = root.t * 0.55 + hologram.gestureTurn;
-                var points = [];
-                var edges = [];
-                var i, j;
-
-                // Project a rotating 3D wireframe object with depth.
-                function project(p) {
-                    var x = p[0], y = p[1], z = p[2];
-                    var ca = Math.cos(angle), sa = Math.sin(angle);
-                    var cb = Math.cos(angle * 0.63), sb = Math.sin(angle * 0.63);
-                    var rx = x * ca - z * sa;
-                    var rz = x * sa + z * ca;
-                    var ry = y * cb - rz * sb;
-                    rz = y * sb + rz * cb;
-                    var perspective = 3.6 / (3.6 + rz);
-                    return [cx + rx * 92 * scale * perspective, cy + ry * 92 * scale * perspective, rz];
-                }
-
-                // A faceted scan mesh: rings plus meridians, like a scanned 3D hologram.
-                var latitudes = 6;
-                var longitudes = 12;
-                for (i = 1; i < latitudes; i++) {
-                    var lat = -Math.PI / 2 + Math.PI * i / latitudes;
-                    ctx.beginPath();
-                    for (j = 0; j <= 36; j++) {
-                        var lon = Math.PI * 2 * j / 36;
-                        var p = project([Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon)]);
-                        if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
-                    }
-                    ctx.strokeStyle = i % 2 === 0 ? "#ffb347" : "#9c5b1c";
-                    ctx.globalAlpha = i % 2 === 0 ? 0.55 : 0.32;
-                    ctx.lineWidth = i % 3 === 0 ? 1.15 : 0.65;
-                    ctx.stroke();
-                }
-                for (i = 0; i < longitudes; i++) {
-                    var lon2 = Math.PI * 2 * i / longitudes;
-                    ctx.beginPath();
-                    for (j = 0; j <= 72; j++) {
-                        var lat2 = -Math.PI / 2 + Math.PI * j / 36;
-                        var p2 = project([Math.cos(lat2) * Math.cos(lon2), Math.sin(lat2), Math.cos(lat2) * Math.sin(lon2)]);
-                        if (j === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
-                    }
-                    ctx.strokeStyle = i % 3 === 0 ? "#ffe0a6" : "#d97716";
-                    ctx.globalAlpha = i % 3 === 0 ? 0.72 : 0.38;
-                    ctx.lineWidth = i % 3 === 0 ? 1.1 : 0.6;
-                    ctx.stroke();
-                }
-
-                // Wireframe cube corners and diagonals add a tangible 3D scan silhouette.
-                var verts = [
-                    [-0.72,-0.72,-0.72],[0.72,-0.72,-0.72],[0.72,0.72,-0.72],[-0.72,0.72,-0.72],
-                    [-0.72,-0.72,0.72],[0.72,-0.72,0.72],[0.72,0.72,0.72],[-0.72,0.72,0.72]
-                ];
-                var edgePairs = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7],[0,6],[1,7],[2,4],[3,5]];
-                ctx.globalAlpha = 0.78;
-                ctx.strokeStyle = "#ffe0a6";
-                ctx.lineWidth = 1.15;
-                for (i = 0; i < edgePairs.length; i++) {
-                    var a = project(verts[edgePairs[i][0]]);
-                    var b = project(verts[edgePairs[i][1]]);
-                    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-                }
-
-                // Scan nodes and axis markers.
-                ctx.globalAlpha = 0.9;
-                for (i = 0; i < verts.length; i++) {
-                    var v = project(verts[i]);
-                    ctx.beginPath(); ctx.arc(v[0], v[1], 2.2, 0, Math.PI * 2);
-                    ctx.fillStyle = "#fff0d6"; ctx.fill();
-                }
-                ctx.globalAlpha = 0.75;
-                ctx.strokeStyle = "#ffb347";
-                ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(cx - 135, cy); ctx.lineTo(cx - 105, cy); ctx.moveTo(cx + 105, cy); ctx.lineTo(cx + 135, cy);
-                ctx.moveTo(cx, cy - 135); ctx.lineTo(cx, cy - 105); ctx.moveTo(cx, cy + 105); ctx.lineTo(cx, cy + 135); ctx.stroke();
-
-                // Rotating horizontal scan beam.
-                var beamY = cy + Math.sin(root.t * 1.7) * 78;
-                var grad = ctx.createLinearGradient(cx - 125, beamY, cx + 125, beamY);
-                grad.addColorStop(0, "rgba(255,179,71,0)");
-                grad.addColorStop(0.5, "rgba(255,224,166,0.8)");
-                grad.addColorStop(1, "rgba(255,179,71,0)");
-                ctx.strokeStyle = grad; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.8;
-                ctx.beginPath(); ctx.moveTo(cx - 125, beamY); ctx.lineTo(cx + 125, beamY); ctx.stroke();
-                ctx.globalAlpha = 1;
+        // Main floating arc-reactor disc, drawn as a luminous technical hologram.
+        Item {
+            id: reactor
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 56
+            width: 190 * hologram.zoom
+            height: 190 * hologram.zoom
+            rotation: root.t * 5 + hologram.gestureTurn
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width
+                height: parent.height
+                radius: width / 2
+                color: "#06373d"
+                opacity: 0.42
+                border.color: "#00f5ff"
+                border.width: 2
             }
-            Connections {
-                target: root
-                function onTChanged() { hologramCanvas.requestPaint() }
-                function onActivityChanged() { hologramCanvas.requestPaint() }
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width - 18
+                height: parent.height - 18
+                radius: width / 2
+                color: "transparent"
+                border.color: "#70ffff"
+                border.width: 3
+                opacity: 0.94
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width - 36
+                height: parent.height - 36
+                radius: width / 2
+                color: "transparent"
+                border.color: "#00dce8"
+                border.width: 1
+                opacity: 0.9
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width - 66
+                height: parent.height - 66
+                radius: width / 2
+                color: "transparent"
+                border.color: "#7affff"
+                border.width: 2
+                opacity: 0.8
+            }
+            Repeater {
+                model: 12
+                Rectangle {
+                    width: 5
+                    height: 25
+                    radius: 2
+                    x: reactor.width / 2 - width / 2
+                    y: 10
+                    transformOrigin: Item.Bottom
+                    rotation: index * 30
+                    color: index % 3 === 0 ? "#e0ffff" : "#00f5ff"
+                    opacity: 0.9
+                }
+            }
+            Repeater {
+                model: 24
+                Rectangle {
+                    width: index % 3 === 0 ? 3 : 1
+                    height: index % 3 === 0 ? 10 : 6
+                    x: reactor.width / 2 - width / 2
+                    y: 2
+                    transformOrigin: Item.Bottom
+                    rotation: index * 15
+                    color: "#aaffff"
+                    opacity: 0.75
+                }
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 54
+                height: 54
+                radius: 27
+                color: "#aaffff"
+                opacity: 0.96
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 34
+                height: 34
+                radius: 17
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#ffffff" }
+                    GradientStop { position: 0.5; color: "#8affff" }
+                    GradientStop { position: 1.0; color: "#00aebb" }
+                }
+                opacity: 1.0
             }
         }
 
-        // Corner brackets frame the scanned object rather than surrounding a reactor.
+        // Scanning sweep across the reactor, with a subtle animated pulse.
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 56 + (Math.sin(root.t * 1.8) + 1) * 75
+            width: 205 * hologram.zoom
+            height: 2
+            color: "#baffff"
+            opacity: 0.55 + root.activity * 0.35
+        }
+
+        // Elliptical projection platform, matching the floating hologram in the video.
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 238
+            width: 310 * hologram.zoom
+            height: 90
+            Repeater {
+                model: 4
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width - index * 25
+                    height: parent.height - index * 15
+                    radius: height / 2
+                    color: "transparent"
+                    border.color: index === 1 ? "#7affff" : "#00f5ff"
+                    border.width: index === 1 ? 3 : 1
+                    opacity: (0.82 - index * 0.13) + root.activity * 0.1
+                }
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width - 26
+                height: 2
+                color: "#baffff"
+                opacity: 0.45
+            }
+        }
+
+        // Fine particles rise from the emitter to the object.
         Repeater {
-            model: 4
-            Item {
-                property real leftX: index % 2 === 0 ? 35 : 289
-                property real topY: index < 2 ? 30 : 278
-                x: leftX; y: topY; width: 36; height: 36
-                Rectangle { x: 0; y: 0; width: 24; height: 1; color: "#ffb347"; opacity: 0.75 }
-                Rectangle { x: 0; y: 0; width: 1; height: 24; color: "#ffb347"; opacity: 0.75 }
+            model: 24
+            Rectangle {
+                width: index % 4 === 0 ? 3 : 2
+                height: width
+                radius: width / 2
+                x: 70 + (index * 47 % 220)
+                y: 170 + (index * 29 % 75)
+                color: "#9dffff"
+                opacity: 0.22 + (Math.sin(root.t * 2 + index) + 1) * 0.28
             }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 316
-            text: root.listening ? "SCANNING // LISTENING" : root.speaking ? "HOLOGRAM LINK ACTIVE" : "3D HOLOGRAM // READY"
-            color: root.listening ? "#ffcc7a" : "#ffe0a6"
+            y: 326
+            text: root.listening ? "HOLOGRAM SCAN // ACTIVE" : root.speaking ? "ARC REACTOR // LINKED" : "3D HOLOGRAM // READY"
+            color: "#9dffff"
             font.pixelSize: 9
             font.bold: true
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 333
-            text: "LIVE MESH  //  " + Math.round(root.activity * 100) + "%"
-            color: "#d98b36"
+            y: 342
+            text: "LIVE PROJECTION  //  " + Math.round(root.activity * 100) + "%"
+            color: "#35cbd4"
             font.pixelSize: 7
             font.bold: true
         }
