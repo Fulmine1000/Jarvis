@@ -741,6 +741,7 @@ public:
   path(const char *value) : value_(value ? value : "") {}
   path(const std::string &value) : value_(value) {}
   std::string string() const { return value_; }
+  bool empty() const { return value_.empty(); }
   path &append(const std::string &part) {
     if (!value_.empty() && value_[value_.size() - 1] != '/') value_ += "/";
     value_ += part;
