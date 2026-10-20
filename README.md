@@ -101,6 +101,10 @@ Lo script compila whisper.cpp e scarica il modello Whisper BASE multilingue (cir
 
 Per controllare il backend effettivamente attivo, consultare lo stato del modulo voce di Jarvis: il campo `backend` mostra `whisper` oppure `vosk`. Se la compilazione non riesce su High Sierra, Jarvis mantiene il fallback Vosk invece di interrompere l'avvio.
 
+## Controllo vocale del telefono Android
+
+Jarvis può risvegliare lo schermo, aprire app e preparare chiamate su un singolo telefono Android collegato via USB con ADB autorizzato. Le chiamate richiedono conferma manuale e il blocco PIN/biometrico non viene aggirato. Comandi e requisiti sono descritti in [docs/CONTROLLO_ANDROID_VIDEO.md](docs/CONTROLLO_ANDROID_VIDEO.md).
+
 ## Test
 
 ```bash
