@@ -379,7 +379,7 @@ class SintesiVocale:
             # voce generale di Jarvis, la usiamo solo nelle frasi che la contengono.
             if (
                 platform.system() == "Darwin"
-                and re.search(r"\\bblu\\b", testo, flags=re.IGNORECASE)
+                and re.search(r"\bblu\b", testo, flags=re.IGNORECASE)
                 and self._parla_con_sistema(testo, voce_forzata="Alice")
             ):
                 return True
