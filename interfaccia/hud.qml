@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1050
-    height: 650
-    minimumWidth: 980
-    minimumHeight: 620
+    width: 1240
+    height: 700
+    minimumWidth: 1180
+    minimumHeight: 660
     title: "J.A.R.V.I.S. — Neural Command Interface"
     // Palette cinematografica ambra/arancio: niente pannelli blu/ciano residui.
     color: "#070503"
@@ -114,8 +114,8 @@ ApplicationWindow {
         border.width: 1
         Rectangle { x: 0; y: height - 2; width: 190; height: 2; color: "#ffb347" }
         Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "J.A.R.V.I.S."; color: "#fff0d6"; font.pixelSize: 15; font.bold: true }
-        Text { x: 110; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { anchors.centerIn: parent; text: "●  " + root.stateText; color: root.listening ? "#ffb347" : "#28ee70"; font.pixelSize: 9; font.bold: true }
+        Text { x: 126; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
+        Text { anchors.centerIn: parent; text: "●  " + root.stateText; color: root.listening ? "#ffb347" : "#ffcc7a"; font.pixelSize: 9; font.bold: true }
         Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "SIMONE  //  " + root.clockText; color: "#d7a66b"; font.pixelSize: 9 }
     }
 
@@ -164,7 +164,7 @@ ApplicationWindow {
         Rectangle { x: 22; y: 425; width: parent.width - 44; height: 1; color: "#a45c18" }
         Text { x: 22; y: 470; text: "SESSION"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
         Text { x: 22; y: 490; text: root.dateText; color: "#f4d7ac"; font.pixelSize: 11 }
-        Text { x: 22; y: 510; text: "SECURITY      ARMED"; color: "#28ee70"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 510; text: "SECURITY      ARMED"; color: "#ffcc7a"; font.pixelSize: 8; font.bold: true }
         Text { x: 22; y: 530; text: "AI ENGINE     READY"; color: "#ffb347"; font.pixelSize: 8; font.bold: true }
         Text { x: 22; y: 550; text: "LINK          LOCAL"; color: "#d7a66b"; font.pixelSize: 8; font.bold: true }
     }
@@ -185,14 +185,14 @@ ApplicationWindow {
             Item {
                 x: 22; y: 145 + index * 24; width: 204; height: 18
                 Text { x: 10; text: modelData[0]; color: "#f4d7ac"; font.pixelSize: 7; font.bold: true }
-                Text { anchors.right: parent.right; text: modelData[1]; color: "#28ee70"; font.pixelSize: 7; font.bold: true }
+                Text { anchors.right: parent.right; text: modelData[1]; color: "#ffcc7a"; font.pixelSize: 7; font.bold: true }
                 Rectangle { y: 17; width: parent.width; height: 1; color: "#3b210d" }
             }
         }
 
         Rectangle { x: 12; y: 242; width: parent.width - 24; height: 128; color: "#1b0e05"; border.color: "#5c2e0c" }
         Text { x: 22; y: 252; text: "VOICE CHANNEL"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#ffb347" : root.speaking ? "#28ee70" : "#f4d7ac"; font.pixelSize: 13; font.bold: true }
+        Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#f4d7ac"; font.pixelSize: 13; font.bold: true }
         Rectangle { x: 22; y: 305; width: 188; height: 30; color: "#100802"; border.color: "#61320d" }
         Repeater {
             model: 22
@@ -200,7 +200,7 @@ ApplicationWindow {
                 width: 5
                 height: 4 + Math.abs(Math.sin(root.t * (root.listening ? 10 : root.speaking ? 7 : 3) + index * 0.9)) * (root.listening || root.speaking ? 20 : 5)
                 x: 27 + index * 8; y: 320 - height / 2; radius: 2
-                color: root.speaking ? "#28ee70" : "#ffb347"
+                color: root.speaking ? "#ffcc7a" : "#ffb347"
             }
         }
         Text { x: 22; y: 348; text: "WAKE WORD: JARVIS"; color: "#9b754f"; font.pixelSize: 8 }
@@ -219,7 +219,7 @@ ApplicationWindow {
         height: 430
 
         Rectangle { anchors.centerIn: parent; width: 382; height: 382; radius: 191; color: "transparent"; border.color: "#5c2e0c"; border.width: 1; opacity: 0.7 }
-        Rectangle { anchors.centerIn: parent; width: 350; height: 350; radius: 175; color: "#1b0e05"; opacity: 0.35; border.color: "#8c4b12"; border.width: 1 }
+        Rectangle { anchors.centerIn: parent; width: 350; height: 350; radius: 175; color: "#1b0e05"; opacity: 0.35; border.color: "#a45c18"; border.width: 1 }
         Rectangle { anchors.centerIn: parent; width: 305; height: 305; radius: 152; color: "transparent"; border.color: "#a45c18"; border.width: 1; rotation: root.t * 6 }
         Rectangle { anchors.centerIn: parent; width: 270; height: 270; radius: 135; color: "transparent"; border.color: "#633a12"; border.width: 2; rotation: -root.t * 10 }
         Rectangle { anchors.centerIn: parent; width: 225; height: 225; radius: 112; color: "transparent"; border.color: "#ffb347"; border.width: 1; opacity: 0.65 + root.activity * 0.35; rotation: root.t * 18 }
@@ -311,7 +311,7 @@ ApplicationWindow {
             width: 86 + root.activity * 10
             height: width
             radius: width / 2
-            color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#ff8c24"
+            color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#ffb347"
             opacity: root.listening || root.speaking ? 0.95 : 0.72
             scale: 1.0 + Math.sin(root.t * 6) * (root.listening || root.speaking ? 0.05 : 0.015)
             Behavior on color { ColorAnimation { duration: 180 } }
@@ -335,7 +335,7 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 322
             text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "SYSTEM READY"
-            color: root.listening ? "#ffb347" : root.speaking ? "#28ee70" : "#ffe0a6"
+            color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#ffe0a6"
             font.pixelSize: 11
             font.bold: true
         }
