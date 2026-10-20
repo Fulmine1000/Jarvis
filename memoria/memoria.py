@@ -16,10 +16,27 @@ class MemoriaJarvis:
 
     def avvia(self):
         self.attiva = True
+        self._sincronizza_profilo_personale()
         self.profilo.avvia()
         if self.logger:
             self.logger.info("Memoria Jarvis avviata.")
         return True
+
+    def _sincronizza_profilo_personale(self):
+        """Mantiene nel profilo personale soltanto i tre dati autorizzati."""
+        profilo = self.database.dati.setdefault("profilo", {})
+        profilo.clear()
+        for chiave, valore in (
+            ("nome_utente", "Simone"),
+            ("animale_preferito", "lupo"),
+            ("colore_preferito", "blu"),
+        ):
+            self.database.aggiungi("profilo", chiave, valore)
+
+        # I ricordi liberi possono contenere altre informazioni personali:
+        # si azzerano per rispettare la richiesta di conservare solo questi dati.
+        self.database.dati.pop("ricordi", None)
+        self.database.salva()
 
     def ferma(self):
         self.attiva = False
