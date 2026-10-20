@@ -822,7 +822,7 @@ inline path canonical(const char *value) {
     if risultato.returncode != 0:
         raise RuntimeError("configurazione CMake di Piper fallita")
     risultato = subprocess.run(
-        [cmake, "--build", build, "--config", "Release", "--parallel", "2"],
+        [cmake, "--build", build, "--config", "Release", "--parallel", "2", "--target", "piper"],
         check=False,
     )
     if risultato.returncode != 0:
@@ -847,6 +847,22 @@ inline path canonical(const char *value) {
                     break
     if not candidato:
         raise RuntimeError("eseguibile Piper compilato non trovato")
+
+    # Piper cerca espeak-ng-data accanto al proprio eseguibile. eSpeak NG
+    # viene installato prima sotto piper-phonemize/, quindi portiamo i dati
+    # nella posizione effettivamente attesa dal binario.
+    dati_destinazione = os.path.join(os.path.dirname(piper_path), "espeak-ng-data")
+    dati_candidati = [
+        os.path.join(phonemize_prefix, "share", "espeak-ng-data"),
+        os.path.join(os.path.dirname(lib_destinazione), "espeak-ng-data"),
+    ]
+    if not os.path.isdir(dati_destinazione):
+        for dati_sorgente in dati_candidati:
+            if os.path.isdir(dati_sorgente):
+                shutil.copytree(dati_sorgente, dati_destinazione)
+                break
+    if not os.path.isdir(dati_destinazione):
+        raise RuntimeError("directory espeak-ng-data non trovata per Piper")
 
     # Conserva il binario preesistente prima di sostituirlo.
     backup = piper_path + ".pre-high-sierra"
