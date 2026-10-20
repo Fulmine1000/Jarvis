@@ -118,10 +118,10 @@ class TextToSpeech:
             "JARVIS_CINEMATIC_VOICE", "1"
         ).strip().lower() in ("1", "true", "yes", "on")
         self.pitch_steps = float(
-            os.environ.get("JARVIS_CINEMATIC_PITCH", "-1.0")
+            os.environ.get("JARVIS_CINEMATIC_PITCH", "0.0")
         )
         self.time_rate = float(
-            os.environ.get("JARVIS_CINEMATIC_RATE", "0.96")
+            os.environ.get("JARVIS_CINEMATIC_RATE", "1.0")
         )
 
         self.model = None
