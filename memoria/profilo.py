@@ -70,8 +70,9 @@ class ProfiloJarvis:
         # In questo modo anche il motore vocale crea una pausa naturale
         # tra un'informazione e la successiva.
         descrizioni = {
-            "colore_preferito": "Il tuo colore preferito è",
             "nome_utente": "Il tuo nome è",
+            "animale_preferito": "Il tuo animale preferito è",
+            "colore_preferito": "Il tuo colore preferito è",
         }
 
         parti = ["Informazioni che ricordo."]
