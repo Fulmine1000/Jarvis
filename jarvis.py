@@ -72,7 +72,7 @@ class JarvisOS:
             # Se Qt non e disponibile, Jarvis resta comunque operativo in
             # modalita voce/testo invece di terminare l'intera sessione.
             try:
-                self.hud = HUDJarvis(kernel=self.kernel, width=1240, height=700)
+                self.hud = HUDJarvis(kernel=self.kernel, width=1440, height=780)
                 self.kernel.hud = self.hud
                 self.hud.collega_kernel(self.kernel)
                 self.hud.aggiorna_kernel()
