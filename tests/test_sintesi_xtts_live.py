@@ -48,12 +48,12 @@ class TestSintesiXTTSLive(unittest.TestCase):
         isfile.assert_not_called()
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_frase_con_blu_usa_guida_xtts_senza_forzare_alice(self, _platform):
+    def test_frase_con_blu_usa_voce_clonata_anche_con_xtts_live_disattivo(self, _platform):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.attivo = True
         sintesi.motore = "voicepack"
         sintesi.xtts_attivo = True
-        sintesi.xtts_live = True
+        sintesi.xtts_live = False
         sintesi.voce_riferimento = "/tmp/campione.wav"
         sintesi.velocita = 0.92
         sintesi._voicepack_tts = None
