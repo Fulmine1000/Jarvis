@@ -40,6 +40,18 @@ class TestSintesiXTTSLive(unittest.TestCase):
             "Bluetooth è connesso",
         )
 
+    @patch("voce.sintesi.platform.system", return_value="Darwin")
+    def test_frase_con_blu_usa_alice_per_correggere_la_pronuncia(self, _platform):
+        sintesi = SintesiVocale.__new__(SintesiVocale)
+        sintesi.attivo = True
+        with patch.object(
+            SintesiVocale, "_parla_con_sistema", return_value=True
+        ) as parla_sistema:
+            self.assertTrue(sintesi.parla("Il mio colore preferito è blu."))
+        parla_sistema.assert_called_once_with(
+            "Il mio colore preferito è blu.", voce_forzata="Alice"
+        )
+
     def test_frasi_con_blu_non_usano_cache_potenzialmente_difettosa(self):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.xtts_attivo = True
