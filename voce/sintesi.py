@@ -374,10 +374,15 @@ class SintesiVocale:
         testo = " ".join(str(testo).strip().split())
 
         try:
-            # Non forzare mai una voce di sistema per singole parole:
-            # tutte le frasi devono seguire lo stesso percorso vocale Jarvis.
-            # La correzione della pronuncia va fatta nel motore personalizzato,
-            # non sostituendo Alice alla voce scelta per il progetto.
+            # Su questo Mac la voce predefinita pronuncia "blu" come "bleah".
+            # Alice pronuncia correttamente questa parola; per non cambiare la
+            # voce generale di Jarvis, la usiamo solo nelle frasi che la contengono.
+            if (
+                platform.system() == "Darwin"
+                and re.search(r"\\bblu\\b", testo, flags=re.IGNORECASE)
+                and self._parla_con_sistema(testo, voce_forzata="Alice")
+            ):
+                return True
 
             if self._parla_con_voce_clonata(testo):
                 return True
