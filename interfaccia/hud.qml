@@ -239,7 +239,7 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Central hologram matched to the Instagram reference: cyan arc-reactor
+    // Central hologram matched to the Instagram reference: amber/orange arc-reactor
     // projection floating above luminous elliptical emitter rings.
     Item {
         id: hologram
@@ -250,14 +250,14 @@ ApplicationWindow {
         property real zoom: 1.0
         property real gestureTurn: 0
 
-        // Atmospheric cyan glow behind the projected object.
+        // Atmospheric amber/orange glow behind the projected object.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 35
             width: 248 * hologram.zoom
             height: 248 * hologram.zoom
             radius: width / 2
-            color: "#073d43"
+            color: "#3d1b05"
             opacity: 0.22 + root.activity * 0.12
         }
         Rectangle {
@@ -267,12 +267,12 @@ ApplicationWindow {
             height: 214 * hologram.zoom
             radius: width / 2
             color: "transparent"
-            border.color: "#00f5ff"
+            border.color: "#ff9a24"
             border.width: 2
             opacity: 0.38 + root.activity * 0.22
         }
 
-        // Main floating arc-reactor disc, drawn as a luminous technical hologram.
+        // Main floating arc-reactor disc, drawn as a luminous amber/orange technical hologram.
         Item {
             id: reactor
             anchors.horizontalCenter: parent.horizontalCenter
@@ -287,7 +287,7 @@ ApplicationWindow {
                 radius: width / 2
                 color: "#06373d"
                 opacity: 0.42
-                border.color: "#00f5ff"
+                border.color: "#ff9a24"
                 border.width: 2
             }
             Rectangle {
@@ -296,7 +296,7 @@ ApplicationWindow {
                 height: parent.height - 18
                 radius: width / 2
                 color: "transparent"
-                border.color: "#70ffff"
+                border.color: "#ffd08a"
                 border.width: 3
                 opacity: 0.94
             }
@@ -306,7 +306,7 @@ ApplicationWindow {
                 height: parent.height - 36
                 radius: width / 2
                 color: "transparent"
-                border.color: "#00dce8"
+                border.color: "#e87512"
                 border.width: 1
                 opacity: 0.9
             }
@@ -316,7 +316,7 @@ ApplicationWindow {
                 height: parent.height - 66
                 radius: width / 2
                 color: "transparent"
-                border.color: "#7affff"
+                border.color: "#ffb347"
                 border.width: 2
                 opacity: 0.8
             }
@@ -330,7 +330,7 @@ ApplicationWindow {
                     y: 10
                     transformOrigin: Item.Bottom
                     rotation: index * 30
-                    color: index % 3 === 0 ? "#e0ffff" : "#00f5ff"
+                    color: index % 3 === 0 ? "#fff0d6" : "#ff9a24"
                     opacity: 0.9
                 }
             }
@@ -343,7 +343,7 @@ ApplicationWindow {
                     y: 2
                     transformOrigin: Item.Bottom
                     rotation: index * 15
-                    color: "#aaffff"
+                    color: "#ffd9a0"
                     opacity: 0.75
                 }
             }
@@ -352,7 +352,7 @@ ApplicationWindow {
                 width: 54
                 height: 54
                 radius: 27
-                color: "#aaffff"
+                color: "#ffd9a0"
                 opacity: 0.96
             }
             Rectangle {
@@ -361,9 +361,9 @@ ApplicationWindow {
                 height: 34
                 radius: 17
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#ffffff" }
-                    GradientStop { position: 0.5; color: "#8affff" }
-                    GradientStop { position: 1.0; color: "#00aebb" }
+                    GradientStop { position: 0.0; color: "#fff4e6" }
+                    GradientStop { position: 0.5; color: "#ffbf66" }
+                    GradientStop { position: 1.0; color: "#d96508" }
                 }
                 opacity: 1.0
             }
@@ -375,11 +375,11 @@ ApplicationWindow {
             y: 56 + (Math.sin(root.t * 1.8) + 1) * 75
             width: 205 * hologram.zoom
             height: 2
-            color: "#baffff"
+            color: "#ffe0ad"
             opacity: 0.55 + root.activity * 0.35
         }
 
-        // Elliptical projection platform, matching the floating hologram in the video.
+        // Amber/orange elliptical projection platform, matching the floating hologram in the video.
         Item {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 238
@@ -393,7 +393,7 @@ ApplicationWindow {
                     height: parent.height - index * 15
                     radius: height / 2
                     color: "transparent"
-                    border.color: index === 1 ? "#7affff" : "#00f5ff"
+                    border.color: index === 1 ? "#ffb347" : "#ff9a24"
                     border.width: index === 1 ? 3 : 1
                     opacity: (0.82 - index * 0.13) + root.activity * 0.1
                 }
@@ -402,7 +402,7 @@ ApplicationWindow {
                 anchors.centerIn: parent
                 width: parent.width - 26
                 height: 2
-                color: "#baffff"
+                color: "#ffe0ad"
                 opacity: 0.45
             }
         }
@@ -416,7 +416,7 @@ ApplicationWindow {
                 radius: width / 2
                 x: 70 + (index * 47 % 220)
                 y: 170 + (index * 29 % 75)
-                color: "#9dffff"
+                color: "#ffcc7a"
                 opacity: 0.22 + (Math.sin(root.t * 2 + index) + 1) * 0.28
             }
         }
@@ -425,7 +425,7 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 326
             text: root.listening ? "HOLOGRAM SCAN // ACTIVE" : root.speaking ? "ARC REACTOR // LINKED" : "3D HOLOGRAM // READY"
-            color: "#9dffff"
+            color: "#ffcc7a"
             font.pixelSize: 9
             font.bold: true
         }
@@ -433,7 +433,7 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 342
             text: "LIVE PROJECTION  //  " + Math.round(root.activity * 100) + "%"
-            color: "#35cbd4"
+            color: "#d97716"
             font.pixelSize: 7
             font.bold: true
         }
