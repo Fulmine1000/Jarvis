@@ -11,8 +11,8 @@ ApplicationWindow {
     minimumWidth: 1180
     minimumHeight: 650
     title: "J.A.R.V.I.S. — Neural Command Interface"
-    // Palette cinematografica ambra/arancio: niente pannelli blu/ciano residui.
-    color: "#070503"
+    // Palette cinematografica blu/ciano ispirata all'interfaccia di J.A.R.V.I.S.
+    color: "#030811"
 
     property real t: 0
     property string stateText: "SYSTEM ONLINE"
@@ -80,7 +80,7 @@ ApplicationWindow {
         onTriggered: root.t += 0.016
     }
 
-    Rectangle { anchors.fill: parent; color: "#070503" }
+    Rectangle { anchors.fill: parent; color: "#030811" }
 
     // Technical grid
     Repeater {
@@ -90,7 +90,7 @@ ApplicationWindow {
             y: 66 + index * 42
             width: root.width
             height: 1
-            color: index % 3 === 0 ? "#35200d" : "#1d1007"
+            color: index % 3 === 0 ? "#0b2840" : "#071b2d"
             opacity: 0.55
         }
     }
@@ -101,7 +101,7 @@ ApplicationWindow {
             y: 66
             width: 1
             height: root.height - 92
-            color: "#241306"
+            color: "#092037"
             opacity: 0.48
         }
     }
@@ -110,21 +110,21 @@ ApplicationWindow {
     Rectangle {
         id: header
         x: 16; y: 12; width: root.width - 32; height: 42
-        color: "#1a0d04"
-        border.color: "#7a3c0b"
+        color: "#071a2b"
+        border.color: "#12618a"
         border.width: 1
-        Rectangle { x: 0; y: parent.height - 2; width: 300; height: 2; color: "#ffb347" }
+        Rectangle { x: 0; y: parent.height - 2; width: 300; height: 2; color: "#00cfff" }
         Text {
             x: 16; width: 126; height: parent.height
             verticalAlignment: Text.AlignVCenter
-            text: "J.A.R.V.I.S."; color: "#fff0d6"
+            text: "J.A.R.V.I.S."; color: "#d9f8ff"
             font.pixelSize: 15; font.bold: true
             elide: Text.ElideRight
         }
         Text {
             x: 154; width: 270; height: parent.height
             verticalAlignment: Text.AlignVCenter
-            text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"
+            text: "NEURAL COMMAND INTERFACE"; color: "#38c9f4"
             font.pixelSize: 9; font.bold: true
             elide: Text.ElideRight
         }
@@ -133,7 +133,7 @@ ApplicationWindow {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             text: "●  " + root.stateText
-            color: root.listening ? "#ffb347" : "#ffcc7a"
+            color: root.listening ? "#00cfff" : "#7ce8ff"
             font.pixelSize: 9; font.bold: true
             elide: Text.ElideRight
         }
@@ -143,7 +143,7 @@ ApplicationWindow {
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignVCenter
             text: "SIMONE  //  " + root.clockText
-            color: "#d7a66b"; font.pixelSize: 9
+            color: "#5dbddf"; font.pixelSize: 9
             elide: Text.ElideRight
         }
     }
@@ -151,34 +151,34 @@ ApplicationWindow {
     // Left telemetry panel
     Rectangle {
         x: 12; y: 66; width: 220; height: root.height - 82
-        color: "#100802"; border.color: "#63340c"; border.width: 1
-        Text { x: 12; y: 11; text: "SYSTEM TELEMETRY"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
+        color: "#061421"; border.color: "#105477"; border.width: 1
+        Text { x: 12; y: 11; text: "SYSTEM TELEMETRY"; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true }
+        Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#0d3852" }
 
         Repeater {
             model: [ ["CPU LOAD", root.cpuText], ["MEMORY", root.memoryText], ["STORAGE", root.diskText], ["NETWORK", root.networkText] ]
             Item {
                 x: 14; y: 46 + index * 45; width: 190; height: 32
-                Text { text: modelData[0]; color: "#d98b36"; font.pixelSize: 7; font.bold: true }
-                Text { y: 12; text: modelData[1]; color: "#ffe6c2"; font.pixelSize: 12; font.bold: true }
-                Rectangle { x: 108; y: 15; width: 70; height: 2; color: "#4a270b" }
-                Rectangle { x: 108; y: 15; width: 70 * Math.min(1, Math.max(0.05, root.activity)); height: 2; color: "#d97716"; opacity: 0.8 }
+                Text { text: modelData[0]; color: "#38c9f4"; font.pixelSize: 7; font.bold: true }
+                Text { y: 12; text: modelData[1]; color: "#c8f3ff"; font.pixelSize: 12; font.bold: true }
+                Rectangle { x: 108; y: 15; width: 70; height: 2; color: "#0d3852" }
+                Rectangle { x: 108; y: 15; width: 70 * Math.min(1, Math.max(0.05, root.activity)); height: 2; color: "#00aee8"; opacity: 0.8 }
             }
         }
 
-        Rectangle { x: 12; y: 206; width: parent.width - 24; height: 108; color: "#1b0e05"; border.color: "#5c2e0c" }
-        Text { x: 22; y: 216; text: "CORE MATRIX"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
+        Rectangle { x: 12; y: 206; width: parent.width - 24; height: 108; color: "#081e30"; border.color: "#12618a" }
+        Text { x: 22; y: 216; text: "CORE MATRIX"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Repeater {
             model: [ ["KERNEL", root.kernelText], ["MEMORY", root.memoryState], ["DEVICES", root.deviceText], ["VOICE", root.voiceText] ]
             Item {
                 x: 22; y: 242 + index * 20; width: 176; height: 14
-                Text { text: modelData[0]; color: "#9b754f"; font.pixelSize: 7 }
-                Text { anchors.right: parent.right; text: modelData[1]; color: index === 3 && root.listening ? "#ffb347" : "#f4d7ac"; font.pixelSize: 7; font.bold: true }
+                Text { text: modelData[0]; color: "#4287a8"; font.pixelSize: 7 }
+                Text { anchors.right: parent.right; text: modelData[1]; color: index === 3 && root.listening ? "#00cfff" : "#b8eaff"; font.pixelSize: 7; font.bold: true }
             }
         }
 
-        Rectangle { x: 12; y: 330; width: parent.width - 24; height: 120; color: "#1b0e05"; border.color: "#5c2e0c" }
-        Text { x: 22; y: 340; text: "ACTIVITY VECTOR"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
+        Rectangle { x: 12; y: 330; width: parent.width - 24; height: 120; color: "#081e30"; border.color: "#12618a" }
+        Text { x: 22; y: 340; text: "ACTIVITY VECTOR"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Repeater {
             model: 24
             Rectangle {
@@ -186,61 +186,61 @@ ApplicationWindow {
                 height: 18 + Math.abs(Math.sin(root.t * 4.0 + index * 0.67)) * (58 * root.activity)
                 x: 22 + index * 8
                 y: 425 - height
-                color: index % 4 === 0 ? "#ffb347" : "#d97716"
+                color: index % 4 === 0 ? "#00cfff" : "#00aee8"
                 opacity: 0.35 + root.activity * 0.65
             }
         }
-        Rectangle { x: 22; y: 425; width: parent.width - 44; height: 1; color: "#a45c18" }
-        Text { x: 22; y: 470; text: "SESSION"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 490; text: root.dateText; color: "#f4d7ac"; font.pixelSize: 11 }
-        Text { x: 22; y: 510; text: "SECURITY      ARMED"; color: "#ffcc7a"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 530; text: "AI ENGINE     READY"; color: "#ffb347"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 550; text: "LINK          LOCAL"; color: "#d7a66b"; font.pixelSize: 8; font.bold: true }
+        Rectangle { x: 22; y: 425; width: parent.width - 44; height: 1; color: "#168bb8" }
+        Text { x: 22; y: 470; text: "SESSION"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 490; text: root.dateText; color: "#b8eaff"; font.pixelSize: 11 }
+        Text { x: 22; y: 510; text: "SECURITY      ARMED"; color: "#7ce8ff"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 530; text: "AI ENGINE     READY"; color: "#00cfff"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 550; text: "LINK          LOCAL"; color: "#5dbddf"; font.pixelSize: 8; font.bold: true }
     }
 
     // Right environment panel
     Rectangle {
         x: root.width - 232; y: 66; width: 220; height: root.height - 82
-        color: "#100802"; border.color: "#63340c"; border.width: 1
-        Text { x: 12; y: 11; text: "ENVIRONMENT / DEVICES"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
-        Text { x: 16; y: 48; text: root.clockText; color: "#fff0d6"; font.pixelSize: 28; font.bold: true }
-        Text { x: 17; y: 80; text: root.dateText; color: "#d98b36"; font.pixelSize: 9 }
+        color: "#061421"; border.color: "#105477"; border.width: 1
+        Text { x: 12; y: 11; text: "ENVIRONMENT / DEVICES"; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true }
+        Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#0d3852" }
+        Text { x: 16; y: 48; text: root.clockText; color: "#d9f8ff"; font.pixelSize: 28; font.bold: true }
+        Text { x: 17; y: 80; text: root.dateText; color: "#38c9f4"; font.pixelSize: 9 }
 
-        Rectangle { x: 12; y: 108; width: parent.width - 24; height: 120; color: "#1b0e05"; border.color: "#5c2e0c" }
-        Text { x: 22; y: 118; text: "CONNECTED DEVICES"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
+        Rectangle { x: 12; y: 108; width: parent.width - 24; height: 120; color: "#081e30"; border.color: "#12618a" }
+        Text { x: 22; y: 118; text: "CONNECTED DEVICES"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Repeater {
             model: [ ["COMPUTER", "ONLINE"], ["NETWORK", "ONLINE"], ["BLUETOOTH", "READY"] ]
             Item {
                 x: 22; y: 145 + index * 24; width: 204; height: 18
-                Text { x: 10; text: modelData[0]; color: "#f4d7ac"; font.pixelSize: 7; font.bold: true }
-                Text { anchors.right: parent.right; text: modelData[1]; color: "#ffcc7a"; font.pixelSize: 7; font.bold: true }
-                Rectangle { y: 17; width: parent.width; height: 1; color: "#3b210d" }
+                Text { x: 10; text: modelData[0]; color: "#b8eaff"; font.pixelSize: 7; font.bold: true }
+                Text { anchors.right: parent.right; text: modelData[1]; color: "#7ce8ff"; font.pixelSize: 7; font.bold: true }
+                Rectangle { y: 17; width: parent.width; height: 1; color: "#0b3048" }
             }
         }
 
-        Rectangle { x: 12; y: 242; width: parent.width - 24; height: 128; color: "#1b0e05"; border.color: "#5c2e0c" }
-        Text { x: 22; y: 252; text: "VOICE CHANNEL"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#f4d7ac"; font.pixelSize: 13; font.bold: true }
-        Rectangle { x: 22; y: 305; width: 164; height: 30; color: "#100802"; border.color: "#61320d" }
+        Rectangle { x: 12; y: 242; width: parent.width - 24; height: 128; color: "#081e30"; border.color: "#12618a" }
+        Text { x: 22; y: 252; text: "VOICE CHANNEL"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#00cfff" : root.speaking ? "#7ce8ff" : "#b8eaff"; font.pixelSize: 13; font.bold: true }
+        Rectangle { x: 22; y: 305; width: 164; height: 30; color: "#061421"; border.color: "#105477" }
         Repeater {
             model: 18
             Rectangle {
                 width: 5
                 height: 4 + Math.abs(Math.sin(root.t * (root.listening ? 10 : root.speaking ? 7 : 3) + index * 0.9)) * (root.listening || root.speaking ? 20 : 5)
                 x: 27 + index * 7; y: 320 - height / 2; radius: 2
-                color: root.speaking ? "#ffcc7a" : "#ffb347"
+                color: root.speaking ? "#7ce8ff" : "#00cfff"
             }
         }
-        Text { x: 22; y: 348; text: "WAKE WORD: JARVIS"; color: "#9b754f"; font.pixelSize: 8 }
+        Text { x: 22; y: 348; text: "WAKE WORD: JARVIS"; color: "#4287a8"; font.pixelSize: 8 }
 
-        Rectangle { x: 12; y: 384; width: parent.width - 24; height: parent.height - 398; color: "#1b0e05"; border.color: "#5c2e0c" }
-        Text { x: 22; y: 394; text: "LIVE EVENT STREAM"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
+        Rectangle { x: 12; y: 384; width: parent.width - 24; height: parent.height - 398; color: "#081e30"; border.color: "#12618a" }
+        Text { x: 22; y: 394; text: "LIVE EVENT STREAM"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#5dbddf"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Central hologram matched to the Instagram reference: amber/orange arc-reactor
-    // projection floating above luminous elliptical emitter rings.
+    // Central J.A.R.V.I.S. HUD inspired by the cinematic Iron Man interface:
+    // blue/cyan segmented rings, targeting ticks, scan sweep and the J.A.R.V.I.S. wordmark.
     Item {
         id: hologram
         x: root.width / 2 - 180
@@ -250,190 +250,163 @@ ApplicationWindow {
         property real zoom: 1.0
         property real gestureTurn: 0
 
-        // Atmospheric amber/orange glow behind the projected object.
         Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 35
-            width: 248 * hologram.zoom
-            height: 248 * hologram.zoom
+            anchors.centerIn: parent
+            y: -2
+            width: 310 * hologram.zoom
+            height: 310 * hologram.zoom
             radius: width / 2
-            color: "#3d1b05"
+            color: "#06233a"
             opacity: 0.22 + root.activity * 0.12
         }
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 50
-            width: 214 * hologram.zoom
-            height: 214 * hologram.zoom
-            radius: width / 2
-            color: "transparent"
-            border.color: "#ff9a24"
-            border.width: 2
-            opacity: 0.38 + root.activity * 0.22
-        }
 
-        // Main floating arc-reactor disc, drawn as a luminous amber/orange technical hologram.
-        Item {
-            id: reactor
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 56
-            width: 190 * hologram.zoom
-            height: 190 * hologram.zoom
-            rotation: root.t * 5 + hologram.gestureTurn
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width
-                height: parent.height
-                radius: width / 2
-                color: "#06373d"
-                opacity: 0.42
-                border.color: "#ff9a24"
-                border.width: 2
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width - 18
-                height: parent.height - 18
-                radius: width / 2
-                color: "transparent"
-                border.color: "#ffd08a"
-                border.width: 3
-                opacity: 0.94
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width - 36
-                height: parent.height - 36
-                radius: width / 2
-                color: "transparent"
-                border.color: "#e87512"
-                border.width: 1
-                opacity: 0.9
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width - 66
-                height: parent.height - 66
-                radius: width / 2
-                color: "transparent"
-                border.color: "#ffb347"
-                border.width: 2
-                opacity: 0.8
-            }
-            Repeater {
-                model: 12
-                Rectangle {
-                    width: 5
-                    height: 25
-                    radius: 2
-                    x: reactor.width / 2 - width / 2
-                    y: 10
-                    transformOrigin: Item.Bottom
-                    rotation: index * 30
-                    color: index % 3 === 0 ? "#fff0d6" : "#ff9a24"
-                    opacity: 0.9
-                }
-            }
-            Repeater {
-                model: 24
-                Rectangle {
-                    width: index % 3 === 0 ? 3 : 1
-                    height: index % 3 === 0 ? 10 : 6
-                    x: reactor.width / 2 - width / 2
-                    y: 2
-                    transformOrigin: Item.Bottom
-                    rotation: index * 15
-                    color: "#ffd9a0"
-                    opacity: 0.75
-                }
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: 54
-                height: 54
-                radius: 27
-                color: "#ffd9a0"
-                opacity: 0.96
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: 34
-                height: 34
-                radius: 17
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#fff4e6" }
-                    GradientStop { position: 0.5; color: "#ffbf66" }
-                    GradientStop { position: 1.0; color: "#d96508" }
-                }
-                opacity: 1.0
-            }
-        }
-
-        // Scanning sweep across the reactor, with a subtle animated pulse.
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 56 + (Math.sin(root.t * 1.8) + 1) * 75
-            width: 205 * hologram.zoom
-            height: 2
-            color: "#ffe0ad"
-            opacity: 0.55 + root.activity * 0.35
-        }
-
-        // Amber/orange elliptical projection platform, matching the floating hologram in the video.
-        Item {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 238
-            width: 310 * hologram.zoom
-            height: 90
-            Repeater {
-                model: 4
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width - index * 25
-                    height: parent.height - index * 15
-                    radius: height / 2
-                    color: "transparent"
-                    border.color: index === 1 ? "#ffb347" : "#ff9a24"
-                    border.width: index === 1 ? 3 : 1
-                    opacity: (0.82 - index * 0.13) + root.activity * 0.1
-                }
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width - 26
-                height: 2
-                color: "#ffe0ad"
-                opacity: 0.45
-            }
-        }
-
-        // Fine particles rise from the emitter to the object.
+        // Outer technical rings.
         Repeater {
-            model: 24
+            model: 5
             Rectangle {
-                width: index % 4 === 0 ? 3 : 2
+                anchors.centerIn: parent
+                width: (320 - index * 24) * hologram.zoom
                 height: width
                 radius: width / 2
-                x: 70 + (index * 47 % 220)
-                y: 170 + (index * 29 % 75)
-                color: "#ffcc7a"
-                opacity: 0.22 + (Math.sin(root.t * 2 + index) + 1) * 0.28
+                color: "transparent"
+                border.color: index % 2 === 0 ? "#00cfff" : "#168bb8"
+                border.width: index === 1 ? 2 : 1
+                opacity: 0.72 - index * 0.08
+                rotation: root.t * (index % 2 === 0 ? 5 : -3) + hologram.gestureTurn
+            }
+        }
+
+        // Short radial marks create the segmented, mechanical HUD ring.
+        Repeater {
+            model: 72
+            Item {
+                anchors.fill: parent
+                rotation: index * 5 + root.t * 2
+                Rectangle {
+                    x: parent.width / 2 - width / 2
+                    y: 17
+                    width: index % 6 === 0 ? 3 : 1
+                    height: index % 6 === 0 ? 17 : 7
+                    color: index % 6 === 0 ? "#c9faff" : "#00cfff"
+                    opacity: index % 6 === 0 ? 0.95 : 0.62
+                }
+            }
+        }
+
+        // Four separated luminous brackets around the inner circle.
+        Repeater {
+            model: 4
+            Item {
+                anchors.fill: parent
+                rotation: index * 90 + root.t * 7
+                Rectangle {
+                    x: parent.width / 2 - 48
+                    y: 53
+                    width: 96
+                    height: 3
+                    radius: 1
+                    color: "#9af1ff"
+                    opacity: 0.95
+                }
+                Rectangle {
+                    x: parent.width / 2 - 48
+                    y: 53
+                    width: 3
+                    height: 20
+                    color: "#00cfff"
+                }
+                Rectangle {
+                    x: parent.width / 2 + 45
+                    y: 53
+                    width: 3
+                    height: 20
+                    color: "#00cfff"
+                }
+            }
+        }
+
+        // Inner lens and central J.A.R.V.I.S. identity.
+        Rectangle {
+            anchors.centerIn: parent
+            width: 166 * hologram.zoom
+            height: width
+            radius: width / 2
+            color: "#041a2b"
+            border.color: "#00cfff"
+            border.width: 2
+            opacity: 0.9
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 142 * hologram.zoom
+            height: width
+            radius: width / 2
+            color: "transparent"
+            border.color: "#8defff"
+            border.width: 1
+            opacity: 0.85
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 151
+            text: "J.A.R.V.I.S."
+            color: "#e8fcff"
+            font.pixelSize: 21
+            font.bold: true
+            font.letterSpacing: 3
+        }
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 183
+            width: 116
+            height: 1
+            color: "#00cfff"
+            opacity: 0.9
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 191
+            text: root.listening ? "VOICE INPUT ACTIVE" : root.speaking ? "VOICE OUTPUT ACTIVE" : "NEURAL INTERFACE ONLINE"
+            color: "#7ce8ff"
+            font.pixelSize: 7
+            font.bold: true
+        }
+
+        // Scanning beam and small moving signal points.
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 32 + (Math.sin(root.t * 1.4) + 1) * 115
+            width: 220 * hologram.zoom
+            height: 1
+            color: "#c9faff"
+            opacity: 0.48 + root.activity * 0.4
+        }
+        Repeater {
+            model: 16
+            Rectangle {
+                width: index % 4 === 0 ? 4 : 2
+                height: width
+                radius: width / 2
+                x: 46 + (index * 37 % 268)
+                y: 34 + (index * 53 % 286)
+                color: "#9af1ff"
+                opacity: 0.25 + (Math.sin(root.t * 2 + index) + 1) * 0.3
             }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 326
-            text: root.listening ? "HOLOGRAM SCAN // ACTIVE" : root.speaking ? "ARC REACTOR // LINKED" : "3D HOLOGRAM // READY"
-            color: "#ffcc7a"
+            text: root.listening ? "J.A.R.V.I.S. // LISTENING" : root.speaking ? "J.A.R.V.I.S. // SPEAKING" : "J.A.R.V.I.S. // STANDBY"
+            color: "#9af1ff"
             font.pixelSize: 9
             font.bold: true
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 342
-            text: "LIVE PROJECTION  //  " + Math.round(root.activity * 100) + "%"
-            color: "#d97716"
+            text: "NEURAL LINK  //  " + Math.round(root.activity * 100) + "%"
+            color: "#38c9f4"
             font.pixelSize: 7
             font.bold: true
         }
@@ -442,25 +415,25 @@ ApplicationWindow {
     // Bottom command/response strip
     Rectangle {
         x: 236; y: root.height - 68; width: root.width - 472; height: 48
-        color: "#1b0e05"
-        border.color: "#63340c"
+        color: "#081e30"
+        border.color: "#105477"
         border.width: 1
-        Text { x: 12; y: 5; text: "COMMAND"; color: "#d98b36"; font.pixelSize: 7; font.bold: true }
-        Text { x: 12; y: 19; width: parent.width - 24; text: root.commandText; color: "#ffe6c2"; font.pixelSize: 10; elide: Text.ElideRight }
-        Rectangle { x: parent.width - 84; y: 8; width: 60; height: 3; color: "#4a270b" }
-        Rectangle { x: parent.width - 84; y: 8; width: 60 * root.activity; height: 3; color: "#ffb347" }
+        Text { x: 12; y: 5; text: "COMMAND"; color: "#38c9f4"; font.pixelSize: 7; font.bold: true }
+        Text { x: 12; y: 19; width: parent.width - 24; text: root.commandText; color: "#c8f3ff"; font.pixelSize: 10; elide: Text.ElideRight }
+        Rectangle { x: parent.width - 84; y: 8; width: 60; height: 3; color: "#0d3852" }
+        Rectangle { x: parent.width - 84; y: 8; width: 60 * root.activity; height: 3; color: "#00cfff" }
     }
 
     // Decorative corner markers
     Item {
         anchors.fill: parent
-        Rectangle { x: 16; y: 12; width: 34; height: 1; color: "#ffb347" }
-        Rectangle { x: 16; y: 12; width: 1; height: 34; color: "#ffb347" }
-        Rectangle { x: root.width - 50; y: 12; width: 34; height: 1; color: "#ffb347" }
-        Rectangle { x: root.width - 17; y: 12; width: 1; height: 34; color: "#ffb347" }
-        Rectangle { x: 16; y: root.height - 13; width: 34; height: 1; color: "#ffb347" }
-        Rectangle { x: 16; y: root.height - 46; width: 1; height: 34; color: "#ffb347" }
-        Rectangle { x: root.width - 50; y: root.height - 13; width: 34; height: 1; color: "#ffb347" }
-        Rectangle { x: root.width - 17; y: root.height - 46; width: 1; height: 34; color: "#ffb347" }
+        Rectangle { x: 16; y: 12; width: 34; height: 1; color: "#00cfff" }
+        Rectangle { x: 16; y: 12; width: 1; height: 34; color: "#00cfff" }
+        Rectangle { x: root.width - 50; y: 12; width: 34; height: 1; color: "#00cfff" }
+        Rectangle { x: root.width - 17; y: 12; width: 1; height: 34; color: "#00cfff" }
+        Rectangle { x: 16; y: root.height - 13; width: 34; height: 1; color: "#00cfff" }
+        Rectangle { x: 16; y: root.height - 46; width: 1; height: 34; color: "#00cfff" }
+        Rectangle { x: root.width - 50; y: root.height - 13; width: 34; height: 1; color: "#00cfff" }
+        Rectangle { x: root.width - 17; y: root.height - 46; width: 1; height: 34; color: "#00cfff" }
     }
 }
