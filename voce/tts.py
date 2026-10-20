@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
-import multiprocessing
+import sys
 from typing import Optional
 
 TTS = None
@@ -147,6 +147,7 @@ class TextToSpeech:
         self._xtts_process = None
         self._xtts_lock = threading.Lock()
         self._xtts_busy = False
+        self._xtts_pending_text = []
 
     def _inizializza(self, use_voice_clone: bool) -> None:
         if _carica_coqui() and use_voice_clone and self.reference_wav:
@@ -289,8 +290,16 @@ class TextToSpeech:
         """Avvia XTTS senza bloccare il processo principale di Jarvis."""
         with self._xtts_lock:
             if self._xtts_busy:
-                # Evita due generazioni pesanti contemporaneamente.
-                print("⚠️ XTTS sta gia elaborando una risposta vocale.")
+                # Serializza le risposte invece di segnalarle come pronunciate
+                # quando in realtà la richiesta corrente sta ancora lavorando.
+                if len(self._xtts_pending_text) >= 8:
+                    print("⚠️ Coda XTTS piena: richiesta vocale non accodata.")
+                    return False
+                self._xtts_pending_text.append(text)
+                print(
+                    f"🎙️ XTTS occupato: risposta accodata "
+                    f"({len(self._xtts_pending_text)} in attesa)."
+                )
                 return True
             self._xtts_busy = True
 
@@ -304,75 +313,75 @@ class TextToSpeech:
         return True
 
     def _worker_xtts(self, text: str) -> None:
+        """Genera e riproduce una risposta in un processo Python separato.
+
+        Il worker avviato come modulo evita i problemi di bootstrap di
+        multiprocessing spawn su alcune versioni di macOS/Python.
+        stdout, stderr, exit code e timeout vengono riportati nella diagnosi.
+        """
         audio_path = None
         status_path = None
-        process = None
 
         try:
-            if not _carica_coqui():
-                raise RuntimeError("Coqui TTS non disponibile")
+            if not self.reference_wav or not os.path.isfile(self.reference_wav):
+                raise RuntimeError("Campione WAV di riferimento assente o non leggibile")
 
-            with tempfile.NamedTemporaryFile(
-                suffix=".wav", delete=False
-            ) as file_audio:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as file_audio:
                 audio_path = file_audio.name
-
-            with tempfile.NamedTemporaryFile(
-                suffix=".status", delete=False
-            ) as file_status:
+            with tempfile.NamedTemporaryFile(suffix=".status", delete=False) as file_status:
                 status_path = file_status.name
 
-            ctx = multiprocessing.get_context("spawn")
-            process = ctx.Process(
-                target=_xtts_worker,
-                args=(
-                    self.XTTS_MODEL,
-                    text,
-                    self.reference_wav,
-                    self.language,
-                    audio_path,
-                    status_path,
-                ),
-                daemon=True,
-            )
-            self._xtts_process = process
+            comando = [
+                sys.executable,
+                "-m",
+                "voce.xtts_worker",
+                "--text", text,
+                "--reference", self.reference_wav,
+                "--language", self.language,
+                "--audio", audio_path,
+                "--status", status_path,
+            ]
             print(
                 "🎙️ XTTS avviato in background. "
-                "Jarvis rimane operativo mentre preparo la voce..."
+                "Jarvis rimane operativo mentre preparo la voce...",
+                flush=True,
             )
-            process.start()
-            process.join(self.xtts_timeout)
+            risultato = subprocess.run(
+                comando,
+                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                capture_output=True,
+                text=True,
+                timeout=self.xtts_timeout,
+                check=False,
+            )
 
-            if process.is_alive():
-                print(
-                    f"⏱️ XTTS ha superato il limite di {self.xtts_timeout:.0f}s; "
-                    "termino il worker e uso la voce di sistema."
-                )
-                process.terminate()
-                process.join(5)
-                self._fallback_background(text)
-                return
-
-            if process.exitcode != 0:
-                errore = ""
+            if risultato.stdout and risultato.stdout.strip():
+                print(risultato.stdout.strip(), flush=True)
+            if risultato.returncode != 0:
+                dettagli = (risultato.stderr or "").strip()
+                errore_worker = ""
                 try:
                     with open(status_path, "r", encoding="utf-8") as stato:
-                        errore = stato.read().strip()
-                except Exception:
+                        errore_worker = stato.read().strip()
+                except OSError:
                     pass
-                print(
-                    "⚠️ Il processo XTTS e terminato senza audio"
-                    + (f": {errore}" if errore else ".")
+                dettagli = "\n".join(
+                    parte for parte in (f"exit_code={risultato.returncode}",
+                                        errore_worker, dettagli) if parte
                 )
+                print(f"⚠️ XTTS worker fallito:\n{dettagli}", flush=True)
                 self._fallback_background(text)
                 return
 
             if not os.path.isfile(audio_path) or os.path.getsize(audio_path) == 0:
-                print("⚠️ XTTS non ha prodotto un WAV valido.")
+                print(
+                    "⚠️ XTTS ha terminato con codice 0 ma non ha prodotto un WAV valido.",
+                    flush=True,
+                )
                 self._fallback_background(text)
                 return
 
-            print("✅ XTTS ha generato l'audio Jarvis.")
+            print("✅ XTTS ha generato l'audio Jarvis.", flush=True)
             processed_path = None
             try:
                 if self.cinematic_voice:
@@ -381,21 +390,34 @@ class TextToSpeech:
             finally:
                 self._elimina_file_temporaneo(processed_path)
 
+        except subprocess.TimeoutExpired:
+            print(
+                f"⏱️ XTTS ha superato il limite di {self.xtts_timeout:.0f}s; "
+                "interrompo il worker e uso la voce di sistema.",
+                flush=True,
+            )
+            self._fallback_background(text)
         except Exception as errore:
-            print(f"⚠️ XTTS in background non disponibile: {errore}")
+            print(f"⚠️ XTTS in background non disponibile: {type(errore).__name__}: {errore}", flush=True)
             self._fallback_background(text)
         finally:
-            if process is not None and process.is_alive():
-                try:
-                    process.terminate()
-                    process.join(2)
-                except Exception:
-                    pass
-            self._xtts_process = None
             self._elimina_file_temporaneo(audio_path)
             self._elimina_file_temporaneo(status_path)
+            prossimo_testo = None
             with self._xtts_lock:
-                self._xtts_busy = False
+                if self._xtts_pending_text:
+                    prossimo_testo = self._xtts_pending_text.pop(0)
+                    self._xtts_busy = True
+                else:
+                    self._xtts_busy = False
+            if prossimo_testo:
+                self._xtts_thread = threading.Thread(
+                    target=self._worker_xtts,
+                    args=(prossimo_testo,),
+                    name="Jarvis-XTTS",
+                    daemon=True,
+                )
+                self._xtts_thread.start()
 
     def _fallback_background(self, text: str) -> None:
         """Fallback sicuro eseguito dallo stesso worker vocale."""
