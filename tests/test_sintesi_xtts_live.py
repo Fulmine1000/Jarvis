@@ -19,10 +19,10 @@ class TestSintesiXTTSLive(unittest.TestCase):
     def test_xtts_live_disattivo_per_default_su_macos(self, _platform):
         with patch.dict(os.environ, {"JARVIS_ENABLE_XTTS": "1"}, clear=False):
             os.environ.pop("JARVIS_XTTS_LIVE", None)
-            with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None), \\
-                 patch.object(SintesiVocale, "_trova_voce_italiana", return_value=None), \\
-                 patch("voce.sintesi.ElevenLabsVoce"):
-                sintesi = SintesiVocale()
+            with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None):
+                with patch.object(SintesiVocale, "_trova_voce_italiana", return_value=None):
+                    with patch("voce.sintesi.ElevenLabsVoce"):
+                        sintesi = SintesiVocale()
         self.assertFalse(sintesi.xtts_live)
 
     def test_blu_viene_guidato_foneticamente_solo_per_xtts(self):
