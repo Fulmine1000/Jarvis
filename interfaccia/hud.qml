@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1240
-    height: 700
-    minimumWidth: 1180
-    minimumHeight: 660
+    width: 1440
+    height: 780
+    minimumWidth: 1360
+    minimumHeight: 740
     title: "J.A.R.V.I.S. — Neural Command Interface"
     // Palette cinematografica ambra/arancio: niente pannelli blu/ciano residui.
     color: "#070503"
@@ -87,7 +87,7 @@ ApplicationWindow {
         model: 15
         Rectangle {
             x: 0
-            y: 62 + index * 42
+            y: 66 + index * 42
             width: root.width
             height: 1
             color: index % 3 === 0 ? "#35200d" : "#1d1007"
@@ -98,7 +98,7 @@ ApplicationWindow {
         model: 14
         Rectangle {
             x: 24 + index * 78
-            y: 62
+            y: 66
             width: 1
             height: root.height - 92
             color: "#241306"
@@ -106,22 +106,51 @@ ApplicationWindow {
         }
     }
 
-    // Header
+    // Header: separate fixed-width zones prevent text collisions at all supported sizes.
     Rectangle {
-        x: 16; y: 12; width: root.width - 32; height: 38
+        id: header
+        x: 16; y: 12; width: root.width - 32; height: 42
         color: "#1a0d04"
         border.color: "#7a3c0b"
         border.width: 1
-        Rectangle { x: 0; y: height - 2; width: 190; height: 2; color: "#ffb347" }
-        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "J.A.R.V.I.S."; color: "#fff0d6"; font.pixelSize: 15; font.bold: true }
-        Text { x: 126; width: 230; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 520; width: 220; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter; text: "●  " + root.stateText; color: root.listening ? "#ffb347" : "#ffcc7a"; font.pixelSize: 9; font.bold: true }
-        Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "SIMONE  //  " + root.clockText; color: "#d7a66b"; font.pixelSize: 9 }
+        Rectangle { x: 0; y: parent.height - 2; width: 300; height: 2; color: "#ffb347" }
+        Text {
+            x: 16; width: 126; height: parent.height
+            verticalAlignment: Text.AlignVCenter
+            text: "J.A.R.V.I.S."; color: "#fff0d6"
+            font.pixelSize: 15; font.bold: true
+            elide: Text.ElideRight
+        }
+        Text {
+            x: 154; width: 270; height: parent.height
+            verticalAlignment: Text.AlignVCenter
+            text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"
+            font.pixelSize: 9; font.bold: true
+            elide: Text.ElideRight
+        }
+        Text {
+            x: (parent.width - width) / 2; width: 280; height: parent.height
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: "●  " + root.stateText
+            color: root.listening ? "#ffb347" : "#ffcc7a"
+            font.pixelSize: 9; font.bold: true
+            elide: Text.ElideRight
+        }
+        Text {
+            anchors.right: parent.right; anchors.rightMargin: 16
+            width: 220; height: parent.height
+            horizontalAlignment: Text.AlignRight
+            verticalAlignment: Text.AlignVCenter
+            text: "SIMONE  //  " + root.clockText
+            color: "#d7a66b"; font.pixelSize: 9
+            elide: Text.ElideRight
+        }
     }
 
     // Left telemetry panel
     Rectangle {
-        x: 16; y: 64; width: 248; height: root.height - 92
+        x: 16; y: 66; width: 260; height: root.height - 94
         color: "#100802"; border.color: "#63340c"; border.width: 1
         Text { x: 12; y: 11; text: "SYSTEM TELEMETRY"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
         Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
@@ -171,7 +200,7 @@ ApplicationWindow {
 
     // Right environment panel
     Rectangle {
-        x: root.width - 264; y: 64; width: 248; height: root.height - 92
+        x: root.width - 276; y: 66; width: 260; height: root.height - 94
         color: "#100802"; border.color: "#63340c"; border.width: 1
         Text { x: 12; y: 11; text: "ENVIRONMENT / DEVICES"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
         Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
@@ -214,7 +243,7 @@ ApplicationWindow {
     Item {
         id: core
         x: root.width / 2 - 215
-        y: 92
+        y: 96
         width: 430
         height: 430
 
