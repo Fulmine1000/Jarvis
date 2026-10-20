@@ -271,151 +271,148 @@ ApplicationWindow {
             opacity: 0.55
         }
 
-        // Orb body: layered circles simulate a luminous glass sphere with a bright upper-left highlight.
+        // Nucleo olografico ispirato al video: reattore verticale luminoso,
+        // anelli concentrici, corona radiale e piattaforma di proiezione.
         Item {
             id: orb
             x: (parent.width - width) / 2
-            y: 34
-            width: 218 * hologram.zoom
-            height: 218 * hologram.zoom
+            y: 18
+            width: 194 * hologram.zoom
+            height: 244 * hologram.zoom
             rotation: hologram.gestureTurn
+
+            // Alone volumetrico dietro al nucleo.
             Rectangle {
-                anchors.fill: parent
+                anchors.centerIn: parent
+                width: parent.width * 1.55
+                height: parent.height * 1.18
+                radius: width / 2
+                color: "#00eaff"
+                opacity: 0.07 + root.activity * 0.06
+            }
+            // Corpo ovale luminoso: niente sfera blu piena.
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width * 0.86
+                height: parent.height * 0.94
                 radius: width / 2
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#8df5ff" }
-                    GradientStop { position: 0.18; color: "#167ca9" }
-                    GradientStop { position: 0.52; color: "#063957" }
-                    GradientStop { position: 0.82; color: "#021525" }
-                    GradientStop { position: 1.0; color: "#00bfe9" }
+                    GradientStop { position: 0.0; color: "#baffff" }
+                    GradientStop { position: 0.16; color: "#37f4ff" }
+                    GradientStop { position: 0.38; color: "#00bfcf" }
+                    GradientStop { position: 0.68; color: "#087b9b" }
+                    GradientStop { position: 0.9; color: "#03445f" }
+                    GradientStop { position: 1.0; color: "#4df8ff" }
                 }
-                border.color: "#83f2ff"
-                border.width: 2
-                opacity: 0.94
+                opacity: 0.30
             }
-            Rectangle {
-                x: width * 0.12
-                y: height * 0.11
-                width: parent.width * 0.76
-                height: parent.height * 0.76
-                radius: width / 2
-                color: "transparent"
-                border.color: "#39dfff"
-                border.width: 1
-                opacity: 0.82
-            }
-            // Latitude rings curve across the sphere; narrow middle rings imply depth.
+            // Corona esterna e anelli concentrici.
             Repeater {
-                model: 5
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: parent.height * (0.19 + index * 0.145)
-                    width: parent.width * (0.86 - Math.abs(index - 2) * 0.11)
-                    height: 10 + (2 - Math.abs(index - 2)) * 8
-                    radius: height / 2
-                    color: "transparent"
-                    border.color: index === 2 ? "#c7fbff" : "#00cfff"
-                    border.width: index === 2 ? 2 : 1
-                    opacity: 0.72
-                }
-            }
-            // Rotating longitude arcs, kept inside the globe silhouette.
-            Repeater {
-                model: 3
+                model: 6
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width * (0.34 + index * 0.2)
-                    height: parent.height * 0.9
+                    width: parent.width * (0.98 - index * 0.115)
+                    height: parent.height * (0.98 - index * 0.115)
                     radius: width / 2
                     color: "transparent"
-                    border.color: index === 1 ? "#b5f8ff" : "#00cfff"
-                    border.width: 1
-                    rotation: root.t * (index % 2 === 0 ? 12 : -9) + index * 24
-                    opacity: 0.78
+                    border.color: index === 2 ? "#efffff" : (index % 2 === 0 ? "#00f0ff" : "#55f7ff")
+                    border.width: index === 2 ? 2 : 1
+                    opacity: 0.9 - index * 0.07
+                    rotation: root.t * (index % 2 === 0 ? 5 : -7)
                 }
             }
+            // Segmenti radiali tecnici intorno al nucleo.
+            Repeater {
+                model: 32
+                Item {
+                    width: parent.width
+                    height: parent.height
+                    rotation: index * 11.25 + root.t * 2
+                    Rectangle {
+                        x: parent.width / 2 - 1
+                        y: parent.height * 0.035
+                        width: index % 4 === 0 ? 2 : 1
+                        height: index % 4 === 0 ? 12 : 6
+                        color: index % 4 === 0 ? "#efffff" : "#54f8ff"
+                        opacity: 0.85
+                    }
+                }
+            }
+            // Nucleo bianco sovraesposto come nel filmato.
             Rectangle {
-                x: parent.width * 0.19
-                y: parent.height * 0.13
-                width: parent.width * 0.21
-                height: parent.height * 0.11
-                radius: height / 2
-                rotation: -35
-                color: "#e6fdff"
-                opacity: 0.65
+                anchors.centerIn: parent
+                width: parent.width * 0.39
+                height: parent.height * 0.39
+                radius: width / 2
+                color: "#00efff"
+                opacity: 0.35
             }
             Rectangle {
                 anchors.centerIn: parent
-                width: 42
-                height: 42
-                radius: 21
-                color: "#d7fcff"
-                opacity: 0.95
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: 26
-                height: 26
-                radius: 13
+                width: parent.width * 0.29
+                height: parent.height * 0.29
+                radius: width / 2
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#ffffff" }
-                    GradientStop { position: 0.55; color: "#76efff" }
-                    GradientStop { position: 1.0; color: "#008dbd" }
+                    GradientStop { position: 0.35; color: "#f4ffff" }
+                    GradientStop { position: 0.72; color: "#8effff" }
+                    GradientStop { position: 1.0; color: "#13d9f2" }
                 }
+                opacity: 0.98
             }
-        }
-
-        // Floating orbital rings around the 3D sphere.
-        Repeater {
-            model: 3
             Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: 90 + index * 14
-                width: 282 - index * 28
-                height: 74 - index * 10
-                radius: height / 2
-                color: "transparent"
-                border.color: index === 1 ? "#b7f8ff" : "#00cfff"
-                border.width: index === 1 ? 2 : 1
-                rotation: root.t * (index === 1 ? -8 : 6) + index * 28
-                opacity: 0.78
+                anchors.centerIn: parent
+                width: parent.width * 0.12
+                height: parent.height * 0.12
+                radius: width / 2
+                color: "#ffffff"
+                opacity: 1.0
             }
         }
 
-        // Projection pedestal below the globe gives the object a floating 3D presence.
+        // Piattaforma orizzontale sotto il nucleo: il reattore sembra sospeso.
         Item {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 235
-            width: 340
-            height: 92
+            y: 246
+            width: 350
+            height: 82
             Repeater {
                 model: 5
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width - index * 22
-                    height: parent.height - index * 14
+                    width: parent.width - index * 26
+                    height: parent.height - index * 13
                     radius: height / 2
                     color: "transparent"
-                    border.color: index === 1 ? "#bafaff" : "#00cfff"
+                    border.color: index === 1 ? "#d7ffff" : "#00eaff"
                     border.width: index === 1 ? 2 : 1
-                    rotation: root.t * (index % 2 === 0 ? 4 : -3)
-                    opacity: 0.8 - index * 0.11
+                    rotation: root.t * (index % 2 === 0 ? 3 : -4)
+                    opacity: 0.85 - index * 0.10
                 }
             }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 43
-                width: 280
+                y: 39
+                width: 285
                 height: 2
-                color: "#c9faff"
-                opacity: 0.7
+                color: "#e8ffff"
+                opacity: 0.78
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 37
+                width: 210
+                height: 6
+                radius: 3
+                color: "#00eaff"
+                opacity: 0.18 + root.activity * 0.14
             }
         }
 
         // Scan line and floating particles.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 34 + (Math.sin(root.t * 1.4) + 1) * 105
+            y: 20 + (Math.sin(root.t * 1.4) + 1) * 112
             width: 252
             height: 1
             color: "#e4fdff"
