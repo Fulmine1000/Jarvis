@@ -198,7 +198,6 @@ def compila_espeak_high_sierra(temporanea, lib_destinazione):
     )
     if risultato.returncode != 0:
         raise RuntimeError("compilazione di eSpeak NG fallita")
-
     risultato = subprocess.run([cmake, "--install", build], check=False)
     if risultato.returncode != 0:
         raise RuntimeError("installazione locale di eSpeak NG fallita")
@@ -397,8 +396,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         "--config", "Release",
         "--build_shared_lib",
         "--parallel", "2",
-        "--skip_tests",
-        "--skip_submodule_sync",
+        "--skip_tests",        "--skip_submodule_sync",
         "--cmake_path", cmake,
         "--apple_deploy_target", "10.13",
         "--osx_arch", "x86_64",
@@ -597,8 +595,7 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
         os.path.join(onnx_dir, "lib", "libonnxruntime.1.14.1.dylib"),
     )
 
-    if not os.path.isdir(espeak_dir):
-        raise RuntimeError("installazione locale di eSpeak NG non trovata")
+    if not os.path.isdir(espeak_dir):        raise RuntimeError("installazione locale di eSpeak NG non trovata")
     os.makedirs(build, exist_ok=True)
     # Su High Sierra il clang di sistema non fornisce <filesystem>.
     # L'eseguibile di esempio piper_phonemize_exe non è necessario a Jarvis:
@@ -687,6 +684,185 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
             check=False,
         )
 
+    return True
+
+
+
+def compila_piper_high_sierra(temporanea, lib_destinazione, piper_path):
+    """Compila anche l'eseguibile Piper con target macOS 10.13."""
+    cmake = trova_cmake(temporanea)
+    if not cmake:
+        raise RuntimeError("CMake non disponibile per compilare Piper su High Sierra")
+
+    archivio = os.path.join(MODEL_DIR, "piper-high-sierra.zip")
+    sorgente_dir = os.path.join(temporanea, "piper-src")
+    build = os.path.join(temporanea, "piper-build")
+    prefix = os.path.join(temporanea, "piper-install")
+    phonemize_prefix = os.path.join(temporanea, "piper-phonemize-install")
+    url = "https://github.com/rhasspy/piper/archive/refs/tags/2023.11.14-2.zip"
+
+    print("High Sierra rilevato: compilo anche l'eseguibile Piper per macOS 10.13...")
+    scarica(url, archivio)
+    os.makedirs(sorgente_dir, exist_ok=True)
+    risultato = subprocess.run(["unzip", "-q", archivio, "-d", sorgente_dir], check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("estrazione dei sorgenti Piper fallita")
+
+    cartelle = [
+        os.path.join(sorgente_dir, nome)
+        for nome in os.listdir(sorgente_dir)
+        if os.path.isdir(os.path.join(sorgente_dir, nome))
+    ]
+    if not cartelle:
+        raise RuntimeError("sorgenti Piper non trovati")
+    sorgente = cartelle[0]
+    main_cpp = os.path.join(sorgente, "src", "cpp", "main.cpp")
+    if not os.path.isfile(main_cpp):
+        raise RuntimeError("src/cpp/main.cpp non trovato nei sorgenti Piper")
+
+    # La libc++ di High Sierra non include <filesystem>. Il main di Piper usa
+    # filesystem soltanto per unire e risolvere percorsi: forniamo un piccolo
+    # adattatore POSIX, senza dipendenze C++ aggiuntive.
+    with open(main_cpp, "r", encoding="utf-8") as file:
+        source = file.read()
+    include = "#include <filesystem>"
+    compat = r'''#include <cstdlib>
+#include <limits.h>
+#include <string>
+#include <unistd.h>
+
+namespace filesystem {
+class path {
+public:
+  path() = default;
+  path(const char *value) : value_(value ? value : "") {}
+  path(const std::string &value) : value_(value) {}
+  std::string string() const { return value_; }
+  path &append(const std::string &part) {
+    if (!value_.empty() && value_[value_.size() - 1] != '/') value_ += "/";
+    value_ += part;
+    return *this;
+  }
+  path parent_path() const {
+    std::string::size_type pos = value_.find_last_of('/');
+    if (pos == std::string::npos) return path(".");
+    if (pos == 0) return path("/");
+    return path(value_.substr(0, pos));
+  }
+private:
+  std::string value_;
+};
+inline path absolute(const path &value) {
+  std::string input = value.string();
+  if (!input.empty() && input[0] == '/') return value;
+  char cwd[PATH_MAX];
+  if (!getcwd(cwd, sizeof(cwd))) return value;
+  return path(std::string(cwd) + "/" + input);
+}
+inline path canonical(const char *value) {
+  char resolved[PATH_MAX];
+  if (realpath(value, resolved)) return path(resolved);
+  return path(value);
+}
+} // namespace filesystem'''
+    if include not in source:
+        raise RuntimeError("include <filesystem> non trovato nel main di Piper")
+    source = source.replace(include, compat, 1)
+    source = source.replace("std::filesystem::absolute", "filesystem::absolute")
+    with open(main_cpp, "w", encoding="utf-8") as file:
+        file.write(source)
+
+    # Espone gli header ONNX Runtime al target Piper, che include
+    # onnxruntime_cxx_api.h senza un prefisso di directory.
+    ort_headers = os.path.join(
+        temporanea, "onnxruntime-src", "include", "onnxruntime", "core", "session"
+    )
+    include_dest = os.path.join(phonemize_prefix, "include")
+    lib_dest = os.path.join(phonemize_prefix, "lib")
+    if not os.path.isdir(ort_headers):
+        raise RuntimeError("header ONNX Runtime non trovati dopo la compilazione")
+    os.makedirs(include_dest, exist_ok=True)
+    os.makedirs(lib_dest, exist_ok=True)
+    for nome in os.listdir(ort_headers):
+        if nome.endswith(".h") or nome.endswith(".hpp"):
+            origine = os.path.join(ort_headers, nome)
+            if os.path.isfile(origine):
+                shutil.copy2(origine, os.path.join(include_dest, nome))
+
+    # La build di piper-phonemize lascia le librerie in lib_destinazione;
+    # copiamo le dipendenze nella prefix usata dal linker di Piper.
+    for nome in os.listdir(lib_destinazione):
+        if nome.endswith(".dylib"):
+            shutil.copy2(os.path.join(lib_destinazione, nome), os.path.join(lib_dest, nome))
+    onnx = os.path.join(lib_dest, "libonnxruntime.1.14.1.dylib")
+    if os.path.isfile(onnx):
+        alias = os.path.join(lib_dest, "libonnxruntime.dylib")
+        if not os.path.exists(alias):
+            shutil.copy2(onnx, alias)
+
+    cmake_lists = os.path.join(sorgente, "CMakeLists.txt")
+    if not os.path.isfile(cmake_lists):
+        raise RuntimeError("CMakeLists.txt di Piper non trovato")
+    os.makedirs(build, exist_ok=True)
+    configurazione = [
+        cmake, "-S", sorgente, "-B", build,
+        f"-DCMAKE_INSTALL_PREFIX={prefix}",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+        "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+        "-DCMAKE_CXX_STANDARD=17",
+        "-DCMAKE_CXX_FLAGS=-D_LIBCPP_DISABLE_AVAILABILITY",
+        f"-DPIPER_PHONEMIZE_DIR={phonemize_prefix}",
+        "-DBUILD_TESTING=OFF",
+    ]
+    risultato = subprocess.run(configurazione, check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("configurazione CMake di Piper fallita")
+    risultato = subprocess.run(
+        [cmake, "--build", build, "--config", "Release", "--parallel", "2"],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        raise RuntimeError("compilazione dell'eseguibile Piper fallita")
+    risultato = subprocess.run([cmake, "--install", build], check=False)
+    if risultato.returncode != 0:
+        raise RuntimeError("installazione locale dell'eseguibile Piper fallita")
+
+    candidato = None
+    for radice, _, nomi in os.walk(prefix):
+        if "piper" in nomi:
+            percorso = os.path.join(radice, "piper")
+            if os.path.isfile(percorso) and os.access(percorso, os.X_OK):
+                candidato = percorso
+                break
+    if not candidato:
+        for radice, _, nomi in os.walk(build):
+            if "piper" in nomi:
+                percorso = os.path.join(radice, "piper")
+                if os.path.isfile(percorso) and os.access(percorso, os.X_OK):
+                    candidato = percorso
+                    break
+    if not candidato:
+        raise RuntimeError("eseguibile Piper compilato non trovato")
+
+    # Conserva il binario preesistente prima di sostituirlo.
+    backup = piper_path + ".pre-high-sierra"
+    if os.path.isfile(piper_path) and not os.path.exists(backup):
+        shutil.copy2(piper_path, backup)
+    shutil.copy2(candidato, piper_path)
+    os.chmod(piper_path, 0o755)
+    install_name_tool = shutil.which("install_name_tool")
+    if not install_name_tool:
+        raise RuntimeError("install_name_tool non disponibile")
+    risultato = subprocess.run(
+        [install_name_tool, "-add_rpath", "@executable_path/piper-phonemize/lib", piper_path],
+        check=False,
+    )
+    if risultato.returncode != 0:
+        # Una rpath già presente non è un errore; il controllo --help sotto
+        # sarà la verifica effettiva del caricamento delle librerie.
+        info = subprocess.run(["otool", "-l", piper_path], capture_output=True, check=False)
+        if "@executable_path/piper-phonemize/lib" not in info.stdout.decode("utf-8", errors="replace"):
+            raise RuntimeError("impossibile configurare la rpath dell'eseguibile Piper")
     return True
 
 
@@ -797,8 +973,7 @@ def installa_piper():
         if versione_macos.startswith("10.13."):
             # Il pacchetto piper-phonemize 2023.11.14-4 porta ONNX Runtime
             # 1.14.1 precompilato per macOS 10.14. Su High Sierra quel
-            # binario richiama MLModelConfiguration, assente in CoreML 10.13.
-            # Ricostruiamo quindi ONNX Runtime con target 10.13 e senza CoreML
+            # binario richiama MLModelConfiguration, assente in CoreML 10.13.            # Ricostruiamo quindi ONNX Runtime con target 10.13 e senza CoreML
             # prima di compilare piper-phonemize, così entrambe le librerie
             # restano compatibili con il sistema.
             compila_onnxruntime_high_sierra(
@@ -809,6 +984,11 @@ def installa_piper():
             compila_piper_phonemize_high_sierra(
                 temporanea,
                 lib_destinazione,
+            )
+            compila_piper_high_sierra(
+                temporanea,
+                lib_destinazione,
+                piper_path,
             )
 
         install_name_tool = shutil.which("install_name_tool")
