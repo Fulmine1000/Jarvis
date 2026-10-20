@@ -6,7 +6,8 @@ from voce.sintesi import SintesiVocale
 
 
 class TestSintesiXTTSLive(unittest.TestCase):
-    def test_xtts_live_attivo_per_default(self):
+    @patch("voce.sintesi.platform.system", return_value="Linux")
+    def test_xtts_live_attivo_per_default_fuori_da_macos(self, _platform):
         with patch.dict(os.environ, {"JARVIS_ENABLE_XTTS": "1"}, clear=False):
             os.environ.pop("JARVIS_XTTS_LIVE", None)
             with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None), \
