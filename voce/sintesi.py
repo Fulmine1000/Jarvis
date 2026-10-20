@@ -142,17 +142,9 @@ class SintesiVocale:
                     if parti and parti[0].lower() == nome.lower():
                         return parti[0]
 
-            for riga in righe:
-                parti = riga.strip().split()
-                if parti and "it_IT" in riga:
-                    return parti[0]
-
-            for riga in righe:
-                parti = riga.strip().split()
-                if parti and (
-                    "Italian" in riga or "italiano" in riga.lower()
-                ):
-                    return parti[0]
+            # Non scegliamo una voce italiana qualsiasi: potrebbe essere femminile.
+            # Se nessuna voce maschile nota e installata, restituiamo None e
+            # lasciamo che Jarvis segnali il fallback invece di usare Alice.
 
         except (OSError, subprocess.SubprocessError):
             return None
@@ -325,16 +317,16 @@ class SintesiVocale:
         """
         if platform.system() == "Darwin" and shutil.which("say"):
             rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
-            base = ["say", "-r", str(rate), str(testo)]
             comandi = []
-            # Una voce scelta esplicitamente ha priorita: serve, ad esempio,
-            # per la parola "blu", che sul Mac dell'utente e pronunciata
-            # correttamente da Alice ma non dalla voce clonata di Jarvis.
+            # Usiamo esclusivamente voci esplicitamente selezionate e note come
+            # maschili. Non invochiamo "say" senza -v: macOS potrebbe scegliere
+            # una voce predefinita femminile, contro la preferenza di Jarvis.
             if voce_forzata:
                 comandi.append(["say", "-v", voce_forzata, "-r", str(rate), str(testo)])
             if self.voce_sistema and self.voce_sistema != voce_forzata:
                 comandi.append(["say", "-v", self.voce_sistema, "-r", str(rate), str(testo)])
-            comandi.append(base)
+            if not comandi:
+                return False
 
             for indice, comando in enumerate(comandi):
                 try:
@@ -416,15 +408,13 @@ class SintesiVocale:
                     except Exception as errore:
                         print(f"⚠️ Errore XTTS live: {errore}")
 
-            # Su High Sierra questa e la via rapida e affidabile.
-            if platform.system() == "Darwin":
-                if self._parla_con_sistema(testo):
-                    return True
-            else:
-                if self._parla_con_piper(testo):
-                    return True
-                if self._parla_con_sistema(testo):
-                    return True
+            # Quando Piper e selezionato e disponibile, deve essere provato anche
+            # su macOS: altrimenti Jarvis resta sempre sulla voce di sistema e
+            # non usa mai il modello italiano Riccardo.
+            if self._parla_con_piper(testo):
+                return True
+            if self._parla_con_sistema(testo):
+                return True
 
         except (OSError, ValueError, subprocess.SubprocessError) as errore:
             print(f"⚠️ Errore sintesi vocale: {errore}")
