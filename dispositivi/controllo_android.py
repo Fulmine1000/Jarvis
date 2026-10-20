@@ -129,9 +129,14 @@ class ControlloAndroidVideo:
             if error:
                 return "Non sono riuscito ad aprire il dialer: " + error
             return "Ho preparato il numero nel dialer del telefono. Controllalo e premi tu il pulsante di chiamata."
-        _, error = self._shell(serial, "monkey", "-p", "com.android.contacts", "1")
+        packages, error = self._shell(serial, "pm", "list", "packages")
         if error:
-            _, error = self._shell(serial, "monkey", "-p", "com.google.android.contacts", "1")
+            return "Non riesco a verificare l'app Contatti: " + error
+        installati = {line.strip().removeprefix("package:") for line in packages.splitlines() if line.strip().startswith("package:")}
+        contatti = next((p for p in ("com.google.android.contacts", "com.android.contacts") if p in installati), None)
+        if not contatti:
+            return "Non ho trovato l'app Contatti sul telefono. Apri l'app Telefono manualmente per scegliere il contatto."
+        _, error = self._shell(serial, "monkey", "-p", contatti, "1")
         if error:
             return "Non sono riuscito ad aprire Contatti: " + error
         return "Ho aperto Contatti sul telefono. Cerca '" + destinazione + "' e conferma tu la chiamata."
@@ -140,14 +145,18 @@ class ControlloAndroidVideo:
         """Restituisce una risposta se il testo è un comando telefonico noto, altrimenti None."""
         testo = re.sub(r"\s+", " ", str(comando or "").strip().lower())
         testo = re.sub(r"^(?:hey jarvis|ehi jarvis|jarvis)[, ]+", "", testo)
-        if re.fullmatch(r"(?:sblocca|accendi|sveglia) (?:il )?(?:mio )?telefono|(?:accendi|risveglia) lo schermo (?:del )?(?:mio )?telefono", testo):
+        if re.fullmatch(r"(?:sblocca|accendi|sveglia) (?:il )?(?:mio )?telefono|(?:accendi|risveglia) lo schermo (?:del )?(?:mio )?telefono|unlock my phone|wake (?:up )?my phone", testo):
             return self.risveglia_schermo()
         match = re.fullmatch(r"(?:apri|avvia|lancia) (?:l['’]app(?:licazione)? )?(.+?) (?:sul|nel|sopra il) (?:mio )?telefono", testo)
+        if not match:
+            match = re.fullmatch(r"(?:open|launch) (?:the app )?(.+?) (?:in|on) my phone", testo)
         if match:
             return self.apri_app(match.group(1).strip())
         match = re.fullmatch(r"(?:chiama|telefona a) (.+?)(?: dal| sul) (?:mio )?telefono", testo)
         if not match:
-            match = re.fullmatch(r"(?:chiama|telefona a) (.+)", testo)
+            match = re.fullmatch(r"(?:call|phone) (.+?)(?: on| from) my phone", testo)
+        if not match:
+            match = re.fullmatch(r"(?:chiama|telefona a|call|phone) (.+)", testo)
         if match:
             return self.chiama(match.group(1).strip())
         return None
