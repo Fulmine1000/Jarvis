@@ -114,8 +114,8 @@ ApplicationWindow {
         border.width: 1
         Rectangle { x: 0; y: height - 2; width: 190; height: 2; color: "#ffb347" }
         Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "J.A.R.V.I.S."; color: "#fff0d6"; font.pixelSize: 15; font.bold: true }
-        Text { x: 126; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { anchors.centerIn: parent; text: "●  " + root.stateText; color: root.listening ? "#ffb347" : "#ffcc7a"; font.pixelSize: 9; font.bold: true }
+        Text { x: 126; width: 230; anchors.verticalCenter: parent.verticalCenter; text: "NEURAL COMMAND INTERFACE"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
+        Text { x: 520; width: 220; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter; text: "●  " + root.stateText; color: root.listening ? "#ffb347" : "#ffcc7a"; font.pixelSize: 9; font.bold: true }
         Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "SIMONE  //  " + root.clockText; color: "#d7a66b"; font.pixelSize: 9 }
     }
 
