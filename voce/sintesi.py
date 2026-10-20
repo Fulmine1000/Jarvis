@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import hashlib
+import re
 
 from voce.elevenlabs import ElevenLabsVoce
 
@@ -17,10 +18,9 @@ except ImportError:
 class SintesiVocale:
     """Motore vocale ufficiale di Jarvis.
 
-    Su hardware lento come il MacBook Pro 2010 la voce live deve essere
-    immediata: XTTS non viene piu usato per generare una risposta al volo.
-    Le eventuali frasi XTTS gia generate vengono riprodotte dal voicepack;
-    per tutto il resto viene usata subito la voce locale macOS.
+    Usa prima le frasi gia pronte nel voicepack e, quando mancano,
+    prova la voce clonata XTTS in background. Se il modello non e disponibile
+    o la generazione fallisce, mantiene il fallback vocale di sistema.
     """
 
     def __init__(self, config=None):
@@ -35,13 +35,13 @@ class SintesiVocale:
         self._voicepack_tts = None
         self._voicepack_tts_attempted = False
 
-        # XTTS resta disponibile per generare/preparare il voicepack offline,
-        # ma non deve bloccare la risposta live di Jarvis.
+        # La generazione XTTS avviene in background: Jarvis non resta bloccato
+        # durante il caricamento del modello. E disattivabile esplicitamente.
         self.xtts_attivo = os.environ.get(
             "JARVIS_ENABLE_XTTS", "1"
         ).strip().lower() in ("1", "true", "yes", "on")
         self.xtts_live = os.environ.get(
-            "JARVIS_XTTS_LIVE", "0"
+            "JARVIS_XTTS_LIVE", "1"
         ).strip().lower() in ("1", "true", "yes", "on")
 
         self._base_dir = os.path.dirname(
@@ -221,9 +221,16 @@ class SintesiVocale:
         digest = hashlib.sha256(normalizzato.encode("utf-8")).hexdigest()[:16]
         return os.path.join(self.voicepack_dir, digest + ".wav")
 
+    @staticmethod
+    def _testo_per_xtts(testo):
+        """Aiuta XTTS sulla pronuncia italiana di blu senza alterare il testo mostrato."""
+        return re.sub(r"\bblu\b", "blù", str(testo), flags=re.IGNORECASE)
+
     def _parla_con_voicepack(self, testo):
-        """Riproduce solo audio gia presente: nessuna generazione lenta live."""
+        """Riproduce audio gia presente, tranne frasi con la pronuncia difettosa."""
         if not self.xtts_attivo:
+            return False
+        if re.search(r"\bblu\b", str(testo), flags=re.IGNORECASE):
             return False
 
         percorso = self._chiave_voicepack(testo)
@@ -372,8 +379,8 @@ class SintesiVocale:
             if self._parla_con_voicepack(testo):
                 return True
 
-            # XTTS live resta disponibile solo se esplicitamente richiesto
-            # tramite JARVIS_XTTS_LIVE=1. Non viene mai attivato per errore.
+            # Se manca una frase pronta, prova la voce clonata XTTS in background.
+            # Per blu applica una guida fonetica solo al testo inviato al sintetizzatore.
             if (
                 self.xtts_live
                 and self.xtts_attivo
@@ -396,7 +403,8 @@ class SintesiVocale:
 
                 if self._voicepack_tts is not None:
                     try:
-                        if self._voicepack_tts.synthesize_and_play(testo):
+                        testo_sintesi = self._testo_per_xtts(testo)
+                        if self._voicepack_tts.synthesize_and_play(testo_sintesi):
                             return True
                     except Exception as errore:
                         print(f"⚠️ Errore XTTS live: {errore}")
