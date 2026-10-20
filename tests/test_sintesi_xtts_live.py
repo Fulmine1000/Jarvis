@@ -48,7 +48,7 @@ class TestSintesiXTTSLive(unittest.TestCase):
         isfile.assert_not_called()
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_frase_con_blu_usa_voce_clonata_anche_con_xtts_live_disattivo(self, _platform):
+    def test_frase_con_blu_non_avvia_xtts_live_quando_disattivo(self, _platform):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.attivo = True
         sintesi.motore = "voicepack"
@@ -65,12 +65,10 @@ class TestSintesiXTTSLive(unittest.TestCase):
              patch.object(SintesiVocale, "_parla_con_voicepack", return_value=False), \
              patch.object(SintesiVocale, "_parla_con_sistema", return_value=False) as parla_sistema, \
              patch("voce.sintesi.TextToSpeech", return_value=fake_tts):
-            self.assertTrue(sintesi.parla("Il mio colore preferito è blu."))
+            self.assertFalse(sintesi.parla("Il mio colore preferito è blu."))
 
-        fake_tts.synthesize_and_play.assert_called_once_with(
-            "Il mio colore preferito è blù."
-        )
-        self.assertFalse(parla_sistema.called)
+        fake_tts.synthesize_and_play.assert_not_called()
+        parla_sistema.assert_called_once_with("Il mio colore preferito è blu.")
 
 
 if __name__ == "__main__":
