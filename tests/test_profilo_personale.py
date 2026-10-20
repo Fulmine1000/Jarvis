@@ -41,7 +41,11 @@ class TestProfiloPersonaleJarvis(unittest.TestCase):
                 "colore_preferito": "blu",
             },
         )
-        self.assertNotIn("ricordi", memoria.database.dati)
+        self.assertIn("ricordi", memoria.database.dati)
+        self.assertNotIn("cane", memoria.database.dati["ricordi"])
+        self.assertEqual(
+            memoria.database.dati["ricordi"]["cibo"]["valore"], "pizza"
+        )
         self.assertIn("altro", memoria.database.dati)
 
     def test_non_cancella_ricordi_generali_nelle_accensioni_successive(self):

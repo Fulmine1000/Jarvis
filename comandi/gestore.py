@@ -289,19 +289,20 @@ class GestoreComandi:
             ricordi = {}
 
         if isinstance(ricordi, dict):
+            # Le informazioni su Simone sono consentite solo nel profilo
+            # canonico; non presentare altri appunti come dati personali.
             etichette = {
                 "colore_preferito": "colore preferito",
                 "nome_utente": "nome",
                 "animale_preferito": "animale preferito",
             }
             for chiave, dato in ricordi.items():
+                if str(chiave).strip().lower().replace("-", "_") not in etichette:
+                    continue
                 valore = dato.get("valore") if isinstance(dato, dict) else dato
                 if valore is None or not str(valore).strip():
                     continue
-                etichetta = etichette.get(
-                    str(chiave),
-                    str(chiave).replace("_", " ").replace("che il mio ", ""),
-                )
+                etichetta = etichette[str(chiave).strip().lower().replace("-", "_")]
                 frase = f"Ricordo anche {etichetta}: {valore}."
                 if frase not in " ".join(parti):
                     parti.append(frase)
