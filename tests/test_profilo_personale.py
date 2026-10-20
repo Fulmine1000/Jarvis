@@ -44,6 +44,19 @@ class TestProfiloPersonaleJarvis(unittest.TestCase):
         self.assertNotIn("ricordi", memoria.database.dati)
         self.assertIn("altro", memoria.database.dati)
 
+    def test_non_cancella_ricordi_generali_nelle_accensioni_successive(self):
+        memoria = MemoriaJarvis.__new__(MemoriaJarvis)
+        memoria.database = DatabaseFinto()
+        memoria._sincronizza_profilo_personale()
+        memoria.database.dati["ricordi"] = {"appunto_generale": {"valore": "da conservare"}}
+
+        memoria._sincronizza_profilo_personale()
+
+        self.assertEqual(
+            memoria.database.dati["ricordi"]["appunto_generale"]["valore"],
+            "da conservare",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
