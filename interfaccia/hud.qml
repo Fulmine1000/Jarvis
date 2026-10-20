@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1440
-    height: 780
-    minimumWidth: 1360
-    minimumHeight: 740
+    width: 1280
+    height: 700
+    minimumWidth: 1180
+    minimumHeight: 650
     title: "J.A.R.V.I.S. — Neural Command Interface"
     // Palette cinematografica ambra/arancio: niente pannelli blu/ciano residui.
     color: "#070503"
@@ -150,7 +150,7 @@ ApplicationWindow {
 
     // Left telemetry panel
     Rectangle {
-        x: 16; y: 66; width: 260; height: root.height - 94
+        x: 12; y: 66; width: 220; height: root.height - 82
         color: "#100802"; border.color: "#63340c"; border.width: 1
         Text { x: 12; y: 11; text: "SYSTEM TELEMETRY"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
         Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
@@ -200,7 +200,7 @@ ApplicationWindow {
 
     // Right environment panel
     Rectangle {
-        x: root.width - 276; y: 66; width: 260; height: root.height - 94
+        x: root.width - 232; y: 66; width: 220; height: root.height - 82
         color: "#100802"; border.color: "#63340c"; border.width: 1
         Text { x: 12; y: 11; text: "ENVIRONMENT / DEVICES"; color: "#fff0d6"; font.pixelSize: 9; font.bold: true }
         Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#4a270b" }
@@ -239,139 +239,162 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 204; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Central neural reactor
+    // Central holographic 3D object: wireframe scan instead of the old reactor.
     Item {
-        id: core
-        x: root.width / 2 - 215
-        y: 96
-        width: 430
-        height: 430
+        id: hologram
+        x: root.width / 2 - 180
+        y: 92
+        width: 360
+        height: 360
+        property real zoom: 1.0
+        property real gestureTurn: 0
 
-        Rectangle { anchors.centerIn: parent; width: 382; height: 382; radius: 191; color: "transparent"; border.color: "#5c2e0c"; border.width: 1; opacity: 0.7 }
-        Rectangle { anchors.centerIn: parent; width: 350; height: 350; radius: 175; color: "#1b0e05"; opacity: 0.35; border.color: "#a45c18"; border.width: 1 }
-        Rectangle { anchors.centerIn: parent; width: 305; height: 305; radius: 152; color: "transparent"; border.color: "#a45c18"; border.width: 1; rotation: root.t * 6 }
-        Rectangle { anchors.centerIn: parent; width: 270; height: 270; radius: 135; color: "transparent"; border.color: "#633a12"; border.width: 2; rotation: -root.t * 10 }
-        Rectangle { anchors.centerIn: parent; width: 225; height: 225; radius: 112; color: "transparent"; border.color: "#ffb347"; border.width: 1; opacity: 0.65 + root.activity * 0.35; rotation: root.t * 18 }
-
-        Repeater {
-            model: 16
-            Rectangle {
-                width: index % 2 === 0 ? 22 : 10
-                height: 2
-                x: 215 + Math.cos(index * Math.PI / 8 + root.t * 0.55) * (index % 2 === 0 ? 178 : 150) - width / 2
-                y: 215 + Math.sin(index * Math.PI / 8 + root.t * 0.55) * (index % 2 === 0 ? 178 : 150) - height / 2
-                rotation: index * 22.5 + 90
-                color: index % 4 === 0 ? "#ffb347" : "#a45c18"
-                opacity: 0.8
-            }
-        }
-
-        // Holographic scan plane: sweeps through the reactor like a live projection.
+        // Subtle floor projection and scan reticle.
         Rectangle {
-            anchors.centerIn: parent
-            width: 218
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 286
+            width: 250
             height: 1
-            rotation: root.t * 52
-            transformOrigin: Item.Center
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#00ffb347" }
-                GradientStop { position: 0.48; color: "#ffe0a6" }
-                GradientStop { position: 0.52; color: "#ffb347" }
-                GradientStop { position: 1.0; color: "#00ffb347" }
-            }
-            opacity: 0.58 + root.activity * 0.25
+            color: "#ffb347"
+            opacity: 0.38
+        }
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 294
+            width: 190
+            height: 1
+            color: "#d97716"
+            opacity: 0.22
         }
 
-        // Three orbiting holographic markers react to the voice channel.
+        Canvas {
+            id: hologramCanvas
+            anchors.fill: parent
+            renderTarget: Canvas.FramebufferObject
+            antialiasing: true
+            onPaint: {
+                var ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+                var cx = width / 2;
+                var cy = height / 2 - 12;
+                var scale = 1.0 * hologram.zoom;
+                var angle = root.t * 0.55 + hologram.gestureTurn;
+                var points = [];
+                var edges = [];
+                var i, j;
+
+                // Project a rotating 3D wireframe object with depth.
+                function project(p) {
+                    var x = p[0], y = p[1], z = p[2];
+                    var ca = Math.cos(angle), sa = Math.sin(angle);
+                    var cb = Math.cos(angle * 0.63), sb = Math.sin(angle * 0.63);
+                    var rx = x * ca - z * sa;
+                    var rz = x * sa + z * ca;
+                    var ry = y * cb - rz * sb;
+                    rz = y * sb + rz * cb;
+                    var perspective = 3.6 / (3.6 + rz);
+                    return [cx + rx * 92 * scale * perspective, cy + ry * 92 * scale * perspective, rz];
+                }
+
+                // A faceted scan mesh: rings plus meridians, like a scanned 3D hologram.
+                var latitudes = 9;
+                var longitudes = 18;
+                for (i = 1; i < latitudes; i++) {
+                    var lat = -Math.PI / 2 + Math.PI * i / latitudes;
+                    ctx.beginPath();
+                    for (j = 0; j <= 72; j++) {
+                        var lon = Math.PI * 2 * j / 72;
+                        var p = project([Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon)]);
+                        if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+                    }
+                    ctx.strokeStyle = i % 2 === 0 ? "#ffb347" : "#9c5b1c";
+                    ctx.globalAlpha = i % 2 === 0 ? 0.55 : 0.32;
+                    ctx.lineWidth = i % 3 === 0 ? 1.15 : 0.65;
+                    ctx.stroke();
+                }
+                for (i = 0; i < longitudes; i++) {
+                    var lon2 = Math.PI * 2 * i / longitudes;
+                    ctx.beginPath();
+                    for (j = 0; j <= 72; j++) {
+                        var lat2 = -Math.PI / 2 + Math.PI * j / 72;
+                        var p2 = project([Math.cos(lat2) * Math.cos(lon2), Math.sin(lat2), Math.cos(lat2) * Math.sin(lon2)]);
+                        if (j === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
+                    }
+                    ctx.strokeStyle = i % 3 === 0 ? "#ffe0a6" : "#d97716";
+                    ctx.globalAlpha = i % 3 === 0 ? 0.72 : 0.38;
+                    ctx.lineWidth = i % 3 === 0 ? 1.1 : 0.6;
+                    ctx.stroke();
+                }
+
+                // Wireframe cube corners and diagonals add a tangible 3D scan silhouette.
+                var verts = [
+                    [-0.72,-0.72,-0.72],[0.72,-0.72,-0.72],[0.72,0.72,-0.72],[-0.72,0.72,-0.72],
+                    [-0.72,-0.72,0.72],[0.72,-0.72,0.72],[0.72,0.72,0.72],[-0.72,0.72,0.72]
+                ];
+                var edgePairs = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7],[0,6],[1,7],[2,4],[3,5]];
+                ctx.globalAlpha = 0.78;
+                ctx.strokeStyle = "#ffe0a6";
+                ctx.lineWidth = 1.15;
+                for (i = 0; i < edgePairs.length; i++) {
+                    var a = project(verts[edgePairs[i][0]]);
+                    var b = project(verts[edgePairs[i][1]]);
+                    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+                }
+
+                // Scan nodes and axis markers.
+                ctx.globalAlpha = 0.9;
+                for (i = 0; i < verts.length; i++) {
+                    var v = project(verts[i]);
+                    ctx.beginPath(); ctx.arc(v[0], v[1], 2.2, 0, Math.PI * 2);
+                    ctx.fillStyle = "#fff0d6"; ctx.fill();
+                }
+                ctx.globalAlpha = 0.75;
+                ctx.strokeStyle = "#ffb347";
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(cx - 135, cy); ctx.lineTo(cx - 105, cy); ctx.moveTo(cx + 105, cy); ctx.lineTo(cx + 135, cy);
+                ctx.moveTo(cx, cy - 135); ctx.lineTo(cx, cy - 105); ctx.moveTo(cx, cy + 105); ctx.lineTo(cx, cy + 135); ctx.stroke();
+
+                // Rotating horizontal scan beam.
+                var beamY = cy + Math.sin(root.t * 1.7) * 78;
+                var grad = ctx.createLinearGradient(cx - 125, beamY, cx + 125, beamY);
+                grad.addColorStop(0, "rgba(255,179,71,0)");
+                grad.addColorStop(0.5, "rgba(255,224,166,0.8)");
+                grad.addColorStop(1, "rgba(255,179,71,0)");
+                ctx.strokeStyle = grad; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.8;
+                ctx.beginPath(); ctx.moveTo(cx - 125, beamY); ctx.lineTo(cx + 125, beamY); ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            Connections {
+                target: root
+                function onTChanged() { hologramCanvas.requestPaint() }
+                function onActivityChanged() { hologramCanvas.requestPaint() }
+            }
+        }
+
+        // Corner brackets frame the scanned object rather than surrounding a reactor.
         Repeater {
-            model: 3
-            Rectangle {
-                width: index === 1 ? 7 : 4
-                height: width
-                radius: width / 2
-                x: 215 + Math.cos(root.t * (index % 2 === 0 ? 0.9 : -0.65) + index * 2.094) * (index === 1 ? 122 : 145) - width / 2
-                y: 215 + Math.sin(root.t * (index % 2 === 0 ? 0.9 : -0.65) + index * 2.094) * (index === 1 ? 122 : 145) - height / 2
-                color: index === 1 ? "#ffe0a6" : "#ffb347"
-                opacity: 0.55 + root.activity * 0.45
+            model: 4
+            Item {
+                property real leftX: index % 2 === 0 ? 35 : 289
+                property real topY: index < 2 ? 30 : 278
+                x: leftX; y: topY; width: 36; height: 36
+                Rectangle { x: 0; y: 0; width: 24; height: 1; color: "#ffb347"; opacity: 0.75 }
+                Rectangle { x: 0; y: 0; width: 1; height: 24; color: "#ffb347"; opacity: 0.75 }
             }
-        }
-
-        // Amber radial particles: the cinematic reactor shown in the reference Short.
-        Repeater {
-            model: 46
-            Rectangle {
-                width: index % 4 === 0 ? 3 : index % 3 === 0 ? 2 : 1
-                height: width
-                radius: width / 2
-                x: 215 + Math.cos(index * 2.399 + root.t * (0.12 + (index % 5) * 0.035)) * (70 + (index * 37 % 120)) - width / 2
-                y: 215 + Math.sin(index * 2.399 + root.t * (0.12 + (index % 5) * 0.035)) * (70 + (index * 37 % 120)) - height / 2
-                color: index % 5 === 0 ? "#fff0d6" : "#ffb347"
-                opacity: 0.28 + (Math.sin(root.t * 1.8 + index) + 1) * 0.28
-            }
-        }
-
-        // Energy rings
-        Rectangle {
-            anchors.centerIn: parent
-            width: 178 + root.activity * 20
-            height: width
-            radius: width / 2
-            color: "#3a1c07"
-            border.color: "#ff9d2e"
-            border.width: 2
-            opacity: 0.55
-        }
-        Rectangle {
-            anchors.centerIn: parent
-            width: 132 + root.activity * 14
-            height: width
-            radius: width / 2
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#63330d" }
-                GradientStop { position: 0.5; color: "#d97716" }
-                GradientStop { position: 1.0; color: "#100802" }
-            }
-            border.color: "#ffb347"
-            border.width: 2
-            opacity: 0.9
-        }
-        Rectangle {
-            anchors.centerIn: parent
-            width: 86 + root.activity * 10
-            height: width
-            radius: width / 2
-            color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#ffb347"
-            opacity: root.listening || root.speaking ? 0.95 : 0.72
-            scale: 1.0 + Math.sin(root.t * 6) * (root.listening || root.speaking ? 0.05 : 0.015)
-            Behavior on color { ColorAnimation { duration: 180 } }
-        }
-
-        // J.A.R.V.I.S. identity in the reactor center
-        Text {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -1
-            text: "J.A.R.V.I.S."
-            color: "#fff5e5"
-            font.pixelSize: 18
-            font.bold: true
-            style: Text.Outline
-            styleColor: "#d97716"
-            opacity: root.listening || root.speaking ? 1.0 : 0.94
-            scale: 1.0 + Math.sin(root.t * 5) * (root.listening || root.speaking ? 0.025 : 0.008)
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 322
-            text: root.listening ? "LISTENING" : root.speaking ? "SPEAKING" : "SYSTEM READY"
-            color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#ffe0a6"
-            font.pixelSize: 11
+            y: 316
+            text: root.listening ? "SCANNING // LISTENING" : root.speaking ? "HOLOGRAM LINK ACTIVE" : "3D HOLOGRAM // READY"
+            color: root.listening ? "#ffcc7a" : "#ffe0a6"
+            font.pixelSize: 9
             font.bold: true
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 342
-            text: "NEURAL PROCESSING // " + Math.round(root.activity * 100) + "%"
+            y: 333
+            text: "LIVE MESH  //  " + Math.round(root.activity * 100) + "%"
             color: "#d98b36"
             font.pixelSize: 7
             font.bold: true
@@ -380,14 +403,14 @@ ApplicationWindow {
 
     // Bottom command/response strip
     Rectangle {
-        x: 286; y: root.height - 78; width: root.width - 572; height: 54
+        x: 236; y: root.height - 68; width: root.width - 472; height: 48
         color: "#1b0e05"
         border.color: "#63340c"
         border.width: 1
-        Text { x: 12; y: 7; text: "COMMAND"; color: "#d98b36"; font.pixelSize: 7; font.bold: true }
-        Text { x: 12; y: 21; width: parent.width - 24; text: root.commandText; color: "#ffe6c2"; font.pixelSize: 10; elide: Text.ElideRight }
-        Rectangle { x: parent.width - 84; y: 10; width: 60; height: 3; color: "#4a270b" }
-        Rectangle { x: parent.width - 84; y: 10; width: 60 * root.activity; height: 3; color: "#ffb347" }
+        Text { x: 12; y: 5; text: "COMMAND"; color: "#d98b36"; font.pixelSize: 7; font.bold: true }
+        Text { x: 12; y: 19; width: parent.width - 24; text: root.commandText; color: "#ffe6c2"; font.pixelSize: 10; elide: Text.ElideRight }
+        Rectangle { x: parent.width - 84; y: 8; width: 60; height: 3; color: "#4a270b" }
+        Rectangle { x: parent.width - 84; y: 8; width: 60 * root.activity; height: 3; color: "#ffb347" }
     }
 
     // Decorative corner markers
