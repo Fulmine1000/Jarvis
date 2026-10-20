@@ -64,11 +64,24 @@ def _xtts_worker(model_name: str, text: str, reference_wav: str, language: str, 
             gpu=False,
         )
         print("🎙️ Processo XTTS: generazione audio...", flush=True)
+        # Parametri verificati sul Mac Intel con XTTS v2: riducono
+        # le generazioni instabili rispetto ai valori predefiniti.
         model.tts_to_file(
             text=text,
             speaker_wav=reference_wav,
             language=language,
             file_path=audio_path,
+            split_sentences=False,
+            temperature=0.65,
+            top_k=40,
+            top_p=0.80,
+            repetition_penalty=10.0,
+            speed=1.0,
+            gpt_cond_len=6,
+            gpt_cond_chunk_len=4,
+            max_ref_len=4,
+            sound_norm_refs=False,
+            enable_text_splitting=False,
         )
         with open(status_path, "w", encoding="utf-8") as stato:
             stato.write("OK")
