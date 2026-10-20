@@ -383,17 +383,13 @@ class SintesiVocale:
             if self._parla_con_voicepack(testo):
                 return True
 
-            # Se manca una frase pronta, prova la voce clonata XTTS in background.
-            # Per blu applica una guida fonetica solo al testo inviato al sintetizzatore.
-            # Su macOS XTTS live e disattivato normalmente per evitare
-            # attese lunghe. Per la parola "blu", pero, proviamo comunque
-            # prima la voce clonata di Jarvis: altrimenti il fallback di sistema
-            # pronuncia la parola in modo errato e la voce creata non viene usata.
-            frase_con_blu = bool(
-                re.search(r"\bblu\b", testo, flags=re.IGNORECASE)
-            )
+            # XTTS live deve essere esplicitamente abilitato.
+            # Su macOS/High Sierra una frase contenente "blu" non deve
+            # avviare da sola un worker lento: la risposta potrebbe restare
+            # in attesa del modello invece di usare subito "say".
+            # La guida fonetica resta disponibile quando XTTS live e attivo.
             if (
-                (self.xtts_live or frase_con_blu)
+                self.xtts_live
                 and self.xtts_attivo
                 and self.voce_riferimento
                 and TextToSpeech is not None
