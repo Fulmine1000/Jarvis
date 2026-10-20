@@ -239,8 +239,8 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#5dbddf"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Proiezione centrale disegnata come un unico apparato luminoso,
-    // evitando la pila di forme indipendenti della versione precedente.
+    // Proiettore centrale ottimizzato per il Mac Intel: solo elementi Qt Quick
+    // nativi, niente Canvas ridisegnato a ogni frame e poche animazioni.
     Item {
         id: hologram
         x: (root.width - width) / 2
@@ -250,198 +250,203 @@ ApplicationWindow {
         property real zoom: 1.0
         property real gestureTurn: 0
 
-        Canvas {
-            id: hologramCanvas
-            anchors.fill: parent
-            renderTarget: Canvas.FramebufferObject
-            antialiasing: true
+        // Alone dietro il reattore: gradiente statico, senza effetti costosi.
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 30
+            width: 176
+            height: 212
+            radius: width / 2
+            color: "transparent"
+            border.color: "#087f9d"
+            border.width: 2
+            opacity: 0.48
+        }
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 48
+            width: 142
+            height: 176
+            radius: width / 2
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#071b2b" }
+                GradientStop { position: 0.42; color: "#0a5268" }
+                GradientStop { position: 0.5; color: "#21eaff" }
+                GradientStop { position: 0.58; color: "#0a5268" }
+                GradientStop { position: 1.0; color: "#071b2b" }
+            }
+            opacity: 0.72
+        }
 
-            Connections {
-                target: root
-                function onTChanged() { hologramCanvas.requestPaint() }
-                function onActivityChanged() { hologramCanvas.requestPaint() }
-                function onListeningChanged() { hologramCanvas.requestPaint() }
-                function onSpeakingChanged() { hologramCanvas.requestPaint() }
+        // Silhouette del nucleo: struttura verticale continua con luce interna.
+        Item {
+            id: energyCore
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 28
+            width: 164
+            height: 222
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 132
+                height: 198
+                radius: width / 2
+                color: "transparent"
+                border.color: "#40f5ff"
+                border.width: 2
+                opacity: 0.95
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 112
+                height: 176
+                radius: width / 2
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#16485b" }
+                    GradientStop { position: 0.24; color: "#0b9eb7" }
+                    GradientStop { position: 0.5; color: "#aaffff" }
+                    GradientStop { position: 0.72; color: "#087c9a" }
+                    GradientStop { position: 1.0; color: "#16485b" }
+                }
+                opacity: 0.82
             }
 
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.reset();
-                ctx.clearRect(0, 0, width, height);
-
-                var cx = width / 2;
-                var pulse = 0.82 + 0.18 * Math.sin(root.t * 2.0);
-                var active = root.listening || root.speaking;
-                var glow = active ? 1.0 : 0.72 + root.activity * 0.28;
-
-                // Luce diffusa unica: il bagliore avvolge il reattore invece
-                // di leggere come una sagoma piena aggiunta sullo sfondo.
-                var haze = ctx.createRadialGradient(cx, 139, 8, cx, 145, 148);
-                haze.addColorStop(0, "rgba(29,255,255," + (0.18 * glow) + ")");
-                haze.addColorStop(0.45, "rgba(0,190,240,0.10)");
-                haze.addColorStop(1, "rgba(0,120,190,0)");
-                ctx.fillStyle = haze;
-                ctx.fillRect(35, 8, 290, 292);
-
-                // Campo verticale del reattore: una sola silhouette continua,
-                // con bordo vivo e luce interna sfumata.
-                ctx.save();
-                ctx.translate(cx, 132);
-                ctx.rotate(Math.sin(root.t * 0.24) * 0.025);
-                ctx.shadowColor = "#00eaff";
-                ctx.shadowBlur = 24 * pulse;
-                var shell = ctx.createLinearGradient(-72, 0, 72, 0);
-                shell.addColorStop(0, "rgba(0,255,255,0.08)");
-                shell.addColorStop(0.22, "rgba(20,220,255,0.28)");
-                shell.addColorStop(0.5, "rgba(215,255,255,0.72)");
-                shell.addColorStop(0.78, "rgba(15,205,255,0.25)");
-                shell.addColorStop(1, "rgba(0,255,255,0.06)");
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 66, 101, 0, 0, Math.PI * 2);
-                ctx.fillStyle = shell;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.lineWidth = 1.6;
-                ctx.strokeStyle = "rgba(125,255,255,0.95)";
-                ctx.stroke();
-
-                // Due curve laterali e archi interrotti costruiscono profondità
-                // e un aspetto da tecnologia volumetrica, non da bersaglio.
-                for (var side = -1; side <= 1; side += 2) {
-                    ctx.beginPath();
-                    ctx.moveTo(side * 48, -76);
-                    ctx.bezierCurveTo(side * 18, -43, side * 23, 31, side * 49, 77);
-                    ctx.strokeStyle = "rgba(180,255,255,0.78)";
-                    ctx.lineWidth = 1.4;
-                    ctx.stroke();
+            // Linee interne essenziali, statiche e leggere.
+            Rectangle {
+                anchors.centerIn: parent
+                width: 2
+                height: 150
+                color: "#d9ffff"
+                opacity: 0.68
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 86
+                height: 2
+                color: "#d9ffff"
+                opacity: 0.65
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 66
+                height: 88
+                radius: width / 2
+                color: "#16e5f4"
+                opacity: 0.55
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 36
+                height: 52
+                radius: width / 2
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#ffffff" }
+                    GradientStop { position: 0.55; color: "#eaffff" }
+                    GradientStop { position: 1.0; color: "#6cffff" }
                 }
+                opacity: 0.98
+            }
 
-                for (var ring = 0; ring < 3; ring++) {
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, 51 - ring * 10, 79 - ring * 16,
-                                root.t * (ring % 2 ? -0.16 : 0.12), 0.24 + ring * 0.18,
-                                Math.PI * 1.83 + ring * 0.22);
-                    ctx.strokeStyle = ring === 1
-                        ? "rgba(238,255,255,0.88)"
-                        : "rgba(67,245,255," + (0.7 - ring * 0.12) + ")";
-                    ctx.lineWidth = ring === 1 ? 2.0 : 1.1;
-                    ctx.stroke();
+            // Pochi marcatori fissi sul bordo, evitando decine di elementi animati.
+            Repeater {
+                model: 12
+                Rectangle {
+                    x: energyCore.width / 2 - width / 2
+                    y: 11
+                    width: index % 3 === 0 ? 3 : 1
+                    height: index % 3 === 0 ? 10 : 5
+                    color: index % 3 === 0 ? "#ffffff" : "#8affff"
+                    opacity: 0.82
+                    transform: Rotation {
+                        origin.x: energyCore.width / 2 - x
+                        origin.y: energyCore.height / 2 - y
+                        angle: index * 30
+                    }
                 }
+            }
+        }
 
-                // Nucleo luminoso: alone morbido e cuore bianco con riflesso ciano.
-                var coreGlow = ctx.createRadialGradient(0, 0, 2, 0, 0, 49);
-                coreGlow.addColorStop(0, "rgba(255,255,255,0.98)");
-                coreGlow.addColorStop(0.22, "rgba(226,255,255,0.9)");
-                coreGlow.addColorStop(0.48, "rgba(0,247,255,0.48)");
-                coreGlow.addColorStop(1, "rgba(0,225,255,0)");
-                ctx.fillStyle = coreGlow;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 37, 48, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowColor = "#eaffff";
-                ctx.shadowBlur = 15 * pulse;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 17, 25, 0, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(255,255,255,0.94)";
-                ctx.fill();
-                ctx.shadowBlur = 0;
+        // Fasci sottili tra il nucleo e il disco di proiezione.
+        Repeater {
+            model: 5
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                x: index * 7
+                y: 232
+                width: 1
+                height: 20
+                color: "#75faff"
+                opacity: 0.32
+            }
+        }
 
-                // Tracce luminose brevi attorno al nucleo, disposte sul profilo.
-                for (var i = 0; i < 20; i++) {
-                    var a = (Math.PI * 2 * i / 20) + root.t * 0.18;
-                    var rx = 57, ry = 88;
-                    var x1 = Math.cos(a) * rx;
-                    var y1 = Math.sin(a) * ry;
-                    var x2 = Math.cos(a) * (rx + (i % 4 === 0 ? 10 : 4));
-                    var y2 = Math.sin(a) * (ry + (i % 4 === 0 ? 10 : 4));
-                    ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                    ctx.strokeStyle = i % 4 === 0
-                        ? "rgba(255,255,255,0.95)" : "rgba(91,245,255,0.65)";
-                    ctx.lineWidth = i % 4 === 0 ? 1.6 : 0.8;
-                    ctx.stroke();
-                }
-                ctx.restore();
+        // Piattaforma prospettica: tre anelli distinti, nessuna rotazione continua.
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 250
+            width: 352
+            height: 82
 
-                // Fasci di luce convergono verso la piattaforma, lasciando
-                // un piccolo spazio visibile sotto il reattore sospeso.
-                ctx.save();
-                ctx.globalAlpha = 0.26 + 0.12 * pulse;
-                ctx.strokeStyle = "#7effff";
-                ctx.lineWidth = 1;
-                for (var beam = -4; beam <= 4; beam++) {
-                    ctx.beginPath();
-                    ctx.moveTo(cx + beam * 12, 236);
-                    ctx.lineTo(cx + beam * 19, 268);
-                    ctx.stroke();
-                }
-                ctx.restore();
-
-                // Piattaforma proiettante in prospettiva: ellissi schiacciate,
-                // segmenti interrotti e luce radente come un solo disco olografico.
-                var floorGlow = ctx.createRadialGradient(cx, 286, 12, cx, 286, 172);
-                floorGlow.addColorStop(0, "rgba(37,255,255,0.30)");
-                floorGlow.addColorStop(0.55, "rgba(0,200,255,0.12)");
-                floorGlow.addColorStop(1, "rgba(0,150,230,0)");
-                ctx.fillStyle = floorGlow;
-                ctx.beginPath();
-                ctx.ellipse(cx, 286, 171, 37, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.shadowColor = "#00eaff";
-                ctx.shadowBlur = 17 * pulse;
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = "rgba(79,250,255,0.96)";
-                ctx.beginPath();
-                ctx.ellipse(cx, 282, 164, 28, 0, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-
-                ctx.lineWidth = 1.3;
-                ctx.strokeStyle = "rgba(219,255,255,0.94)";
-                ctx.beginPath();
-                ctx.ellipse(cx, 283, 132, 19, 0, 0.08, Math.PI * 0.92);
-                ctx.stroke();
-                ctx.strokeStyle = "rgba(45,225,255,0.76)";
-                ctx.beginPath();
-                ctx.ellipse(cx, 285, 148, 24, 0, Math.PI * 1.05, Math.PI * 1.95);
-                ctx.stroke();
-
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = "rgba(0,210,255,0.76)";
-                ctx.beginPath();
-                ctx.ellipse(cx, 291, 112, 13, 0, 0, Math.PI * 2);
-                ctx.stroke();
-
-                // Tacche sulla superficie seguono la prospettiva della base.
-                for (var mark = 0; mark < 32; mark++) {
-                    var angle = Math.PI * 2 * mark / 32;
-                    var px = cx + Math.cos(angle) * 151;
-                    var py = 282 + Math.sin(angle) * 24;
-                    ctx.beginPath();
-                    ctx.moveTo(px, py);
-                    ctx.lineTo(cx + Math.cos(angle) * 158, 282 + Math.sin(angle) * 27);
-                    ctx.strokeStyle = mark % 4 === 0
-                        ? "rgba(230,255,255,0.95)" : "rgba(49,220,255,0.52)";
-                    ctx.lineWidth = mark % 4 === 0 ? 1.3 : 0.7;
-                    ctx.stroke();
-                }
-
-                // Particelle contenute nel campo di proiezione.
-                for (var p = 0; p < 16; p++) {
-                    var pxp = 48 + ((p * 47 + Math.sin(root.t + p) * 7) % 264);
-                    var pyp = 35 + ((p * 31 + root.t * (p % 2 ? 5 : -3) + 280) % 210);
-                    var alpha = 0.22 + (0.5 + 0.5 * Math.sin(root.t * 2 + p)) * 0.58;
-                    ctx.fillStyle = "rgba(185,255,255," + alpha + ")";
-                    ctx.fillRect(pxp, pyp, p % 5 === 0 ? 2 : 1, p % 5 === 0 ? 2 : 1);
-                }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 340
+                height: 60
+                radius: height / 2
+                color: "#03202e"
+                opacity: 0.7
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 346
+                height: 66
+                radius: height / 2
+                color: "transparent"
+                border.color: "#00dff5"
+                border.width: 2
+                opacity: 0.9
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 286
+                height: 43
+                radius: height / 2
+                color: "transparent"
+                border.color: "#c7ffff"
+                border.width: 2
+                opacity: 0.92
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 218
+                height: 24
+                radius: height / 2
+                color: "transparent"
+                border.color: "#18cde9"
+                border.width: 1
+                opacity: 0.85
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 39
+                width: 260
+                height: 2
+                color: "#e7ffff"
+                opacity: 0.88
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 34
+                width: 180
+                height: 8
+                radius: 4
+                color: "#00dff5"
+                opacity: 0.3
             }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 328
+            y: 342
             text: root.listening ? "HOLOGRAPHIC CORE  //  LISTENING"
                   : root.speaking ? "HOLOGRAPHIC CORE  //  ACTIVE"
                   : "HOLOGRAPHIC CORE"
@@ -451,7 +456,7 @@ ApplicationWindow {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 345
+            y: 358
             text: "PROJECTION FIELD  //  " + Math.round(root.activity * 100) + "%"
             color: "#38c9f4"
             font.pixelSize: 7
