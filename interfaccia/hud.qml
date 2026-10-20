@@ -171,7 +171,7 @@ ApplicationWindow {
         Repeater {
             model: [ ["KERNEL", root.kernelText], ["MEMORY", root.memoryState], ["DEVICES", root.deviceText], ["VOICE", root.voiceText] ]
             Item {
-                x: 22; y: 242 + index * 20; width: 176; height: 14
+                x: 22; y: 241 + index * 19; width: parent.width - 44; height: 14
                 Text { text: modelData[0]; color: "#4287a8"; font.pixelSize: 7 }
                 Text { anchors.right: parent.right; text: modelData[1]; color: index === 3 && root.listening ? "#00cfff" : "#b8eaff"; font.pixelSize: 7; font.bold: true }
             }
@@ -184,7 +184,7 @@ ApplicationWindow {
             Rectangle {
                 width: 5
                 height: 18 + Math.abs(Math.sin(root.t * 4.0 + index * 0.67)) * (58 * root.activity)
-                x: 22 + index * 8
+                x: 22 + index * 7
                 y: 425 - height
                 color: index % 4 === 0 ? "#00cfff" : "#00aee8"
                 opacity: 0.35 + root.activity * 0.65
