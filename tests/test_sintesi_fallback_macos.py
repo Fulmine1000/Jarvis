@@ -31,31 +31,32 @@ class TestFallbackSintesiMacOS(unittest.TestCase):
     @patch("voce.sintesi.subprocess.run")
     @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_riprova_con_voce_predefinita_se_voce_scelta_fallisce(
-        self, _sistema, _which, run
-    ):
+    def test_riprova_con_seconda_voce_maschile_selezionata(self, _sistema, _which, run):
         run.side_effect = [
-            SimpleNamespace(returncode=1, stderr="voce non disponibile", stdout=""),
+            SimpleNamespace(returncode=1, stderr="prima voce non disponibile", stdout=""),
             SimpleNamespace(returncode=0, stderr="", stdout=""),
         ]
 
-        self.assertTrue(self.sintesi._parla_con_sistema("Jarvis operativo"))
+        self.assertTrue(
+            self.sintesi._parla_con_sistema(
+                "Jarvis operativo", voce_forzata="VoceForzata"
+            )
+        )
         self.assertEqual(run.call_count, 2)
         self.assertIn("-v", run.call_args_list[0].args[0])
-        self.assertNotIn("-v", run.call_args_list[1].args[0])
+        self.assertIn("-v", run.call_args_list[1].args[0])
+        self.assertEqual(run.call_args_list[1].args[0][2], "VoceItaliana")
 
     @patch("voce.sintesi.subprocess.run")
     @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_usa_voce_predefinita_se_non_e_configurata(
+    def test_non_usa_voce_predefinita_se_non_e_configurata(
         self, _sistema, _which, run
     ):
         self.sintesi.voce_sistema = None
-        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout="")
 
-        self.assertTrue(self.sintesi._parla_con_sistema("Sono qui"))
-        run.assert_called_once()
-        self.assertNotIn("-v", run.call_args.args[0])
+        self.assertFalse(self.sintesi._parla_con_sistema("Sono qui"))
+        run.assert_not_called()
 
     @patch("voce.sintesi.subprocess.run")
     @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
@@ -68,8 +69,11 @@ class TestFallbackSintesiMacOS(unittest.TestCase):
             SimpleNamespace(returncode=1, stderr="errore predefinita", stdout=""),
         ]
 
-        self.assertFalse(self.sintesi._parla_con_sistema("Test"))
+        self.assertFalse(
+            self.sintesi._parla_con_sistema("Test", voce_forzata="VoceForzata")
+        )
         self.assertEqual(run.call_count, 2)
+        self.assertTrue(all("-v" in call.args[0] for call in run.call_args_list))
 
 
 if __name__ == "__main__":
