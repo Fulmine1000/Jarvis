@@ -33,7 +33,22 @@ class MemoriaJarvis:
             "profilo_personale_simone_inizializzato", {}
         )
         if not (isinstance(inizializzato, dict) and inizializzato.get("valore")):
-            self.database.dati.pop("ricordi", None)
+            # Rimuove solo le vecchie chiavi personali note, senza cancellare
+            # appunti o memoria generale di Jarvis.
+            ricordi = self.database.dati.get("ricordi", {})
+            if isinstance(ricordi, dict):
+                chiavi_personali = {
+                    "nome", "nome_utente", "il mio nome",
+                    "animale_preferito", "animale preferito",
+                    "colore_preferito", "colore preferito",
+                    "cane", "animale",
+                }
+                for chiave in list(ricordi):
+                    normalizzata = str(chiave).strip().lower().replace("-", "_")
+                    if normalizzata in chiavi_personali:
+                        ricordi.pop(chiave, None)
+                if not ricordi:
+                    self.database.dati.pop("ricordi", None)
             self.database.aggiungi(
                 "impostazioni",
                 "profilo_personale_simone_inizializzato",
