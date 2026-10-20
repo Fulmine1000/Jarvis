@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1280
-    height: 700
-    minimumWidth: 1180
-    minimumHeight: 650
+    width: 1200
+    height: 680
+    minimumWidth: 1100
+    minimumHeight: 640
     title: "J.A.R.V.I.S. — Neural Command Interface"
     // Palette cinematografica blu/ciano ispirata all'interfaccia di J.A.R.V.I.S.
     color: "#030811"
@@ -239,164 +239,204 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#5dbddf"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Central J.A.R.V.I.S. HUD inspired by the cinematic Iron Man interface:
-    // blue/cyan segmented rings, targeting ticks, scan sweep and the J.A.R.V.I.S. wordmark.
+    // Three-dimensional spherical J.A.R.V.I.S. hologram, with depth layers and perspective rings.
     Item {
         id: hologram
-        x: root.width / 2 - 180
-        y: 86
-        width: 360
-        height: 360
+        x: (root.width - width) / 2
+        y: 72
+        width: 380
+        height: 390
         property real zoom: 1.0
         property real gestureTurn: 0
 
+        // Soft cyan atmospheric halo.
         Rectangle {
-            anchors.centerIn: parent
-            y: -2
-            width: 310 * hologram.zoom
-            height: 310 * hologram.zoom
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 20
+            width: 270 * hologram.zoom
+            height: 270 * hologram.zoom
             radius: width / 2
-            color: "#06233a"
-            opacity: 0.22 + root.activity * 0.12
-        }
-
-        // Outer technical rings.
-        Repeater {
-            model: 5
-            Rectangle {
-                anchors.centerIn: parent
-                width: (320 - index * 24) * hologram.zoom
-                height: width
-                radius: width / 2
-                color: "transparent"
-                border.color: index % 2 === 0 ? "#00cfff" : "#168bb8"
-                border.width: index === 1 ? 2 : 1
-                opacity: 0.72 - index * 0.08
-                rotation: root.t * (index % 2 === 0 ? 5 : -3) + hologram.gestureTurn
-            }
-        }
-
-        // Short radial marks create the segmented, mechanical HUD ring.
-        Repeater {
-            model: 72
-            Item {
-                anchors.fill: parent
-                rotation: index * 5 + root.t * 2
-                Rectangle {
-                    x: parent.width / 2 - width / 2
-                    y: 17
-                    width: index % 6 === 0 ? 3 : 1
-                    height: index % 6 === 0 ? 17 : 7
-                    color: index % 6 === 0 ? "#c9faff" : "#00cfff"
-                    opacity: index % 6 === 0 ? 0.95 : 0.62
-                }
-            }
-        }
-
-        // Four separated luminous brackets around the inner circle.
-        Repeater {
-            model: 4
-            Item {
-                anchors.fill: parent
-                rotation: index * 90 + root.t * 7
-                Rectangle {
-                    x: parent.width / 2 - 48
-                    y: 53
-                    width: 96
-                    height: 3
-                    radius: 1
-                    color: "#9af1ff"
-                    opacity: 0.95
-                }
-                Rectangle {
-                    x: parent.width / 2 - 48
-                    y: 53
-                    width: 3
-                    height: 20
-                    color: "#00cfff"
-                }
-                Rectangle {
-                    x: parent.width / 2 + 45
-                    y: 53
-                    width: 3
-                    height: 20
-                    color: "#00cfff"
-                }
-            }
-        }
-
-        // Inner lens and central J.A.R.V.I.S. identity.
-        Rectangle {
-            anchors.centerIn: parent
-            width: 166 * hologram.zoom
-            height: width
-            radius: width / 2
-            color: "#041a2b"
-            border.color: "#00cfff"
-            border.width: 2
-            opacity: 0.9
+            color: "#063d60"
+            opacity: 0.18 + root.activity * 0.12
         }
         Rectangle {
-            anchors.centerIn: parent
-            width: 142 * hologram.zoom
-            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 30
+            width: 236 * hologram.zoom
+            height: 236 * hologram.zoom
             radius: width / 2
             color: "transparent"
-            border.color: "#8defff"
+            border.color: "#00cfff"
             border.width: 1
-            opacity: 0.85
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 151
-            text: "J.A.R.V.I.S."
-            color: "#e8fcff"
-            font.pixelSize: 21
-            font.bold: true
-            font.letterSpacing: 3
-        }
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 183
-            width: 116
-            height: 1
-            color: "#00cfff"
-            opacity: 0.9
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 191
-            text: root.listening ? "VOICE INPUT ACTIVE" : root.speaking ? "VOICE OUTPUT ACTIVE" : "NEURAL INTERFACE ONLINE"
-            color: "#7ce8ff"
-            font.pixelSize: 7
-            font.bold: true
+            opacity: 0.55
         }
 
-        // Scanning beam and small moving signal points.
+        // Orb body: layered circles simulate a luminous glass sphere with a bright upper-left highlight.
+        Item {
+            id: orb
+            x: (parent.width - width) / 2
+            y: 34
+            width: 218 * hologram.zoom
+            height: 218 * hologram.zoom
+            rotation: hologram.gestureTurn
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#8df5ff" }
+                    GradientStop { position: 0.18; color: "#167ca9" }
+                    GradientStop { position: 0.52; color: "#063957" }
+                    GradientStop { position: 0.82; color: "#021525" }
+                    GradientStop { position: 1.0; color: "#00bfe9" }
+                }
+                border.color: "#83f2ff"
+                border.width: 2
+                opacity: 0.94
+            }
+            Rectangle {
+                x: width * 0.12
+                y: height * 0.11
+                width: parent.width * 0.76
+                height: parent.height * 0.76
+                radius: width / 2
+                color: "transparent"
+                border.color: "#39dfff"
+                border.width: 1
+                opacity: 0.82
+            }
+            // Latitude rings curve across the sphere; narrow middle rings imply depth.
+            Repeater {
+                model: 5
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: parent.height * (0.19 + index * 0.145)
+                    width: parent.width * (0.86 - Math.abs(index - 2) * 0.11)
+                    height: 10 + (2 - Math.abs(index - 2)) * 8
+                    radius: height / 2
+                    color: "transparent"
+                    border.color: index === 2 ? "#c7fbff" : "#00cfff"
+                    border.width: index === 2 ? 2 : 1
+                    opacity: 0.72
+                }
+            }
+            // Rotating longitude arcs, kept inside the globe silhouette.
+            Repeater {
+                model: 3
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width * (0.34 + index * 0.2)
+                    height: parent.height * 0.9
+                    radius: width / 2
+                    color: "transparent"
+                    border.color: index === 1 ? "#b5f8ff" : "#00cfff"
+                    border.width: 1
+                    rotation: root.t * (index % 2 === 0 ? 12 : -9) + index * 24
+                    opacity: 0.78
+                }
+            }
+            Rectangle {
+                x: parent.width * 0.19
+                y: parent.height * 0.13
+                width: parent.width * 0.21
+                height: parent.height * 0.11
+                radius: height / 2
+                rotation: -35
+                color: "#e6fdff"
+                opacity: 0.65
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 42
+                height: 42
+                radius: 21
+                color: "#d7fcff"
+                opacity: 0.95
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 26
+                height: 26
+                radius: 13
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#ffffff" }
+                    GradientStop { position: 0.55; color: "#76efff" }
+                    GradientStop { position: 1.0; color: "#008dbd" }
+                }
+            }
+        }
+
+        // Floating orbital rings around the 3D sphere.
+        Repeater {
+            model: 3
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 90 + index * 14
+                width: 282 - index * 28
+                height: 74 - index * 10
+                radius: height / 2
+                color: "transparent"
+                border.color: index === 1 ? "#b7f8ff" : "#00cfff"
+                border.width: index === 1 ? 2 : 1
+                rotation: root.t * (index === 1 ? -8 : 6) + index * 28
+                opacity: 0.78
+            }
+        }
+
+        // Projection pedestal below the globe gives the object a floating 3D presence.
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 235
+            width: 340
+            height: 92
+            Repeater {
+                model: 5
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width - index * 22
+                    height: parent.height - index * 14
+                    radius: height / 2
+                    color: "transparent"
+                    border.color: index === 1 ? "#bafaff" : "#00cfff"
+                    border.width: index === 1 ? 2 : 1
+                    rotation: root.t * (index % 2 === 0 ? 4 : -3)
+                    opacity: 0.8 - index * 0.11
+                }
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 43
+                width: 280
+                height: 2
+                color: "#c9faff"
+                opacity: 0.7
+            }
+        }
+
+        // Scan line and floating particles.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 32 + (Math.sin(root.t * 1.4) + 1) * 115
-            width: 220 * hologram.zoom
+            y: 34 + (Math.sin(root.t * 1.4) + 1) * 105
+            width: 252
             height: 1
-            color: "#c9faff"
-            opacity: 0.48 + root.activity * 0.4
+            color: "#e4fdff"
+            opacity: 0.5 + root.activity * 0.35
         }
         Repeater {
-            model: 16
+            model: 18
             Rectangle {
-                width: index % 4 === 0 ? 4 : 2
+                width: index % 4 === 0 ? 3 : 2
                 height: width
                 radius: width / 2
-                x: 46 + (index * 37 % 268)
-                y: 34 + (index * 53 % 286)
+                x: 40 + (index * 41 % 300)
+                y: 30 + (index * 37 % 292)
                 color: "#9af1ff"
-                opacity: 0.25 + (Math.sin(root.t * 2 + index) + 1) * 0.3
+                opacity: 0.2 + (Math.sin(root.t * 2 + index) + 1) * 0.28
             }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 326
+            y: 337
             text: root.listening ? "J.A.R.V.I.S. // LISTENING" : root.speaking ? "J.A.R.V.I.S. // SPEAKING" : "J.A.R.V.I.S. // STANDBY"
             color: "#9af1ff"
             font.pixelSize: 9
@@ -404,8 +444,8 @@ ApplicationWindow {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 342
-            text: "NEURAL LINK  //  " + Math.round(root.activity * 100) + "%"
+            y: 354
+            text: "3D HOLOGRAM LINK  //  " + Math.round(root.activity * 100) + "%"
             color: "#38c9f4"
             font.pixelSize: 7
             font.bold: true
