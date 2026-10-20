@@ -197,8 +197,7 @@ def compila_espeak_high_sierra(temporanea, lib_destinazione):
         check=False,
     )
     if risultato.returncode != 0:
-        raise RuntimeError("compilazione di eSpeak NG fallita")
-    risultato = subprocess.run([cmake, "--install", build], check=False)
+        raise RuntimeError("compilazione di eSpeak NG fallita")    risultato = subprocess.run([cmake, "--install", build], check=False)
     if risultato.returncode != 0:
         raise RuntimeError("installazione locale di eSpeak NG fallita")
 
@@ -397,8 +396,7 @@ def compila_onnxruntime_high_sierra(temporanea, lib_destinazione):
         "--build_shared_lib",
         "--parallel", "2",
         "--skip_tests",        "--skip_submodule_sync",
-        "--cmake_path", cmake,
-        "--apple_deploy_target", "10.13",
+        "--cmake_path", cmake,        "--apple_deploy_target", "10.13",
         "--osx_arch", "x86_64",
         "--cmake_extra_defines",
         "CMAKE_OSX_DEPLOYMENT_TARGET=10.13",
@@ -597,8 +595,7 @@ def compila_piper_phonemize_high_sierra(temporanea, lib_destinazione):
 
     if not os.path.isdir(espeak_dir):        raise RuntimeError("installazione locale di eSpeak NG non trovata")
     os.makedirs(build, exist_ok=True)
-    # Su High Sierra il clang di sistema non fornisce <filesystem>.
-    # L'eseguibile di esempio piper_phonemize_exe non è necessario a Jarvis:
+    # Su High Sierra il clang di sistema non fornisce <filesystem>.    # L'eseguibile di esempio piper_phonemize_exe non è necessario a Jarvis:
     # ci serve esclusivamente la libreria condivisa usata dal binario Piper.
     # Disabilitiamo quindi la costruzione dell'eseguibile e delle CLI di test.
     configurazione = [
@@ -797,8 +794,7 @@ inline path canonical(const char *value) {
     onnx = os.path.join(lib_dest, "libonnxruntime.1.14.1.dylib")
     if os.path.isfile(onnx):
         alias = os.path.join(lib_dest, "libonnxruntime.dylib")
-        if not os.path.exists(alias):
-            shutil.copy2(onnx, alias)
+        if not os.path.exists(alias):            shutil.copy2(onnx, alias)
 
     cmake_lists = os.path.join(sorgente, "CMakeLists.txt")
     if not os.path.isfile(cmake_lists):
@@ -1042,6 +1038,7 @@ def installa_piper():
                 archivio_phonemize,
                 os.path.join(MODEL_DIR, "espeak-ng-high-sierra.zip"),
                 os.path.join(MODEL_DIR, "piper-phonemize-high-sierra.zip"),
+                os.path.join(MODEL_DIR, "piper-high-sierra.zip"),
                 os.path.join(MODEL_DIR, "cmake-high-sierra.tar.gz"),
             ):
                 if os.path.isfile(file_temporaneo):
