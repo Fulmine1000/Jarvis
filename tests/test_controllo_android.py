@@ -38,6 +38,14 @@ class TestControlloAndroidVideo(unittest.TestCase):
             self.assertEqual(self.controller.gestisci_comando("apri youtube sul telefono"), "ok")
             action.assert_called_once_with("youtube")
 
+    def test_comandi_in_inglese_del_video(self):
+        with patch.object(self.controller, "risveglia_schermo", return_value="wake") as wake:
+            self.assertEqual(self.controller.gestisci_comando("unlock my phone"), "wake")
+            wake.assert_called_once_with()
+        with patch.object(self.controller, "apri_app", return_value="open") as action:
+            self.assertEqual(self.controller.gestisci_comando("open JioHotstar in my phone"), "open")
+            action.assert_called_once_with("jiohotstar")
+
     def test_comando_chiamata_non_esegue_chiamata_silenziosa(self):
         with patch.object(self.controller, "chiama", return_value="dialer") as action:
             self.assertEqual(self.controller.gestisci_comando("chiama mia sorella"), "dialer")
