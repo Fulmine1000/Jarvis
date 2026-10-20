@@ -40,18 +40,6 @@ class TestSintesiXTTSLive(unittest.TestCase):
             "Bluetooth è connesso",
         )
 
-    @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_frase_con_blu_usa_alice_per_correggere_la_pronuncia(self, _platform):
-        sintesi = SintesiVocale.__new__(SintesiVocale)
-        sintesi.attivo = True
-        with patch.object(
-            SintesiVocale, "_parla_con_sistema", return_value=True
-        ) as parla_sistema:
-            self.assertTrue(sintesi.parla("Il mio colore preferito è blu."))
-        parla_sistema.assert_called_once_with(
-            "Il mio colore preferito è blu.", voce_forzata="Alice"
-        )
-
     def test_frasi_con_blu_non_usano_cache_potenzialmente_difettosa(self):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.xtts_attivo = True
@@ -60,7 +48,7 @@ class TestSintesiXTTSLive(unittest.TestCase):
         isfile.assert_not_called()
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_risposta_con_blu_invia_la_guida_fonetica_a_xtts(self, _platform):
+    def test_frase_con_blu_usa_guida_xtts_senza_forzare_alice(self, _platform):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.attivo = True
         sintesi.motore = "voicepack"
@@ -75,13 +63,14 @@ class TestSintesiXTTSLive(unittest.TestCase):
         fake_tts.synthesize_and_play.return_value = True
         with patch.object(SintesiVocale, "_parla_con_voce_clonata", return_value=False), \
              patch.object(SintesiVocale, "_parla_con_voicepack", return_value=False), \
-             patch.object(SintesiVocale, "_parla_con_sistema", return_value=False), \
+             patch.object(SintesiVocale, "_parla_con_sistema", return_value=False) as parla_sistema, \
              patch("voce.sintesi.TextToSpeech", return_value=fake_tts):
             self.assertTrue(sintesi.parla("Il mio colore preferito è blu."))
 
         fake_tts.synthesize_and_play.assert_called_once_with(
             "Il mio colore preferito è blù."
         )
+        self.assertFalse(parla_sistema.called)
 
 
 if __name__ == "__main__":
