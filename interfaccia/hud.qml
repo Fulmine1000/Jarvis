@@ -158,11 +158,11 @@ ApplicationWindow {
         Repeater {
             model: [ ["CPU LOAD", root.cpuText], ["MEMORY", root.memoryText], ["STORAGE", root.diskText], ["NETWORK", root.networkText] ]
             Item {
-                x: 14; y: 46 + index * 45; width: 220; height: 32
+                x: 14; y: 46 + index * 45; width: 190; height: 32
                 Text { text: modelData[0]; color: "#d98b36"; font.pixelSize: 7; font.bold: true }
                 Text { y: 12; text: modelData[1]; color: "#ffe6c2"; font.pixelSize: 12; font.bold: true }
-                Rectangle { x: 120; y: 15; width: 90; height: 2; color: "#4a270b" }
-                Rectangle { x: 120; y: 15; width: 90 * Math.min(1, Math.max(0.05, root.activity)); height: 2; color: "#d97716"; opacity: 0.8 }
+                Rectangle { x: 108; y: 15; width: 70; height: 2; color: "#4a270b" }
+                Rectangle { x: 108; y: 15; width: 70 * Math.min(1, Math.max(0.05, root.activity)); height: 2; color: "#d97716"; opacity: 0.8 }
             }
         }
 
@@ -171,7 +171,7 @@ ApplicationWindow {
         Repeater {
             model: [ ["KERNEL", root.kernelText], ["MEMORY", root.memoryState], ["DEVICES", root.deviceText], ["VOICE", root.voiceText] ]
             Item {
-                x: 22; y: 242 + index * 20; width: 204; height: 14
+                x: 22; y: 242 + index * 20; width: 176; height: 14
                 Text { text: modelData[0]; color: "#9b754f"; font.pixelSize: 7 }
                 Text { anchors.right: parent.right; text: modelData[1]; color: index === 3 && root.listening ? "#ffb347" : "#f4d7ac"; font.pixelSize: 7; font.bold: true }
             }
@@ -222,13 +222,13 @@ ApplicationWindow {
         Rectangle { x: 12; y: 242; width: parent.width - 24; height: 128; color: "#1b0e05"; border.color: "#5c2e0c" }
         Text { x: 22; y: 252; text: "VOICE CHANNEL"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
         Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#ffb347" : root.speaking ? "#ffcc7a" : "#f4d7ac"; font.pixelSize: 13; font.bold: true }
-        Rectangle { x: 22; y: 305; width: 188; height: 30; color: "#100802"; border.color: "#61320d" }
+        Rectangle { x: 22; y: 305; width: 164; height: 30; color: "#100802"; border.color: "#61320d" }
         Repeater {
-            model: 22
+            model: 18
             Rectangle {
                 width: 5
                 height: 4 + Math.abs(Math.sin(root.t * (root.listening ? 10 : root.speaking ? 7 : 3) + index * 0.9)) * (root.listening || root.speaking ? 20 : 5)
-                x: 27 + index * 8; y: 320 - height / 2; radius: 2
+                x: 27 + index * 7; y: 320 - height / 2; radius: 2
                 color: root.speaking ? "#ffcc7a" : "#ffb347"
             }
         }
@@ -236,7 +236,7 @@ ApplicationWindow {
 
         Rectangle { x: 12; y: 384; width: parent.width - 24; height: parent.height - 398; color: "#1b0e05"; border.color: "#5c2e0c" }
         Text { x: 22; y: 394; text: "LIVE EVENT STREAM"; color: "#d98b36"; font.pixelSize: 8; font.bold: true }
-        Text { x: 22; y: 420; width: 204; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
+        Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#d7a66b"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
     // Central holographic 3D object: wireframe scan instead of the old reactor.
@@ -297,13 +297,13 @@ ApplicationWindow {
                 }
 
                 // A faceted scan mesh: rings plus meridians, like a scanned 3D hologram.
-                var latitudes = 9;
-                var longitudes = 18;
+                var latitudes = 6;
+                var longitudes = 12;
                 for (i = 1; i < latitudes; i++) {
                     var lat = -Math.PI / 2 + Math.PI * i / latitudes;
                     ctx.beginPath();
-                    for (j = 0; j <= 72; j++) {
-                        var lon = Math.PI * 2 * j / 72;
+                    for (j = 0; j <= 36; j++) {
+                        var lon = Math.PI * 2 * j / 36;
                         var p = project([Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon)]);
                         if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
                     }
@@ -316,7 +316,7 @@ ApplicationWindow {
                     var lon2 = Math.PI * 2 * i / longitudes;
                     ctx.beginPath();
                     for (j = 0; j <= 72; j++) {
-                        var lat2 = -Math.PI / 2 + Math.PI * j / 72;
+                        var lat2 = -Math.PI / 2 + Math.PI * j / 36;
                         var p2 = project([Math.cos(lat2) * Math.cos(lon2), Math.sin(lat2), Math.cos(lat2) * Math.sin(lon2)]);
                         if (j === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
                     }
