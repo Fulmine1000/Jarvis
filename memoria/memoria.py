@@ -23,7 +23,23 @@ class MemoriaJarvis:
         return True
 
     def _sincronizza_profilo_personale(self):
-        """Mantiene nel profilo personale soltanto i tre dati autorizzati."""
+        """Mantiene il profilo personale sui tre dati autorizzati.
+
+        I vecchi ricordi personali vengono ripuliti una sola volta. In seguito
+        la memoria generale di Jarvis continua a funzionare normalmente.
+        """
+        impostazioni = self.database.dati.setdefault("impostazioni", {})
+        inizializzato = impostazioni.get(
+            "profilo_personale_simone_inizializzato", {}
+        )
+        if not (isinstance(inizializzato, dict) and inizializzato.get("valore")):
+            self.database.dati.pop("ricordi", None)
+            self.database.aggiungi(
+                "impostazioni",
+                "profilo_personale_simone_inizializzato",
+                True,
+            )
+
         profilo = self.database.dati.setdefault("profilo", {})
         profilo.clear()
         for chiave, valore in (
@@ -32,10 +48,6 @@ class MemoriaJarvis:
             ("colore_preferito", "blu"),
         ):
             self.database.aggiungi("profilo", chiave, valore)
-
-        # I ricordi liberi possono contenere altre informazioni personali:
-        # si azzerano per rispettare la richiesta di conservare solo questi dati.
-        self.database.dati.pop("ricordi", None)
         self.database.salva()
 
     def ferma(self):
