@@ -122,7 +122,7 @@ ApplicationWindow {
             elide: Text.ElideRight
         }
         Text {
-            x: 154; width: 270; height: parent.height
+            x: 154; width: 210; height: parent.height
             verticalAlignment: Text.AlignVCenter
             text: "NEURAL COMMAND INTERFACE"; color: "#38c9f4"
             font.pixelSize: 9; font.bold: true
@@ -212,7 +212,7 @@ ApplicationWindow {
         Repeater {
             model: [ ["COMPUTER", "ONLINE"], ["NETWORK", "ONLINE"], ["BLUETOOTH", "READY"] ]
             Item {
-                x: 22; y: 145 + index * 24; width: 204; height: 18
+                x: 22; y: 145 + index * 24; width: parent.width - 34; height: 18
                 Text { x: 10; text: modelData[0]; color: "#b8eaff"; font.pixelSize: 7; font.bold: true }
                 Text { anchors.right: parent.right; text: modelData[1]; color: "#7ce8ff"; font.pixelSize: 7; font.bold: true }
                 Rectangle { y: 17; width: parent.width; height: 1; color: "#0b3048" }
@@ -239,210 +239,204 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#5dbddf"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Three-dimensional spherical J.A.R.V.I.S. hologram, with depth layers and perspective rings.
+    // Proiettore centrale: energia verticale sospesa sopra un emettitore ellittico,
+    // ispirato al reattore del riferimento video (tutto in ciano, senza sfera piena).
     Item {
         id: hologram
         x: (root.width - width) / 2
-        y: 72
-        width: 380
+        y: 70
+        width: 360
         height: 390
         property real zoom: 1.0
         property real gestureTurn: 0
 
-        // Soft cyan atmospheric halo.
+        // Alone verticale morbido: evita il grande disco circolare dietro al nucleo.
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 8
+            width: 168 * hologram.zoom
+            height: 250 * hologram.zoom
+            radius: width / 2
+            color: "#00eaff"
+            opacity: 0.07 + root.activity * 0.035
+        }
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 20
-            width: 270 * hologram.zoom
-            height: 270 * hologram.zoom
+            width: 126 * hologram.zoom
+            height: 222 * hologram.zoom
             radius: width / 2
-            color: "#063d60"
-            opacity: 0.18 + root.activity * 0.12
-        }
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 30
-            width: 236 * hologram.zoom
-            height: 236 * hologram.zoom
-            radius: width / 2
-            color: "transparent"
-            border.color: "#00cfff"
-            border.width: 1
-            opacity: 0.55
+            color: "#5affff"
+            opacity: 0.07
         }
 
-        // Nucleo olografico ispirato al video: reattore verticale luminoso,
-        // anelli concentrici, corona radiale e piattaforma di proiezione.
+        // Colonna di energia luminosa: ovale verticale, con nucleo bianco e
+        // sottili fasce interne, non una sfera o una serie di cerchi concentrici.
         Item {
-            id: orb
-            x: (parent.width - width) / 2
-            y: 18
-            width: 194 * hologram.zoom
-            height: 244 * hologram.zoom
+            id: energyCore
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 10
+            width: 154 * hologram.zoom
+            height: 242 * hologram.zoom
             rotation: hologram.gestureTurn
 
-            // Alone volumetrico dietro al nucleo.
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 1.55
-                height: parent.height * 1.18
+                width: parent.width * 0.96
+                height: parent.height * 0.98
                 radius: width / 2
-                color: "#00eaff"
-                opacity: 0.07 + root.activity * 0.06
+                color: "#28faff"
+                opacity: 0.12 + root.activity * 0.08
             }
-            // Corpo ovale luminoso: niente sfera blu piena.
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 0.86
-                height: parent.height * 0.94
+                width: parent.width * 0.76
+                height: parent.height * 0.92
                 radius: width / 2
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#baffff" }
-                    GradientStop { position: 0.16; color: "#37f4ff" }
-                    GradientStop { position: 0.38; color: "#00bfcf" }
-                    GradientStop { position: 0.68; color: "#087b9b" }
-                    GradientStop { position: 0.9; color: "#03445f" }
-                    GradientStop { position: 1.0; color: "#4df8ff" }
+                    GradientStop { position: 0.0; color: "#6affff" }
+                    GradientStop { position: 0.18; color: "#19e9f7" }
+                    GradientStop { position: 0.48; color: "#008fae" }
+                    GradientStop { position: 0.76; color: "#075a7a" }
+                    GradientStop { position: 1.0; color: "#8affff" }
                 }
-                opacity: 0.30
+                opacity: 0.28
             }
-            // Corona esterna e anelli concentrici.
+
+            // Fasce luminose inclinate che danno l'effetto di energia in rotazione.
             Repeater {
-                model: 6
+                model: 7
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width * (0.98 - index * 0.115)
-                    height: parent.height * (0.98 - index * 0.115)
+                    width: parent.width * (0.88 - index * 0.075)
+                    height: parent.height * (0.78 - index * 0.075)
                     radius: width / 2
                     color: "transparent"
-                    border.color: index === 2 ? "#efffff" : (index % 2 === 0 ? "#00f0ff" : "#55f7ff")
-                    border.width: index === 2 ? 2 : 1
-                    opacity: 0.9 - index * 0.07
-                    rotation: root.t * (index % 2 === 0 ? 5 : -7)
+                    border.color: index === 3 ? "#efffff" : "#5bffff"
+                    border.width: index === 3 ? 2 : 1
+                    opacity: 0.25 + (6 - index) * 0.065
+                    rotation: (index % 2 === 0 ? 1 : -1) * (root.t * (8 + index * 2) + index * 17)
                 }
             }
-            // Segmenti radiali tecnici intorno al nucleo.
+
+            // Filamenti e particelle all'interno della proiezione.
             Repeater {
-                model: 32
-                Item {
-                    width: parent.width
-                    height: parent.height
-                    rotation: index * 11.25 + root.t * 2
-                    Rectangle {
-                        x: parent.width / 2 - 1
-                        y: parent.height * 0.035
-                        width: index % 4 === 0 ? 2 : 1
-                        height: index % 4 === 0 ? 12 : 6
-                        color: index % 4 === 0 ? "#efffff" : "#54f8ff"
-                        opacity: 0.85
-                    }
+                model: 13
+                Rectangle {
+                    width: index % 3 === 0 ? 3 : 2
+                    height: 20 + (index % 4) * 11
+                    radius: width
+                    x: 26 + (index * 19 % 104)
+                    y: 18 + (index * 31 % 198)
+                    rotation: (index % 2 === 0 ? -1 : 1) * (12 + index * 3)
+                    color: index % 3 === 0 ? "#ffffff" : "#9bffff"
+                    opacity: 0.22 + (Math.sin(root.t * 3 + index) + 1) * 0.22
                 }
             }
-            // Nucleo bianco sovraesposto come nel filmato.
+
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 0.39
-                height: parent.height * 0.39
+                width: parent.width * 0.42
+                height: parent.height * 0.43
                 radius: width / 2
                 color: "#00efff"
-                opacity: 0.35
+                opacity: 0.25
             }
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 0.29
-                height: parent.height * 0.29
+                width: parent.width * 0.27
+                height: parent.height * 0.28
                 radius: width / 2
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#ffffff" }
-                    GradientStop { position: 0.35; color: "#f4ffff" }
-                    GradientStop { position: 0.72; color: "#8effff" }
-                    GradientStop { position: 1.0; color: "#13d9f2" }
+                    GradientStop { position: 0.45; color: "#eaffff" }
+                    GradientStop { position: 1.0; color: "#49faff" }
                 }
-                opacity: 0.98
+                opacity: 0.92
             }
             Rectangle {
                 anchors.centerIn: parent
                 width: parent.width * 0.12
-                height: parent.height * 0.12
+                height: parent.height * 0.13
                 radius: width / 2
                 color: "#ffffff"
                 opacity: 1.0
             }
         }
 
-        // Piattaforma orizzontale sotto il nucleo: il reattore sembra sospeso.
+        // Anelli prospettici della base: larghi, bassi e separati dal nucleo.
         Item {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 246
-            width: 350
-            height: 82
+            y: 248
+            width: 340
+            height: 76
             Repeater {
                 model: 5
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width - index * 26
-                    height: parent.height - index * 13
+                    width: parent.width - index * 25
+                    height: parent.height - index * 11
                     radius: height / 2
                     color: "transparent"
-                    border.color: index === 1 ? "#d7ffff" : "#00eaff"
+                    border.color: index === 1 ? "#efffff" : "#00eaff"
                     border.width: index === 1 ? 2 : 1
-                    rotation: root.t * (index % 2 === 0 ? 3 : -4)
-                    opacity: 0.85 - index * 0.10
+                    rotation: (index % 2 === 0 ? 1 : -1) * root.t * (2 + index)
+                    opacity: 0.82 - index * 0.10
                 }
             }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 39
-                width: 285
+                y: 36
+                width: 270
                 height: 2
-                color: "#e8ffff"
-                opacity: 0.78
+                color: "#efffff"
+                opacity: 0.72
             }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 37
-                width: 210
-                height: 6
+                y: 33
+                width: 190
+                height: 7
                 radius: 3
                 color: "#00eaff"
-                opacity: 0.18 + root.activity * 0.14
+                opacity: 0.22 + root.activity * 0.12
             }
         }
 
-        // Scan line and floating particles.
+        // Raggio di scansione e particelle circostanti, contenuti nell'area centrale.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 20 + (Math.sin(root.t * 1.4) + 1) * 112
-            width: 252
+            y: 16 + (Math.sin(root.t * 1.4) + 1) * 102
+            width: 226
             height: 1
             color: "#e4fdff"
-            opacity: 0.5 + root.activity * 0.35
+            opacity: 0.32 + root.activity * 0.28
         }
         Repeater {
-            model: 18
+            model: 16
             Rectangle {
                 width: index % 4 === 0 ? 3 : 2
                 height: width
                 radius: width / 2
-                x: 40 + (index * 41 % 300)
-                y: 30 + (index * 37 % 292)
+                x: 26 + (index * 43 % 308)
+                y: 18 + (index * 37 % 300)
                 color: "#9af1ff"
-                opacity: 0.2 + (Math.sin(root.t * 2 + index) + 1) * 0.28
+                opacity: 0.18 + (Math.sin(root.t * 2 + index) + 1) * 0.24
             }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 337
-            text: root.listening ? "J.A.R.V.I.S. // LISTENING" : root.speaking ? "J.A.R.V.I.S. // SPEAKING" : "J.A.R.V.I.S. // STANDBY"
-            color: "#9af1ff"
+            y: 329
+            text: root.listening ? "ARC REACTOR  //  LISTENING" : root.speaking ? "ARC REACTOR  //  ACTIVE" : "ARC REACTOR"
+            color: "#b7ffff"
             font.pixelSize: 9
             font.bold: true
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 354
-            text: "3D HOLOGRAM LINK  //  " + Math.round(root.activity * 100) + "%"
+            y: 346
+            text: "HOLOGRAPHIC ENERGY CORE  //  " + Math.round(root.activity * 100) + "%"
             color: "#38c9f4"
             font.pixelSize: 7
             font.bold: true
