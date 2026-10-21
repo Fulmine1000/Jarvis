@@ -157,6 +157,11 @@ class JarvisOS:
             "zoom_indietro": "Gesto: zoom indietro",
         }
         messaggio = descrizioni.get(gesto, f"Gesto rilevato: {gesto}")
+        try:
+            from interfaccia.ologramma_3d_server import aggiorna_gesto
+            aggiorna_gesto(gesto)
+        except Exception:
+            pass
         if self.hud:
             self.hud.applica_gesto(gesto)
             self.hud.registra_evento(messaggio)
