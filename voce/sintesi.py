@@ -6,6 +6,7 @@ import sys
 import tempfile
 import hashlib
 import re
+import base64
 
 from voce.elevenlabs import ElevenLabsVoce
 
@@ -179,6 +180,15 @@ class SintesiVocale:
         )
 
     def _riproduci(self, file_audio):
+        # Windows non dispone di afplay/aplay: usa il player WAV integrato.
+        if platform.system() == "Windows":
+            try:
+                import winsound
+                winsound.PlaySound(file_audio, winsound.SND_FILENAME)
+                return True
+            except (OSError, RuntimeError):
+                return False
+
         if platform.system() == "Darwin" and shutil.which("afplay"):
             try:
                 risultato = subprocess.run(["afplay", file_audio], check=False)
@@ -350,6 +360,43 @@ class SintesiVocale:
                 return risultato.returncode == 0
             except (OSError, subprocess.SubprocessError):
                 return False
+
+        if platform.system() == "Windows" and shutil.which("powershell.exe"):
+            # Usa il sintetizzatore vocale integrato in Windows (System.Speech).
+            # Il testo viaggia come Base64 UTF-8 per preservare accenti e caratteri.
+            testo_base64 = base64.b64encode(
+                str(testo).encode("utf-8")
+            ).decode("ascii")
+            script = (
+                "$ErrorActionPreference='Stop'; "
+                "Add-Type -AssemblyName System.Speech; "
+                "$b=[Console]::In.ReadToEnd().Trim(); "
+                "$text=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b)); "
+                "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                "$v=$s.GetInstalledVoices() | Where-Object { "
+                "$_.Enabled -and $_.VoiceInfo.Culture.Name -like 'it-*' } | "
+                "Select-Object -First 1; "
+                "if ($v) { $s.SelectVoice($v.VoiceInfo.Name) }; "
+                "$s.Volume=100; $s.Speak($text); $s.Dispose()"
+            )
+            try:
+                risultato = subprocess.run(
+                    ["powershell.exe", "-NoProfile", "-NonInteractive",
+                     "-ExecutionPolicy", "Bypass", "-Command", script],
+                    input=testo_base64,
+                    capture_output=True,
+                    text=True,
+                    encoding="ascii",
+                    timeout=60,
+                    check=False,
+                )
+                if risultato.returncode == 0:
+                    return True
+                dettaglio = (risultato.stderr or risultato.stdout or "").strip()
+                print(f"⚠️ Sintesi Windows non riuscita: {dettaglio or 'errore senza dettagli'}")
+            except (OSError, subprocess.SubprocessError) as errore:
+                print(f"⚠️ Sintesi Windows non disponibile: {errore}")
+            return False
 
         return False
 
