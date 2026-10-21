@@ -1,6 +1,7 @@
 """Regressioni per mantenere l'ascolto vocale in tempo reale su Mac Intel."""
 
 import array
+import os
 import sys
 import unittest
 from unittest.mock import patch
@@ -15,14 +16,14 @@ class TestAudioTempoReale(unittest.TestCase):
             "voce.riconoscimento.platform.machine", return_value="x86_64"
         ), patch("voce.riconoscimento.os.path.isdir", return_value=True):
             percorso = RiconoscitoreVoce._modello_italiano_predefinito("/jarvis")
-        self.assertEqual(percorso, "/jarvis/vosk-model-small-it-0.22")
+        self.assertEqual(percorso, os.path.join("/jarvis", "vosk-model-small-it-0.22"))
 
     def test_altri_sistemi_preferiscono_modello_completo(self):
         with patch("voce.riconoscimento.sys.platform", "linux"), patch(
             "voce.riconoscimento.platform.machine", return_value="x86_64"
         ), patch("voce.riconoscimento.os.path.isdir", return_value=True):
             percorso = RiconoscitoreVoce._modello_italiano_predefinito("/jarvis")
-        self.assertEqual(percorso, "/jarvis/vosk-model-it-0.22")
+        self.assertEqual(percorso, os.path.join("/jarvis", "vosk-model-it-0.22"))
 
     def test_coda_audio_limitata_e_scarto_del_blocco_piu_vecchio(self):
         ascoltatore = AscoltatoreVoce(filtro_rumore=False)
