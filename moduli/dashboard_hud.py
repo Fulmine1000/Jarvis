@@ -84,7 +84,7 @@ class DashboardHUD:
     @staticmethod
     def ora():
         now = dt.datetime.now()
-        return now.strftime("Ora: %H:%M:%S — Data: %d/%m/%Y")
+        return now.strftime("Sono le %H:%M:%S. Oggi è %d/%m/%Y.")
 
     def salva_nota(self, testo: str):
         testo = str(testo or "").strip()
