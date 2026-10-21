@@ -34,7 +34,7 @@ jobs:
           import os
           import re
 
-          pattern = re.compile(r"(?i)\\b(?:python|py)\\s*(?:version\\s*)?(3\\.0|3\\.1|4\\.0)\\b")
+          pattern = re.compile(r"(?i)\b(?:python|py)\s*(?:version\s*)?(3\.0|3\.1|4\.0)\b")
           excluded_dirs = {".git", ".github", "venv", ".venv", "__pycache__"}
           excluded_extensions = {".json", ".pyc", ".qml", ".java"}
           found = []
@@ -55,7 +55,7 @@ jobs:
 
           if found:
               print("Trovate dichiarazioni di versioni Python obsolete:")
-              print("\\n".join(found))
+              print("\n".join(found))
               raise SystemExit(1)
           print("Nessuna dichiarazione Python obsoleta trovata.")
           PY
