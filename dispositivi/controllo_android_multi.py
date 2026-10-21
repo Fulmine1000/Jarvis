@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from urllib.parse import urlparse
@@ -97,7 +98,7 @@ class ControlloAndroidMulti:
         return self._per_tutti(
             lambda serial: self._run([
                 "-s", serial, "shell", "am", "start",
-                "-a", "android.intent.action.VIEW", "-d", url,
+                "-a", "android.intent.action.VIEW", "-d", shlex.quote(url),
             ])
         )
 
