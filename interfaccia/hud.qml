@@ -409,15 +409,17 @@ ApplicationWindow {
             }
         }
 
-        // Raggio di scansione e particelle circostanti, contenuti nell'area centrale.
+        // Holographic scan plane: raggio leggero che ruota e scansiona il nucleo.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 16 + (Math.sin(root.t * 1.4) + 1) * 102
             width: 226
             height: 1
+            rotation: root.t * 52
             color: "#e4fdff"
             opacity: 0.32 + root.activity * 0.28
         }
+        // orbiting holographic markers: particelle contenute nell'area centrale.
         Repeater {
             model: 16
             Rectangle {
