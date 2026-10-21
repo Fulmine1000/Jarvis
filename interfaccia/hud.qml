@@ -191,7 +191,7 @@ ApplicationWindow {
             model: 14
             Rectangle {
                 width: 5
-                height: 18 + Math.abs(Math.sin(root.t * 4.0 + index * 0.67)) * (58 * root.activity)
+                height: 18 + ((index * 17) % 58) * root.activity
                 x: 22 + index * 7
                 y: 425 - height
                 color: index % 4 === 0 ? "#00cfff" : "#00aee8"
@@ -323,7 +323,13 @@ ApplicationWindow {
                     border.color: index === 3 ? "#fff5e6" : (root.hologramActive ? "#ffb347" : "#5bffff")
                     border.width: index === 3 ? 2 : 1
                     opacity: 0.25 + (6 - index) * 0.065
-                    rotation: (index % 2 === 0 ? 1 : -1) * (root.t * (8 + index * 2) + index * 17)
+                    RotationAnimator on rotation {
+                    from: index % 2 === 0 ? 0 : 360
+                    to: index % 2 === 0 ? 360 : 0
+                    duration: 18000 + index * 3500
+                    loops: Animation.Infinite
+                    running: root.visible
+                }
                 }
             }
 
@@ -338,7 +344,7 @@ ApplicationWindow {
                     y: 18 + (index * 31 % 198)
                     rotation: (index % 2 === 0 ? -1 : 1) * (12 + index * 3)
                     color: index % 3 === 0 ? "#ffffff" : "#9bffff"
-                    opacity: 0.22 + (Math.sin(root.t * 3 + index) + 1) * 0.22
+                    opacity: 0.22 + (index % 5) * 0.075
                 }
             }
 
@@ -388,7 +394,13 @@ ApplicationWindow {
                     color: "transparent"
                     border.color: index === 1 ? "#efffff" : "#00eaff"
                     border.width: index === 1 ? 2 : 1
-                    rotation: (index % 2 === 0 ? 1 : -1) * root.t * (2 + index)
+                    RotationAnimator on rotation {
+                    from: index % 2 === 0 ? 0 : 360
+                    to: index % 2 === 0 ? 360 : 0
+                    duration: 26000 + index * 4500
+                    loops: Animation.Infinite
+                    running: root.visible
+                }
                     opacity: 0.82 - index * 0.10
                 }
             }
@@ -414,10 +426,22 @@ ApplicationWindow {
         // Holographic scan plane: raggio leggero che ruota e scansiona il nucleo.
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 16 + (Math.sin(root.t * 1.4) + 1) * 102
+            y: 16
+            SequentialAnimation on y {
+                loops: Animation.Infinite
+                running: root.visible
+                NumberAnimation { to: 220; duration: 3500; easing.type: Easing.InOutSine }
+                NumberAnimation { to: 16; duration: 3500; easing.type: Easing.InOutSine }
+            }
             width: 226
             height: 1
-            rotation: root.t * 52
+            RotationAnimator on rotation {
+                from: 0
+                to: 360
+                duration: 8000
+                loops: Animation.Infinite
+                running: root.visible
+            }
             color: "#e4fdff"
             opacity: 0.32 + root.activity * 0.28
         }
@@ -431,7 +455,7 @@ ApplicationWindow {
                 x: 26 + (index * 43 % 308)
                 y: 18 + (index * 37 % 300)
                 color: "#9af1ff"
-                opacity: 0.18 + (Math.sin(root.t * 2 + index) + 1) * 0.24
+                opacity: 0.18 + (index % 4) * 0.1
             }
         }
 
