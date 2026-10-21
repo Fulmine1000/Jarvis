@@ -110,7 +110,27 @@ small{color:#70aeb8}
   canvas.addEventListener("wheel",e=>{e.preventDefault();zoom=Math.max(.55,Math.min(1.8,zoom*(e.deltaY<0?1.06:.94)))},{passive:false});
   document.getElementById("explode").addEventListener("click",()=>{exploded=!exploded;document.getElementById("state").textContent=exploded?"MODEL: X-01 • EXPLODED VIEW":"MODEL: X-01 • INTERACTIVE"});
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
-  window.addEventListener("resize",resize);resize();draw();
+  let lastGestureSequence = 0;
+  async function pollGestures() {
+    try {
+      const response = await fetch("/state", {cache:"no-store"});
+      if (response.ok) {
+        const data = await response.json();
+        for (const event of (data.events || [])) {
+          if (event.seq <= lastGestureSequence) continue;
+          lastGestureSequence = event.seq;
+          if (event.gesture === "scorri_destra") yaw += .28;
+          else if (event.gesture === "scorri_sinistra") yaw -= .28;
+          else if (event.gesture === "zoom_avanti") zoom = Math.min(1.8, zoom * 1.08);
+          else if (event.gesture === "zoom_indietro") zoom = Math.max(.55, zoom * .92);
+          else if (event.gesture === "pizzico") exploded = !exploded;
+          document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
+        }
+      }
+    } catch (_) { /* Il viewer resta utilizzabile con mouse/touch anche senza ponte gestuale. */ }
+    window.setTimeout(pollGestures, 160);
+  }
+  window.addEventListener("resize",resize);resize();draw();pollGestures();
 })();
 </script>
 </body>
