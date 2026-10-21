@@ -14,6 +14,7 @@ import subprocess
 import time
 import urllib.parse
 import urllib.request
+import webbrowser
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -150,9 +151,23 @@ class DashboardHUD:
         except Exception:
             return "Test di velocità non riuscito: verifica la connessione e riprova."
 
+    @staticmethod
+    def apri_ologramma():
+        """Apre il visualizzatore locale 3D; non scarica modelli o librerie."""
+        viewer = ROOT / "interfaccia" / "ologramma_3d.html"
+        if not viewer.is_file():
+            return "Il visualizzatore 3D non è presente nella repository."
+        try:
+            webbrowser.open(viewer.resolve().as_uri())
+            return "Visualizzatore 3D aperto nel browser predefinito."
+        except Exception:
+            return "Non sono riuscito ad aprire il visualizzatore 3D."
+
     def gestisci_comando(self, comando: str):
         testo = " ".join(str(comando or "").strip().split())
         basso = testo.lower()
+        if basso in ("apri ologramma 3d", "apri ologramma tridimensionale", "mostra modello 3d"):
+            return self.apri_ologramma()
         if basso in ("che ora è", "che ore sono", "ora e data", "mostra ora e data"):
             return self.ora()
         if basso in ("leggi nota", "leggi le note", "mostra nota", "mostra le note"):
