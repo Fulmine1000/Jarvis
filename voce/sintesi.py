@@ -105,9 +105,9 @@ class SintesiVocale:
         )
 
         for percorso in candidati:
-            percorso = os.path.abspath(percurso) if False else os.path.abspath(percorso)
-            if os.path.isfile(percurso) and percurso.lower().endswith(".wav"):
-                return percurso
+            percorso = os.path.abspath(percorso)
+            if os.path.isfile(percorso) and percorso.lower().endswith(".wav"):
+                return percorso
 
         return None
 
