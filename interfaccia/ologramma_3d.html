@@ -55,7 +55,7 @@ small{color:#70aeb8}
   }
   const bodyOffset = () => [0,0,0];
   const cabinOffset = () => [0, exploded ? .48 : 0, 0];
-  const wheelOffset = (side, front) => [side*(exploded?.58:0), exploded?.12:0, front*(exploded?.42:0)];
+  const wheelOffset = (side, front) => [side*(exploded ? 0.58 : 0), exploded ? 0.12 : 0, front*(exploded ? 0.42 : 0)];
   box("chassis",[0,.48,0],[1.85,.45,3.25],"#48fff2",bodyOffset);
   box("cabin",[0,.94,-.15],[1.35,.62,1.55],"#7dff9d",cabinOffset);
   box("front",[0,.58,1.72],[1.55,.25,.25],"#48fff2",bodyOffset);
@@ -71,9 +71,9 @@ small{color:#70aeb8}
     [x,z]=[x*cy-z*sy,x*sy+z*cy];
     const cp=Math.cos(pitch), sp=Math.sin(pitch);
     [y,z]=[y*cp-z*sp,y*sp+z*cp];
-    const scale=Math.min(canvas.width,canvas.height)*.23*zoom;
+    const scale=Math.min(canvas.clientWidth,canvas.clientHeight)*.23*zoom;
     const depth=7+z;
-    return [canvas.width/2+x*scale*7/depth,canvas.height*.53-y*scale*7/depth,depth];
+    return [canvas.clientWidth/2+x*scale*7/depth,canvas.clientHeight*.53-y*scale*7/depth,depth];
   }
   function resize() {
     const dpr=Math.min(window.devicePixelRatio||1,2);
