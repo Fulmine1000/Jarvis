@@ -51,6 +51,8 @@ class _CalcoloSicuro(ast.NodeVisitor):
         if isinstance(node.op, ast.Pow) and abs(right) > 8:
             raise ValueError("Esponente troppo grande.")
         result = op(left, right)
+        if isinstance(result, bool) or not isinstance(result, (int, float)):
+            raise ValueError("Risultato non reale.")
         if not math.isfinite(float(result)) or abs(result) > 1e100:
             raise ValueError("Risultato fuori dai limiti.")
         return result
