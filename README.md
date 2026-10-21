@@ -109,6 +109,8 @@ Jarvis può risvegliare lo schermo, aprire app e preparare chiamate su un singol
 
 Il controllo vocale del telefono è documentato in `docs/CONTROLLO_ANDROID_VIDEO.md`. Il doppio battito e le notifiche email verso Telegram (attivabili solo con configurazione esplicita) sono documentati in [docs/INTEGRAZIONE_VIDEO_ASSISTENTE.md](docs/INTEGRAZIONE_VIDEO_ASSISTENTE.md). Il monitor email opera in sola lettura e invia soltanto mittente e oggetto; nessuna risposta privata viene inviata automaticamente.
 
+Le integrazioni ispirate ai tre nuovi Shorts sono descritte in [docs/INTEGRAZIONE_TRE_SHORTS.md](docs/INTEGRAZIONE_TRE_SHORTS.md): controllo esplicito multi-telefono Android via ADB, dock HUD con widget rapidi, blocco note locale, calcolatrice sicura, meteo/notizie, test rete opzionale e visualizzatore wireframe 3D collegato ai gesti della webcam.
+
 ## Test
 
 ```bash
