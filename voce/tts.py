@@ -386,7 +386,15 @@ class TextToSpeech:
             try:
                 if self.cinematic_voice:
                     processed_path = self._applica_profilo_cinematografico(audio_path)
-                self._play_audio(processed_path or audio_path)
+                audio_da_riprodurre = processed_path or audio_path
+                if self._play_audio(audio_da_riprodurre):
+                    print("🔊 Audio XTTS riprodotto correttamente.", flush=True)
+                else:
+                    print(
+                        "⚠️ Riproduzione WAV XTTS fallita; avvio fallback vocale macOS.",
+                        flush=True,
+                    )
+                    self._fallback_background(text)
             finally:
                 self._elimina_file_temporaneo(processed_path)
 
@@ -452,6 +460,12 @@ class TextToSpeech:
         del WAV gia generato. Se le librerie audio non sono disponibili,
         il file originale viene usato senza trattamento.
         """
+        # Se non sono richiesti cambi di intonazione o velocità, evita
+        # di caricare librosa: su Mac Intel il caricamento può aggiungere
+        # secondi preziosi dopo che XTTS ha già generato la frase.
+        if abs(self.pitch_steps) <= 0.01 and abs(self.time_rate - 1.0) <= 0.01:
+            return None
+
         try:
             import librosa
             import numpy as np
