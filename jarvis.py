@@ -95,7 +95,7 @@ class JarvisOS:
                 try:
                     soglia = float(os.environ.get("JARVIS_BATTITO_SOGLIA_RMS", "0.18"))
                     self.battito = RilevatoreDoppioBattito(
-                        callback=self._doppio_battito_rilevato,
+                        callback=self._doppio_battito_async,
                         soglia_rms=soglia,
                         logger=self.kernel.logger,
                     )
@@ -161,6 +161,14 @@ class JarvisOS:
             self.hud.registra_evento(messaggio)
         if self.kernel and getattr(self.kernel, "logger", None):
             self.kernel.logger.info(messaggio)
+
+    def _doppio_battito_async(self) -> None:
+        """Sposta TTS e apertura app fuori dal callback audio in tempo reale."""
+        threading.Thread(
+            target=self._doppio_battito_rilevato,
+            name="JarvisBattitoAzione",
+            daemon=True,
+        ).start()
 
     def _doppio_battito_rilevato(self) -> None:
         """Saluta e apre soltanto app/URL esplicitamente configurati dall'utente."""
