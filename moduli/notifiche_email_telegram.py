@@ -96,7 +96,7 @@ class NotificheEmailTelegram:
                     oggetto = self._decodifica(msg.get("Subject", "(senza oggetto)"))
                     nome, indirizzo = parseaddr(mittente)
                     mittente_breve = (nome or indirizzo or "Mittente sconosciuto")[:160]
-                    testo = f"Nuova email non letta\\nDa: {mittente_breve}\\nOggetto: {oggetto[:240]}"
+                    testo = f"Nuova email non letta\nDa: {mittente_breve}\nOggetto: {oggetto[:240]}"
                     ok, errore = self._telegram(testo)
                     if ok:
                         self._visti.add(chiave)
