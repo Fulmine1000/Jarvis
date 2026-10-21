@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1200
-    height: 680
-    minimumWidth: 1100
-    minimumHeight: 640
+    width: 1050
+    height: 650
+    minimumWidth: 980
+    minimumHeight: 600
     title: "J.A.R.V.I.S. — Neural Command Interface"
     // Palette cinematografica blu/ciano ispirata all'interfaccia di J.A.R.V.I.S.
     color: "#030811"
@@ -92,10 +92,10 @@ ApplicationWindow {
 
     // Technical grid
     Repeater {
-        model: 15
+        model: 12
         Rectangle {
             x: 0
-            y: 66 + index * 42
+            y: 66 + index * 48
             width: root.width
             height: 1
             color: index % 3 === 0 ? "#0b2840" : "#071b2d"
@@ -103,9 +103,9 @@ ApplicationWindow {
         }
     }
     Repeater {
-        model: 14
+        model: 10
         Rectangle {
-            x: 24 + index * 78
+            x: 24 + index * 98
             y: 66
             width: 1
             height: root.height - 92
@@ -188,7 +188,7 @@ ApplicationWindow {
         Rectangle { x: 12; y: 330; width: parent.width - 24; height: 120; color: "#081e30"; border.color: "#12618a" }
         Text { x: 22; y: 340; text: "ACTIVITY VECTOR"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Repeater {
-            model: 18
+            model: 14
             Rectangle {
                 width: 5
                 height: 18 + Math.abs(Math.sin(root.t * 4.0 + index * 0.67)) * (58 * root.activity)
@@ -232,7 +232,7 @@ ApplicationWindow {
         Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#00cfff" : root.speaking ? "#7ce8ff" : "#b8eaff"; font.pixelSize: 13; font.bold: true }
         Rectangle { x: 22; y: 305; width: 164; height: 30; color: "#061421"; border.color: "#105477" }
         Repeater {
-            model: 12
+            model: 10
             Rectangle {
                 width: 5
                 height: 4 + Math.abs(Math.sin(root.t * (root.listening ? 10 : root.speaking ? 7 : 3) + index * 0.9)) * (root.listening || root.speaking ? 20 : 5)
@@ -423,7 +423,7 @@ ApplicationWindow {
         }
         // orbiting holographic markers: particelle contenute nell'area centrale.
         Repeater {
-            model: 16
+            model: 10
             Rectangle {
                 width: index % 4 === 0 ? 3 : 2
                 height: width
