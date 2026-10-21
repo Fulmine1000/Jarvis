@@ -158,10 +158,12 @@ class DashboardHUD:
         if not viewer.is_file():
             return "Il visualizzatore 3D non è presente nella repository."
         try:
-            webbrowser.open(viewer.resolve().as_uri())
-            return "Visualizzatore 3D aperto nel browser predefinito."
+            from interfaccia.ologramma_3d_server import avvia_server
+            url = avvia_server()
+            opened = webbrowser.open(url)
+            return "Visualizzatore 3D locale avviato con ponte gestuale." if opened else "Visualizzatore 3D disponibile a " + url
         except Exception:
-            return "Non sono riuscito ad aprire il visualizzatore 3D."
+            return "Non sono riuscito ad avviare il visualizzatore 3D locale."
 
     def gestisci_comando(self, comando: str):
         testo = " ".join(str(comando or "").strip().split())
