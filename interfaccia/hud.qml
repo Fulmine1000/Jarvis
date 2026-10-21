@@ -82,10 +82,10 @@ ApplicationWindow {
     }
 
     Timer {
-        interval: 33
+        interval: 50
         running: root.visible
         repeat: true
-        onTriggered: root.t += 0.016
+        onTriggered: root.t += 0.05
     }
 
     Rectangle { anchors.fill: parent; color: "#030811" }
@@ -188,7 +188,7 @@ ApplicationWindow {
         Rectangle { x: 12; y: 330; width: parent.width - 24; height: 120; color: "#081e30"; border.color: "#12618a" }
         Text { x: 22; y: 340; text: "ACTIVITY VECTOR"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Repeater {
-            model: 24
+            model: 18
             Rectangle {
                 width: 5
                 height: 18 + Math.abs(Math.sin(root.t * 4.0 + index * 0.67)) * (58 * root.activity)
@@ -232,7 +232,7 @@ ApplicationWindow {
         Text { x: 22; y: 278; text: root.voiceDisplay(); color: root.listening ? "#00cfff" : root.speaking ? "#7ce8ff" : "#b8eaff"; font.pixelSize: 13; font.bold: true }
         Rectangle { x: 22; y: 305; width: 164; height: 30; color: "#061421"; border.color: "#105477" }
         Repeater {
-            model: 18
+            model: 12
             Rectangle {
                 width: 5
                 height: 4 + Math.abs(Math.sin(root.t * (root.listening ? 10 : root.speaking ? 7 : 3) + index * 0.9)) * (root.listening || root.speaking ? 20 : 5)
@@ -313,7 +313,7 @@ ApplicationWindow {
 
             // Fasce luminose inclinate che danno l'effetto di energia in rotazione.
             Repeater {
-                model: 7
+                model: 5
                 Rectangle {
                     anchors.centerIn: parent
                     width: parent.width * (0.88 - index * 0.075)
@@ -329,7 +329,7 @@ ApplicationWindow {
 
             // Filamenti e particelle all'interno della proiezione.
             Repeater {
-                model: 13
+                model: 9
                 Rectangle {
                     width: index % 3 === 0 ? 3 : 2
                     height: 20 + (index % 4) * 11
@@ -379,7 +379,7 @@ ApplicationWindow {
             width: 340
             height: 76
             Repeater {
-                model: 5
+                model: 4
                 Rectangle {
                     anchors.centerIn: parent
                     width: parent.width - index * 25
