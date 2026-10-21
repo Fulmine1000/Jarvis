@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 
 from core.logger import LoggerJarvis
 from core.event_bus import EventBus
@@ -66,6 +67,7 @@ class KernelJarvis:
         self.portabilita_ia = GestorePortabilitaIA(self, self.logger)
         self.trasferimento = None
         self.voce_disponibile = False
+        self.notifiche_email_telegram = None
 
     def avvia(self):
         if self.stato == "Operativo":
@@ -83,16 +85,25 @@ class KernelJarvis:
         for nome in moduli:
             self.manager.avvia(nome)
 
-        # Il modulo Dispositivi possiede il gestore della sessione di
-        # trasferimento. Lo esponiamo al Kernel per i comandi vocali.
         self.trasferimento = self.modulo_dispositivi.get_trasferimento()
-
         self.voce_disponibile = bool(getattr(self.modulo_voce, "ascolto_attivo", False))
         try:
             self.plugin_manager.carica_plugin()
             self.plugin_manager.avvia_tutti()
         except Exception as errore:
             self.logger.warning(f"Plugin non completamente disponibili: {errore}")
+
+        # Le notifiche sono opt-in: i segreti arrivano solo dall'ambiente.
+        # IMAP opera in sola lettura e Telegram riceve solo mittente/oggetto.
+        if os.environ.get("JARVIS_NOTIFICHE_EMAIL_TELEGRAM") == "1":
+            try:
+                from moduli.notifiche_email_telegram import NotificheEmailTelegram
+                self.notifiche_email_telegram = NotificheEmailTelegram(logger=self.logger)
+                self.notifiche_email_telegram.avvia()
+            except Exception as errore:
+                self.notifiche_email_telegram = None
+                self.logger.warning(f"Notifiche email/Telegram non avviate: {errore}")
+
         try:
             self.visione.rileva()
             self.diagnostica.esegui()
@@ -126,13 +137,19 @@ class KernelJarvis:
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "cybersecurity": self.cybersecurity.stato(), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "cybersecurity": self.cybersecurity.stato(), "notifiche_email_telegram": bool(self.notifiche_email_telegram), "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
             return True
         self.logger.info("Arresto Jarvis...")
         self.arresto_richiesto = True
+        if self.notifiche_email_telegram:
+            try:
+                self.notifiche_email_telegram.ferma()
+            except Exception as errore:
+                self.logger.warning(f"Errore arresto notifiche email/Telegram: {errore}")
+            self.notifiche_email_telegram = None
         self.intelligenza.ferma()
         try:
             self.dialogo.ferma()
