@@ -548,6 +548,13 @@ ApplicationWindow {
         Text { x: 12; y: 406; text: "GESTURE CONTROL"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
         Text { x: 12; y: 424; width: parent.width - 24; text: root.gestureMode; color: "#b8eaff"; font.pixelSize: 9; wrapMode: Text.Wrap }
         Text { x: 12; y: 458; width: parent.width - 24; text: "Pinch: select  •  Swipe: rotate  •  Two hands: zoom"; color: "#4287a8"; font.pixelSize: 8; wrapMode: Text.Wrap }
+        Button {
+            x: 12; y: 488; width: parent.width - 24; height: 28
+            text: "APRI MODELLO 3D"
+            onClicked: bridge.executeCommand("apri ologramma 3d")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
     }
 
     // Bottom command/response strip
