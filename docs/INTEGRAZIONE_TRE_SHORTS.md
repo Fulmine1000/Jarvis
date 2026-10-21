@@ -101,7 +101,8 @@ Dalla root del progetto:
 
 ```bash
 python -m compileall -q .
-python -m unittest tests.test_controllo_android_multi tests.test_dashboard_hud -v
+python -m unittest discover -s tests -p 'test_controllo_android_multi.py' -v
+python -m unittest discover -s tests -p 'test_dashboard_hud.py' -v
 ```
 
 Questi comandi sono istruzioni per verificare il checkout locale; non implicano che i test siano già stati eseguiti sul computer dell'utente.
