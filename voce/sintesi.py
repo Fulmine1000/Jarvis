@@ -324,8 +324,12 @@ class SintesiVocale:
                 comandi.append(["say", "-v", voce_forzata, "-r", str(rate), str(testo)])
             if self.voce_sistema and self.voce_sistema != voce_forzata:
                 comandi.append(["say", "-v", self.voce_sistema, "-r", str(rate), str(testo)])
+            # Ultima rete di sicurezza: se la voce personalizzata XTTS/Piper
+            # non e disponibile e nessuna voce maschile nota funziona, usa la
+            # voce predefinita di macOS per evitare che Jarvis resti completamente
+            # muto. Questo percorso e solo un fallback, non sostituisce XTTS.
             if not comandi:
-                return False
+                comandi.append(["say", "-r", str(rate), str(testo)])
 
             for indice, comando in enumerate(comandi):
                 try:
