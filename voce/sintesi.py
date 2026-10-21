@@ -423,3 +423,28 @@ class SintesiVocale:
         if re.search(r"(?i)\bsir\b", str(testo)):
             return "Daniel"
         return None
+
+
+    def avvia(self):
+        """Attiva la sintesi vocale senza obbligare la presenza di un backend."""
+        self.attivo = True
+        return True
+
+    def ferma(self):
+        """Disattiva la sintesi vocale e impedisce ulteriori riproduzioni."""
+        self.attivo = False
+        return True
+
+    def stato(self):
+        """Restituisce lo stato della sintesi e la disponibilità dei backend."""
+        return {
+            "nome": self.nome,
+            "attivo": self.attivo,
+            "motore": self.motore,
+            "voce": self.voce,
+            "voce_sistema": self.voce_sistema,
+            "piper_disponibile": self._piper_disponibile(),
+            "campione_voce_locale": bool(self.voce_riferimento),
+            "xtts_attivo": self.xtts_attivo,
+            "xtts_live": self.xtts_live,
+        }
