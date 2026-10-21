@@ -37,6 +37,8 @@ class GestoreComandi:
         try:
             risposta = self._esegui_controllo_telefono_video(originale)
             if risposta is None:
+                risposta = self._esegui_dashboard_hud(originale)
+            if risposta is None:
                 risposta = self._esegui_studio_presentazioni(originale)
             if risposta is None:
                 risposta = self._esegui_comandi_documenti(originale)
@@ -108,6 +110,16 @@ class GestoreComandi:
         except Exception as errore:
             if self.logger:
                 self.logger.warning(f"Controllo telefono Android non disponibile: {errore}")
+            return None
+
+    def _esegui_dashboard_hud(self, comando_originale):
+        """Comandi per i widget di ora, meteo, calcolatrice, note, news e rete."""
+        try:
+            from moduli.dashboard_hud import DashboardHUD
+            return DashboardHUD(logger=self.logger).gestisci_comando(comando_originale)
+        except Exception as errore:
+            if self.logger:
+                self.logger.warning(f"Dashboard HUD non disponibile: {errore}")
             return None
 
     def _esegui_comandi_documenti(self, comando_originale):
