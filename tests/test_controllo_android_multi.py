@@ -23,7 +23,7 @@ class TestControlloAndroidMulti(unittest.TestCase):
         self.assertIn("non vengono aggirati", risposta)
         self.assertEqual(run.call_count, 2)
         for call in run.call_args_list:
-            self.assertEqual(call.args[0][-4:], ["input", "keyevent", "224"])
+            self.assertEqual(call.args[0][-3:], ["input", "keyevent", "224"])
 
     def test_rifiuta_url_non_http(self):
         self.assertIn("URL non valido", self.controller.apri_url_su_tutti("javascript:alert(1)"))
