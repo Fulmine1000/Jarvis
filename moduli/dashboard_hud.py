@@ -108,7 +108,7 @@ class DashboardHUD:
 
     @staticmethod
     def meteo(citta: str):
-        citta = str(citta or "").strip() or "Naples"
+        citta = str(citta or "").strip() or "Napoli"
         url = "https://wttr.in/" + urllib.parse.quote(citta, safe="") + "?format=3"
         try:
             request = urllib.request.Request(url, headers={"User-Agent": "JarvisHUD/1.0"})
