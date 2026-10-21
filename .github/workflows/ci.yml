@@ -8,8 +8,10 @@ on:
 
 jobs:
   test:
+    name: Test completi (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
@@ -32,8 +34,8 @@ jobs:
           import os
           import re
 
-          pattern = re.compile(r"(?i)\b(?:python|py)\s*(?:version\s*)?(3\.0|3\.1|4\.0)\b")
-          excluded_dirs = {".git", ".github", "venv", "__pycache__"}
+          pattern = re.compile(r"(?i)\\b(?:python|py)\\s*(?:version\\s*)?(3\\.0|3\\.1|4\\.0)\\b")
+          excluded_dirs = {".git", ".github", "venv", ".venv", "__pycache__"}
           excluded_extensions = {".json", ".pyc", ".qml", ".java"}
           found = []
 
@@ -53,9 +55,24 @@ jobs:
 
           if found:
               print("Trovate dichiarazioni di versioni Python obsolete:")
-              print("\n".join(found))
+              print("\\n".join(found))
               raise SystemExit(1)
           print("Nessuna dichiarazione Python obsoleta trovata.")
           PY
       - name: Run tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+  python-315-smoke:
+    name: Compatibilità base Python 3.15
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python 3.15
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.15"
+      - name: Compile Python sources
+        run: python -m compileall -q .
+      - name: Run dependency-free audio fallback tests
+        run: python -m unittest tests.test_filtro_rumore -v
