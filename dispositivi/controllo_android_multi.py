@@ -107,11 +107,16 @@ class ControlloAndroidMulti:
         pacchetto = APP_PACKAGES.get(nome)
         if not pacchetto:
             return "App non supportata per il controllo multi-telefono. Usa YouTube, Spotify, Chrome, WhatsApp o Telegram."
-        return self._per_tutti(
-            lambda serial: self._run([
-                "-s", serial, "shell", "monkey", "-p", pacchetto, "1",
-            ])
-        )
+
+        def apri(serial):
+            packages, error = self._run(["-s", serial, "shell", "pm", "list", "packages", pacchetto])
+            if error:
+                return None, error
+            if "package:" + pacchetto not in packages.splitlines():
+                return None, "app non installata: " + pacchetto
+            return self._run(["-s", serial, "shell", "monkey", "-p", pacchetto, "1"])
+
+        return self._per_tutti(apri)
 
     def gestisci_comando(self, comando: str):
         testo = re.sub(r"\\s+", " ", str(comando or "").strip().lower())
