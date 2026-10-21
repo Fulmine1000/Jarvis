@@ -105,6 +105,10 @@ Per controllare il backend effettivamente attivo, consultare lo stato del modulo
 
 Jarvis può risvegliare lo schermo, aprire app e preparare chiamate su un singolo telefono Android collegato via USB con ADB autorizzato. Le chiamate richiedono conferma manuale e il blocco PIN/biometrico non viene aggirato. Comandi e requisiti sono descritti in [docs/CONTROLLO_ANDROID_VIDEO.md](docs/CONTROLLO_ANDROID_VIDEO.md).
 
+## Funzioni dai video e notifiche opzionali
+
+Il controllo vocale del telefono è documentato in `docs/CONTROLLO_ANDROID_VIDEO.md`. Il doppio battito e le notifiche email verso Telegram (attivabili solo con configurazione esplicita) sono documentati in [docs/INTEGRAZIONE_VIDEO_ASSISTENTE.md](docs/INTEGRAZIONE_VIDEO_ASSISTENTE.md). Il monitor email opera in sola lettura e invia soltanto mittente e oggetto; nessuna risposta privata viene inviata automaticamente.
+
 ## Test
 
 ```bash
