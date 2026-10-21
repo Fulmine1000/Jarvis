@@ -35,6 +35,7 @@ ApplicationWindow {
     property real gestureZoom: 1.0
     property real gestureTurn: 0.0
     property string gestureMode: "GESTURE CONTROL READY"
+    property bool hologramActive: false
 
     function setState(data) {
         if (!data) return
@@ -54,6 +55,7 @@ ApplicationWindow {
         eventsText = data.events || eventsText
         listening = !!data.listening
         speaking = !!data.speaking
+        hologramActive = listening || speaking
         activity = Math.max(0.08, Math.min(1.0, Number(data.activity || 0.18)))
         if (data.gesture_zoom !== undefined) gestureZoom = Math.max(0.72, Math.min(1.35, Number(data.gesture_zoom)))
         if (data.gesture_turn !== undefined) gestureTurn = Number(data.gesture_turn)
@@ -263,7 +265,7 @@ ApplicationWindow {
             width: 168 * hologram.zoom
             height: 250 * hologram.zoom
             radius: width / 2
-            color: "#00eaff"
+            color: root.hologramActive ? "#ff8a00" : "#00eaff"
             opacity: 0.07 + root.activity * 0.035
         }
         Rectangle {
@@ -272,7 +274,7 @@ ApplicationWindow {
             width: 126 * hologram.zoom
             height: 222 * hologram.zoom
             radius: width / 2
-            color: "#5affff"
+            color: root.hologramActive ? "#ffd166" : "#5affff"
             opacity: 0.07
         }
 
@@ -291,7 +293,7 @@ ApplicationWindow {
                 width: parent.width * 0.96
                 height: parent.height * 0.98
                 radius: width / 2
-                color: "#28faff"
+                color: root.hologramActive ? "#ffad42" : "#28faff"
                 opacity: 0.12 + root.activity * 0.08
             }
             Rectangle {
@@ -300,11 +302,11 @@ ApplicationWindow {
                 height: parent.height * 0.92
                 radius: width / 2
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#6affff" }
-                    GradientStop { position: 0.18; color: "#19e9f7" }
-                    GradientStop { position: 0.48; color: "#008fae" }
-                    GradientStop { position: 0.76; color: "#075a7a" }
-                    GradientStop { position: 1.0; color: "#8affff" }
+                    GradientStop { position: 0.0; color: root.hologramActive ? "#ffe0a3" : "#6affff" }
+                    GradientStop { position: 0.18; color: root.hologramActive ? "#ffb347" : "#19e9f7" }
+                    GradientStop { position: 0.48; color: root.hologramActive ? "#e96a00" : "#008fae" }
+                    GradientStop { position: 0.76; color: root.hologramActive ? "#8a3200" : "#075a7a" }
+                    GradientStop { position: 1.0; color: root.hologramActive ? "#fff0cf" : "#8affff" }
                 }
                 opacity: 0.28
             }
@@ -318,7 +320,7 @@ ApplicationWindow {
                     height: parent.height * (0.78 - index * 0.075)
                     radius: width / 2
                     color: "transparent"
-                    border.color: index === 3 ? "#efffff" : "#5bffff"
+                    border.color: index === 3 ? "#fff5e6" : (root.hologramActive ? "#ffb347" : "#5bffff")
                     border.width: index === 3 ? 2 : 1
                     opacity: 0.25 + (6 - index) * 0.065
                     rotation: (index % 2 === 0 ? 1 : -1) * (root.t * (8 + index * 2) + index * 17)
@@ -345,7 +347,7 @@ ApplicationWindow {
                 width: parent.width * 0.42
                 height: parent.height * 0.43
                 radius: width / 2
-                color: "#00efff"
+                color: root.hologramActive ? "#ff9b24" : "#00efff"
                 opacity: 0.25
             }
             Rectangle {
@@ -356,7 +358,7 @@ ApplicationWindow {
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#ffffff" }
                     GradientStop { position: 0.45; color: "#eaffff" }
-                    GradientStop { position: 1.0; color: "#49faff" }
+                    GradientStop { position: 1.0; color: root.hologramActive ? "#ff8a00" : "#49faff" }
                 }
                 opacity: 0.92
             }
@@ -404,7 +406,7 @@ ApplicationWindow {
                 width: 190
                 height: 7
                 radius: 3
-                color: "#00eaff"
+                color: root.hologramActive ? "#ff8a00" : "#00eaff"
                 opacity: 0.22 + root.activity * 0.12
             }
         }
