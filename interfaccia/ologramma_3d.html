@@ -111,20 +111,27 @@ small{color:#70aeb8}
   document.getElementById("explode").addEventListener("click",()=>{exploded=!exploded;document.getElementById("state").textContent=exploded?"MODEL: X-01 • EXPLODED VIEW":"MODEL: X-01 • INTERACTIVE"});
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
   let lastGestureSequence = 0;
+  let gestureStreamInitialized = false;
   async function pollGestures() {
     try {
       const response = await fetch("/state", {cache:"no-store"});
       if (response.ok) {
         const data = await response.json();
-        for (const event of (data.events || [])) {
-          if (event.seq <= lastGestureSequence) continue;
-          lastGestureSequence = event.seq;
-          if (event.gesture === "scorri_destra") yaw += .28;
-          else if (event.gesture === "scorri_sinistra") yaw -= .28;
-          else if (event.gesture === "zoom_avanti") zoom = Math.min(1.8, zoom * 1.08);
-          else if (event.gesture === "zoom_indietro") zoom = Math.max(.55, zoom * .92);
-          else if (event.gesture === "pizzico") exploded = !exploded;
-          document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
+        const events = data.events || [];
+        if (!gestureStreamInitialized) {
+          lastGestureSequence = events.reduce((highest, event) => Math.max(highest, event.seq || 0), 0);
+          gestureStreamInitialized = true;
+        } else {
+          for (const event of events) {
+            if (event.seq <= lastGestureSequence) continue;
+            lastGestureSequence = event.seq;
+            if (event.gesture === "scorri_destra") yaw += .28;
+            else if (event.gesture === "scorri_sinistra") yaw -= .28;
+            else if (event.gesture === "zoom_avanti") zoom = Math.min(1.8, zoom * 1.08);
+            else if (event.gesture === "zoom_indietro") zoom = Math.max(.55, zoom * .92);
+            else if (event.gesture === "pizzico") exploded = !exploded;
+            document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
+          }
         }
       }
     } catch (_) { /* Il viewer resta utilizzabile con mouse/touch anche senza ponte gestuale. */ }
