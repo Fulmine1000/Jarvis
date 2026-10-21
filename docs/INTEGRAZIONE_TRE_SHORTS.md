@@ -66,7 +66,7 @@ Le richieste meteo, notizie e velocità richiedono Internet e possono fallire se
 
 ## 3. Ologramma 3D e gesti
 
-Il pulsante **APRI MODELLO 3D** dell'HUD apre il visualizzatore locale `interfaccia/ologramma_3d.html`. Mostra un modello wireframe procedurale, senza scaricare modelli esterni o librerie JavaScript.
+Il nucleo centrale dell'HUD passa all'accento arancione mentre Jarvis ascolta o parla e torna al ciano in standby. Il pulsante **APRI MODELLO 3D** dell'HUD apre il visualizzatore locale `interfaccia/ologramma_3d.html`. Mostra un modello wireframe procedurale, senza scaricare modelli esterni o librerie JavaScript.
 
 - Trascinamento mouse o dito: rotazione.
 - Rotella: zoom.
