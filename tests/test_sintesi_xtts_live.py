@@ -17,14 +17,14 @@ class TestSintesiXTTSLive(unittest.TestCase):
         self.assertTrue(sintesi.xtts_live)
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_xtts_live_disattivo_per_default_su_macos(self, _platform):
+    def test_xtts_live_attivo_per_default_su_macos(self, _platform):
         with patch.dict(os.environ, {"JARVIS_ENABLE_XTTS": "1"}, clear=False):
             os.environ.pop("JARVIS_XTTS_LIVE", None)
             with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None):
                 with patch.object(SintesiVocale, "_trova_voce_italiana", return_value=None):
                     with patch("voce.sintesi.ElevenLabsVoce"):
                         sintesi = SintesiVocale()
-        self.assertFalse(sintesi.xtts_live)
+        self.assertTrue(sintesi.xtts_live)
 
     def test_blu_viene_guidato_foneticamente_solo_per_xtts(self):
         self.assertEqual(
@@ -48,12 +48,12 @@ class TestSintesiXTTSLive(unittest.TestCase):
         isfile.assert_not_called()
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_frase_con_blu_non_avvia_xtts_live_quando_disattivo(self, _platform):
+    def test_frase_con_blu_usa_xtts_live_su_macos(self, _platform):
         sintesi = SintesiVocale.__new__(SintesiVocale)
         sintesi.attivo = True
         sintesi.motore = "voicepack"
         sintesi.xtts_attivo = True
-        sintesi.xtts_live = False
+        sintesi.xtts_live = True
         sintesi.voce_riferimento = "/tmp/campione.wav"
         sintesi.velocita = 0.92
         sintesi._voicepack_tts = None
@@ -65,10 +65,10 @@ class TestSintesiXTTSLive(unittest.TestCase):
              patch.object(SintesiVocale, "_parla_con_voicepack", return_value=False), \
              patch.object(SintesiVocale, "_parla_con_sistema", return_value=False) as parla_sistema, \
              patch("voce.sintesi.TextToSpeech", return_value=fake_tts):
-            self.assertFalse(sintesi.parla("Il mio colore preferito è blu."))
+            self.assertTrue(sintesi.parla("Il mio colore preferito è blu."))
 
-        fake_tts.synthesize_and_play.assert_not_called()
-        parla_sistema.assert_called_once_with("Il mio colore preferito è blu.")
+        fake_tts.synthesize_and_play.assert_called_once_with("Il mio colore preferito è blù.")
+        parla_sistema.assert_not_called()
 
 
 if __name__ == "__main__":
