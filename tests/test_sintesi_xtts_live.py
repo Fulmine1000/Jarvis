@@ -71,5 +71,27 @@ class TestSintesiXTTSLive(unittest.TestCase):
         parla_sistema.assert_not_called()
 
 
+
+    @patch("voce.sintesi.platform.system", return_value="Darwin")
+    @patch("voce.sintesi.shutil.which", return_value="/usr/bin/say")
+    @patch("voce.sintesi.subprocess.run")
+    def test_fallback_macos_parla_anche_senza_voce_maschile_nota(
+        self, run, _which, _platform
+    ):
+        run.return_value.returncode = 0
+        sintesi = SintesiVocale.__new__(SintesiVocale)
+        sintesi.rate_cinematico = 156
+        sintesi.pausa_cinematica = True
+        sintesi.velocita = 0.92
+        sintesi.voce_sistema = None
+
+        self.assertTrue(sintesi._parla_con_sistema("Salve Simone"))
+        run.assert_called_once_with(
+            ["say", "-r", "156", "Salve Simone"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
 if __name__ == "__main__":
     unittest.main()
