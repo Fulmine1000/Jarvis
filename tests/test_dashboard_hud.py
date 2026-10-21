@@ -20,6 +20,10 @@ class TestDashboardHUD(unittest.TestCase):
         with self.assertRaises(ValueError):
             calcola_espressione("2 ** 100")
 
+    def test_calcolo_rifiuta_risultati_complessi(self):
+        with self.assertRaises(ValueError):
+            calcola_espressione("(-1) ** 0.5")
+
     def test_salva_e_legge_nota_localmente(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "note.txt"
@@ -33,7 +37,7 @@ class TestDashboardHUD(unittest.TestCase):
             meteo.assert_called_once_with("Roma")
 
     def test_comando_ora(self):
-        self.assertIn("Ora:", DashboardHUD().gestisci_comando("che ora è"))
+        self.assertIn("Sono le", DashboardHUD().gestisci_comando("che ora è"))
 
 
 if __name__ == "__main__":
