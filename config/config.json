@@ -28,7 +28,7 @@
         "eseguibile_multilingue": "",
         "timeout_multilingue": 90,
         "soglia_rms_whisper": 100,
-        "motore": "piper",
+        "motore": "voicepack",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
         "velocita": 0.92,
         "volume": 100,
