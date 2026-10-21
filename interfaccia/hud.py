@@ -51,6 +51,11 @@ if QT_DISPONIBILE:
         hideRequested = Signal()
         showRequested = Signal()
         stopTimerRequested = Signal()
+        commandRequested = Signal(str)
+
+        @Slot(str)
+        def executeCommand(self, command):
+            self.commandRequested.emit(str(command or ""))
 
         @Slot()
         def hide(self):
@@ -85,6 +90,9 @@ class HUDJarvis:
         self._qt_thread = None
         self._pending_state = None
         self._avvio_timestamp = time.monotonic()
+        self.gesture_zoom = 1.0
+        self.gesture_turn = 0.0
+        self.gesture_mode = "GESTURE CONTROL READY"
 
     def avvia(self):
         if self.attivo:
@@ -133,6 +141,7 @@ class HUDJarvis:
             # al metodo del QTimer fa accodare lo stop sul thread proprietario,
             # anche quando ferma() viene chiamato dal thread audio di Jarvis.
             self.bridge.stopTimerRequested.connect(self.timer.stop)
+            self.bridge.commandRequested.connect(self.esegui_comando_ui)
             self.timer.start()
             self._ready.set()
             self.registra_evento("HUD Qt Quick operativo")
@@ -219,6 +228,41 @@ class HUDJarvis:
         self.eventi = self.eventi[-18:]
         self._emetti_stato()
 
+    def applica_gesto(self, gesto):
+        """Collega i gesti della webcam allo zoom/rotazione dell'elemento centrale."""
+        gesto = str(gesto or "")
+        if gesto == "scorri_destra":
+            self.gesture_turn = (self.gesture_turn + 24.0) % 360.0
+            self.gesture_mode = "HOLOGRAM ROTATED"
+        elif gesto == "scorri_sinistra":
+            self.gesture_turn = (self.gesture_turn - 24.0) % 360.0
+            self.gesture_mode = "HOLOGRAM ROTATED"
+        elif gesto == "zoom_avanti":
+            self.gesture_zoom = min(1.35, self.gesture_zoom + 0.08)
+            self.gesture_mode = "HOLOGRAM ZOOM IN"
+        elif gesto == "zoom_indietro":
+            self.gesture_zoom = max(0.72, self.gesture_zoom - 0.08)
+            self.gesture_mode = "HOLOGRAM ZOOM OUT"
+        elif gesto == "pizzico":
+            self.gesture_mode = "HOLOGRAM SELECT"
+        elif gesto == "mano_aperta":
+            self.gesture_mode = "GESTURE CONTROL ACTIVE"
+        self._emetti_stato()
+
+    def esegui_comando_ui(self, comando):
+        """Esegue un comando richiesto dai pulsanti HUD fuori dal thread grafico."""
+        if not self.kernel:
+            return False
+        def worker():
+            try:
+                self.kernel.esegui_comando(str(comando or ""))
+            except Exception as errore:
+                self.registra_evento(f"Comando HUD non riuscito: {errore}")
+            finally:
+                self.aggiorna_kernel()
+        threading.Thread(target=worker, name="JarvisHUDCommand", daemon=True).start()
+        return True
+
     def imposta_ascolto(self, attivo=True):
         self.ascolto = bool(attivo)
         self.registra_evento("Canale voce: ascolto" if self.ascolto else "Canale voce: standby")
@@ -285,6 +329,9 @@ class HUDJarvis:
             "listening": self.ascolto,
             "speaking": self.parlando,
             "activity": activity,
+            "gesture_zoom": self.gesture_zoom,
+            "gesture_turn": self.gesture_turn,
+            "gesture_mode": self.gesture_mode,
         }
 
     @staticmethod
