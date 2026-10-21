@@ -91,7 +91,16 @@ class GestoreComandi:
         return c.strip()
 
     def _esegui_controllo_telefono_video(self, comando_originale):
-        """Comandi vocali del video: schermo, app e avvio sicuro delle chiamate."""
+        """Comandi telefonici singoli e orchestrazione multi-dispositivo esplicita."""
+        try:
+            from dispositivi.controllo_android_multi import ControlloAndroidMulti
+            multi = ControlloAndroidMulti(logger=self.logger)
+            risposta_multi = multi.gestisci_comando(comando_originale)
+            if risposta_multi is not None:
+                return risposta_multi
+        except Exception as errore:
+            if self.logger:
+                self.logger.warning(f"Controllo Android multi-dispositivo non disponibile: {errore}")
         try:
             from dispositivi.controllo_android import ControlloAndroidVideo
             controller = ControlloAndroidVideo(logger=self.logger)
