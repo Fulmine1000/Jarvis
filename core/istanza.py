@@ -16,6 +16,11 @@ try:
 except ImportError:  # pragma: no cover - piattaforme non POSIX
     fcntl = None
 
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - piattaforme non Windows
+    msvcrt = None
+
 
 class IstanzaUnicaJarvis:
     """Garantisce che esista una sola istanza del processo Jarvis."""
@@ -30,14 +35,23 @@ class IstanzaUnicaJarvis:
 
     def acquisisci(self) -> bool:
         """Acquisisce il lock; False se un'altra istanza è già attiva."""
-        if fcntl is None:
-            # Jarvis è sviluppato principalmente per macOS; sulle piattaforme
-            # prive di fcntl non blocchiamo l'avvio in modo arbitrario.
+        if fcntl is None and msvcrt is None:
+            # Piattaforma senza primitive di lock note: non blocchiamo l'avvio
+            # in modo arbitrario, ma sui sistemi supportati usiamo un lock reale.
             return True
 
         try:
             self._file = open(self.percorso, "a+")
-            fcntl.flock(self._file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self._file.seek(0)
+            if fcntl is not None:
+                fcntl.flock(self._file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            else:
+                # msvcrt.locking richiede almeno un byte nella regione bloccata.
+                if os.fstat(self._file.fileno()).st_size == 0:
+                    self._file.write(" ")
+                    self._file.flush()
+                self._file.seek(0)
+                msvcrt.locking(self._file.fileno(), msvcrt.LK_NBLCK, 1)
             self._file.seek(0)
             self._file.truncate()
             self._file.write(str(os.getpid()))
@@ -55,6 +69,9 @@ class IstanzaUnicaJarvis:
         try:
             if fcntl is not None:
                 fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+            elif msvcrt is not None:
+                self._file.seek(0)
+                msvcrt.locking(self._file.fileno(), msvcrt.LK_UNLCK, 1)
         except (OSError, IOError):
             pass
 
