@@ -32,6 +32,9 @@ ApplicationWindow {
     property bool listening: false
     property bool speaking: false
     property real activity: 0.18
+    property real gestureZoom: 1.0
+    property real gestureTurn: 0.0
+    property string gestureMode: "GESTURE CONTROL READY"
 
     function setState(data) {
         if (!data) return
@@ -52,6 +55,9 @@ ApplicationWindow {
         listening = !!data.listening
         speaking = !!data.speaking
         activity = Math.max(0.08, Math.min(1.0, Number(data.activity || 0.18)))
+        if (data.gesture_zoom !== undefined) gestureZoom = Math.max(0.72, Math.min(1.35, Number(data.gesture_zoom)))
+        if (data.gesture_turn !== undefined) gestureTurn = Number(data.gesture_turn)
+        gestureMode = data.gesture_mode || gestureMode
     }
 
     function voiceDisplay() {
@@ -247,8 +253,8 @@ ApplicationWindow {
         y: 70
         width: 360
         height: 390
-        property real zoom: 1.0
-        property real gestureTurn: 0
+        property real zoom: root.gestureZoom
+        property real gestureTurn: root.gestureTurn
 
         // Alone verticale morbido: evita il grande disco circolare dietro al nucleo.
         Rectangle {
@@ -441,6 +447,107 @@ ApplicationWindow {
             font.pixelSize: 7
             font.bold: true
         }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 363
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: root.gestureMode
+            color: "#7ce8ff"
+            font.pixelSize: 7
+            font.bold: true
+            elide: Text.ElideRight
+        }
+    }
+
+    // Widget dock: quick actions call Jarvis commands asynchronously.
+    Rectangle {
+        x: root.width - 232
+        y: 66
+        width: 220
+        height: root.height - 148
+        color: "#061421"
+        border.color: "#105477"
+        border.width: 1
+
+        Text { x: 12; y: 10; text: "HOLOGRAPHIC WIDGETS"; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true }
+        Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#12618a" }
+
+        Rectangle {
+            x: 12; y: 40; width: parent.width - 24; height: 58
+            color: "#081e30"; border.color: "#12618a"
+            Text { x: 9; y: 7; text: "LOCAL TIME"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+            Text { x: 9; y: 24; text: root.clockText; color: "#d9f8ff"; font.pixelSize: 16; font.bold: true }
+            Text { x: 9; y: 43; text: root.dateText; color: "#5dbddf"; font.pixelSize: 8 }
+        }
+
+        Text { x: 12; y: 108; text: "WEATHER / NEWS"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Button {
+            x: 12; y: 126; width: 92; height: 28
+            text: "METEO"
+            onClicked: bridge.executeCommand("meteo")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+        Button {
+            x: 112; y: 126; width: 96; height: 28
+            text: "NOTIZIE"
+            onClicked: bridge.executeCommand("notizie")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+
+        Text { x: 12; y: 164; text: "SCIENTIFIC CALCULATOR"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        TextField {
+            id: calcInput
+            x: 12; y: 182; width: parent.width - 24; height: 30
+            placeholderText: "Es. (12 + 4) * 3"
+            color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
+            background: Rectangle { color: "#030811"; border.color: "#12618a" }
+        }
+        Button {
+            x: 12; y: 216; width: parent.width - 24; height: 26
+            text: "CALCOLA"
+            onClicked: bridge.executeCommand("calcola " + calcInput.text)
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+
+        Text { x: 12; y: 251; text: "LOCAL NOTEPAD"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        TextField {
+            id: noteInput
+            x: 12; y: 269; width: parent.width - 24; height: 30
+            placeholderText: "Scrivi una nota..."
+            color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
+            background: Rectangle { color: "#030811"; border.color: "#12618a" }
+        }
+        Button {
+            x: 12; y: 303; width: 92; height: 26
+            text: "SALVA"
+            onClicked: bridge.executeCommand("nota: " + noteInput.text)
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+        Button {
+            x: 112; y: 303; width: 96; height: 26
+            text: "LEGGI"
+            onClicked: bridge.executeCommand("leggi nota")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+
+        Text { x: 12; y: 340; text: "NETWORK DIAGNOSTICS"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Button {
+            x: 12; y: 358; width: parent.width - 24; height: 28
+            text: "TEST VELOCITÀ"
+            onClicked: bridge.executeCommand("test velocità rete")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+        }
+        Rectangle { x: 12; y: 396; width: parent.width - 24; height: 1; color: "#12618a" }
+        Text { x: 12; y: 406; text: "GESTURE CONTROL"; color: "#38c9f4"; font.pixelSize: 8; font.bold: true }
+        Text { x: 12; y: 424; width: parent.width - 24; text: root.gestureMode; color: "#b8eaff"; font.pixelSize: 9; wrapMode: Text.Wrap }
+        Text { x: 12; y: 458; width: parent.width - 24; text: "Pinch: select  •  Swipe: rotate  •  Two hands: zoom"; color: "#4287a8"; font.pixelSize: 8; wrapMode: Text.Wrap }
     }
 
     // Bottom command/response strip
