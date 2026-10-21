@@ -158,6 +158,7 @@ class JarvisOS:
         }
         messaggio = descrizioni.get(gesto, f"Gesto rilevato: {gesto}")
         if self.hud:
+            self.hud.applica_gesto(gesto)
             self.hud.registra_evento(messaggio)
         if self.kernel and getattr(self.kernel, "logger", None):
             self.kernel.logger.info(messaggio)
