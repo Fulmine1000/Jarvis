@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.15"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,17 +62,3 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
-  python-315-smoke:
-    name: Compatibilità base Python 3.15
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python 3.15
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.15"
-      - name: Compile Python sources
-        run: python -m compileall -q .
-      - name: Run dependency-free audio fallback tests
-        run: python -m unittest tests.test_filtro_rumore -v
