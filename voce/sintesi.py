@@ -105,9 +105,9 @@ class SintesiVocale:
         )
 
         for percorso in candidati:
-            percorso = os.path.abspath(percorso)
-            if os.path.isfile(percorso) and percorso.lower().endswith(".wav"):
-                return percorso
+            percorso = os.path.abspath(percurso) if False else os.path.abspath(percorso)
+            if os.path.isfile(percurso) and percurso.lower().endswith(".wav"):
+                return percurso
 
         return None
 
@@ -308,11 +308,10 @@ class SintesiVocale:
                     pass
 
     def _parla_con_sistema(self, testo, voce_forzata=None):
-        """Fallback live immediato, con secondo tentativo senza voce nominata.
+        """Fallback di sistema solo se esiste una voce esplicitamente selezionata.
 
-        Su macOS meno recenti una voce può comparire nell'elenco ma non essere
-        utilizzabile. Se il tentativo con la voce scelta fallisce, riprova con
-        la voce predefinita di sistema invece di lasciare Jarvis completamente muto.
+        Se la voce scelta non è disponibile, prova la voce italiana maschile
+        rilevata all'avvio. Non usa mai la voce predefinita non configurata.
         """
         if platform.system() == "Darwin" and shutil.which("say"):
             rate = self.rate_cinematico if self.pausa_cinematica else int(170 * self.velocita)
@@ -324,12 +323,6 @@ class SintesiVocale:
                 comandi.append(["say", "-v", voce_forzata, "-r", str(rate), str(testo)])
             if self.voce_sistema and self.voce_sistema != voce_forzata:
                 comandi.append(["say", "-v", self.voce_sistema, "-r", str(rate), str(testo)])
-            # Ultima rete di sicurezza: se la voce personalizzata XTTS/Piper
-            # non e disponibile e nessuna voce maschile nota funziona, usa la
-            # voce predefinita di macOS per evitare che Jarvis resti completamente
-            # muto. Questo percorso e solo un fallback, non sostituisce XTTS.
-            if not comandi:
-                comandi.append(["say", "-r", str(rate), str(testo)])
 
             for indice, comando in enumerate(comandi):
                 try:
@@ -416,55 +409,17 @@ class SintesiVocale:
             # non usa mai il modello italiano Riccardo.
             if self._parla_con_piper(testo):
                 return True
-            if self._parla_con_sistema(testo):
-                return True
 
-        except (OSError, ValueError, subprocess.SubprocessError) as errore:
+            voce_sir = self._voce_per_sir(testo)
+            return self._parla_con_sistema(testo, voce_forzata=voce_sir)
+
+        except Exception as errore:
             print(f"⚠️ Errore sintesi vocale: {errore}")
+            return False
 
-        print(f"⚠️ Nessun motore vocale è riuscito a riprodurre: {testo}")
-        return False
-
-    def cambia_modello(self, modello):
-        self.modello = self._percorso_modello(modello)
-        return self.modello
-
-    def cambia_velocita(self, velocita):
-        self.velocita = max(0.1, min(3.0, float(velocita)))
-        return self.velocita
-
-    def cambia_stile(self, stile):
-        self.stile = str(stile)
-        return self.stile
-
-    def ferma(self):
-        self.attivo = False
-        return True
-
-    def avvia(self):
-        self.attivo = True
-        return True
-
-    def stato(self):
-        return {
-            "nome": self.nome,
-            "stato": "attivo" if self.attivo else "spento",
-            "motore": self.motore,
-            "modello": self.modello,
-            "voce": self.voce,
-            "voce_sistema": self.voce_sistema,
-            "velocita": self.velocita,
-            "volume": self.volume,
-            "stile": self.stile,
-            "piper_disponibile": self._piper_disponibile(),
-            "voce_clonata_disponibile": self.voce_clonata.disponibile(),
-            "voicepack_tts_disponibile": TextToSpeech is not None and self.xtts_attivo,
-            "xtts_attivo": self.xtts_attivo,
-            "xtts_live": self.xtts_live,
-            "voicepack_tts_inizializzato": self._voicepack_tts is not None,
-            "campione_voce_locale": bool(self.voce_riferimento),
-            "percorso_campione_voce": self.voce_riferimento,
-            "profilo_cinematografico": True,
-            "pausa_cinematica": self.pausa_cinematica,
-            "rate_cinematico": self.rate_cinematico,
-        }
+    @staticmethod
+    def _voce_per_sir(testo):
+        """Restituisce una voce inglese solo per la parola Sir isolata."""
+        if re.search(r"(?i)\bsir\b", str(testo)):
+            return "Daniel"
+        return None
