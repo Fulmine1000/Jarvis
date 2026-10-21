@@ -40,13 +40,12 @@ class SintesiVocale:
         self.xtts_attivo = os.environ.get(
             "JARVIS_ENABLE_XTTS", "1"
         ).strip().lower() in ("1", "true", "yes", "on")
-        # Su macOS (in particolare High Sierra/Intel) il worker XTTS puo
-        # impiegare molto tempo o fallire durante il caricamento di PyTorch.
-        # Per evitare che Jarvis resti muto, il live XTTS e opt-in su macOS:
-        # la voce di sistema viene usata subito finche il worker non e verificato.
-        # Su altri sistemi resta attivo come prima; si puo sempre forzare con
-        # JARVIS_XTTS_LIVE=1 dopo aver verificato la compatibilita.
-        default_xtts_live = "0" if platform.system() == "Darwin" else "1"
+        # La voce personalizzata Jarvis viene generata da XTTS in un worker
+        # isolato: il caricamento lento non blocca il ciclo principale.
+        # Deve essere attiva anche su macOS, altrimenti la configurazione
+        # voicepack ricade sempre su Piper/say e non usa la voce creata.
+        # Per disabilitarla manualmente: JARVIS_XTTS_LIVE=0.
+        default_xtts_live = "1"
         self.xtts_live = os.environ.get(
             "JARVIS_XTTS_LIVE", default_xtts_live
         ).strip().lower() in ("1", "true", "yes", "on")
