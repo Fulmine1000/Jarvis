@@ -124,6 +124,16 @@ def _handler_factory():
                 self._headers("text/html; charset=utf-8")
                 self.wfile.write(payload)
                 return
+            if path == "/ologramma_3d_worker.js":
+                try:
+                    payload = (_BASE / "ologramma_3d_worker.js").read_bytes()
+                except OSError:
+                    self.send_error(404)
+                    return
+                self.send_response(200)
+                self._headers("application/javascript; charset=utf-8")
+                self.wfile.write(payload)
+                return
             if path.startswith("/models/"):
                 # Whitelist stretta: vengono esposti solo i modelli del visualizzatore.
                 allowed = {
