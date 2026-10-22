@@ -256,96 +256,82 @@ small{color:#70aeb8}
     }
   }
 
+  let cpuFrameBusy = false;
+  let lastCpuFrameAt = 0;
+  let cpuLoopStarted = false;
+
+  async function processCpuFrames() {
+    if (!cpuLoopStarted) return;
+    requestAnimationFrame(processCpuFrames);
+    if (!cpuHandDetector || !video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+        !video.videoWidth || !video.videoHeight || cpuFrameBusy) return;
+    const now = performance.now();
+    if (now - lastCpuFrameAt < 140) return;
+    lastCpuFrameAt = now;
+    cpuFrameBusy = true;
+    try {
+      const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
+      processedFrames++;
+      const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
+        "index_finger_mcp","index_finger_pip","index_finger_dip","index_finger_tip",
+        "middle_finger_mcp","middle_finger_pip","middle_finger_dip","middle_finger_tip",
+        "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
+        "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
+      const normalized = predictions.map(hand => {
+        const points = hand.keypoints || [];
+        const byName = Object.fromEntries(points.filter(p => p.name).map(p => [p.name, p]));
+        return order.map((name, index) => {
+          const p = byName[name] || points[index];
+          if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return {x:0,y:0};
+          return {x: Math.max(0, Math.min(1, p.x / video.videoWidth)),
+                  y: Math.max(0, Math.min(1, p.y / video.videoHeight))};
+        });
+      });
+      debugState.textContent = "MOTORE CPU · frame " + processedFrames +
+        " · mani " + predictions.length + " · punti " +
+        (predictions[0] && predictions[0].keypoints ? predictions[0].keypoints.length : 0);
+      handleHandResults({multiHandLandmarks: normalized});
+    } catch (error) {
+      const detail = String(error && (error.stack || error.message) || error);
+      setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", detail.slice(0,700));
+      debugState.textContent = "ERRORE CPU: " + detail.slice(0,260);
+    } finally {
+      cpuFrameBusy = false;
+    }
+  }
+
   async function startHandCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraStatus("CAMERA: NON SUPPORTATA", "#ff9b73", "Apri il viewer da http://127.0.0.1 per usare la webcam.");
       return;
     }
-    if (typeof window.Hands !== "function" || typeof window.Camera !== "function") {
-      setCameraStatus("CAMERA: ERRORE LIBRERIE", "#ff9b73", "Serve una connessione Internet per caricare il tracciamento delle mani.");
-      return;
-    }
     try {
-      setCameraStatus("CAMERA: RICHIESTA PERMESSO...", "#48fff2");
-      // Evita il pacchetto SIMD: su alcune versioni di Chrome/macOS il suo
-      // percorso WebGL fallisce con GLctx.createTexture undefined.
-      handsTracker = new window.Hands({
-        locateFile: file => {
-          const base = "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/";
-          return base + file.replace(/hands_solution_simd_wasm_bin/g, "hands_solution_wasm_bin");
+      setCameraStatus("CAMERA: RICHIESTA PERMESSO…", "#48fff2");
+      // Webcam nativa e inferenza CPU: evita il percorso WebGL MediaPipe che
+      // causava GLctx.createTexture undefined.
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: "user",
+          width: {ideal: 320},
+          height: {ideal: 240},
+          frameRate: {ideal: 15, max: 20}
         }
       });
-      handsTracker.setOptions({
-        maxNumHands: 2,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.65,
-        minTrackingConfidence: 0.55
-      });
-      handsTracker.onResults(handleHandResults);
-      cameraStream = new window.Camera(video, {
-        onFrame: async () => {
-          // MediaPipe può essere chiamato prima che il video abbia un frame valido.
-          if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-              !video.videoWidth || !video.videoHeight || !handsTracker) return;
-          try {
-            processedFrames++;
-            if (!firstFrameAt) firstFrameAt = performance.now();
-            debugState.textContent = "VIDEO " + video.videoWidth + "×" + video.videoHeight +
-              " · frame " + processedFrames + " · motore " + (cpuHandDetector ? "CPU" : "MediaPipe");
-            // Se MediaPipe non rileva nulla, passa automaticamente al modello CPU.
-            // Evita di lasciare l’utente bloccato su una webcam attiva ma senza tracking.
-            if (!cpuHandDetector && !cpuFallbackStarting && !cpuFallbackRequested &&
-                performance.now() - firstFrameAt > 3500 && lastDetectedHands === 0) {
-              cpuFallbackRequested = true;
-              void startCpuFallback("MediaPipe non ha rilevato mani nei primi secondi.");
-            }
-            if (preview.srcObject !== video.srcObject && video.srcObject) preview.srcObject = video.srcObject;
-            if (cpuHandDetector) {
-              const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
-              const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
-                "index_finger_mcp","index_finger_pip","index_finger_dip","index_finger_tip",
-                "middle_finger_mcp","middle_finger_pip","middle_finger_dip","middle_finger_tip",
-                "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
-                "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
-              const normalized = predictions.map(hand => {
-                const points = hand.keypoints || [];
-                const byName = Object.fromEntries(points.filter(p => p.name).map(p => [p.name, p]));
-                return order.map((name, index) => {
-                  // Alcune build del modello omettono i nomi: in quel caso usa l'ordine canonico dei 21 punti.
-                  const p = byName[name] || points[index];
-                  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return {x:0,y:0};
-                  return {x: Math.max(0, Math.min(1, p.x / video.videoWidth)),
-                          y: Math.max(0, Math.min(1, p.y / video.videoHeight))};
-                });
-              });
-              debugState.textContent = "MOTORE CPU · previsioni: " + predictions.length +
-                " · punti mano: " + (predictions[0] && predictions[0].keypoints ? predictions[0].keypoints.length : 0);
-              handleHandResults({multiHandLandmarks: normalized});
-              return;
-            }
-            await handsTracker.send({image: video});
-          } catch (error) {
-            const detail = String(error && (error.stack || error.message) || error);
-            if (!cpuHandDetector && !cpuFallbackStarting) {
-              await startCpuFallback("Errore MediaPipe: " + detail.slice(0,220));
-            } else if (cpuHandDetector) {
-              setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", detail.slice(0,700));
-              debugState.textContent = "ERRORE CPU: " + detail.slice(0,220);
-            }
-          }
-        },
-        width: 640,
-        height: 480
-      });
-      await cameraStream.start();
-      if (video.srcObject) preview.srcObject = video.srcObject;
-      video.addEventListener("loadeddata", () => {
-        if (video.srcObject) preview.srcObject = video.srcObject;
-      }, {once:true});
-      setCameraStatus("CAMERA: ATTIVA • CERCO LA MANO", "#48fff2",
-        "Consenti la webcam e tieni una mano aperta davanti alla fotocamera. Elaborazione locale, senza registrazione.");
+      video.srcObject = cameraStream;
+      preview.srcObject = cameraStream;
+      await video.play();
+      setCameraStatus("CAMERA: ATTIVA • CARICO MODELLO CPU…", "#48fff2",
+        "Webcam attiva. Riconoscimento locale senza WebGL.");
+      await startCpuFallback("Motore CPU selezionato per evitare il problema WebGL.");
+      if (!cpuHandDetector) return;
+      cpuLoopStarted = true;
+      if (!firstFrameAt) firstFrameAt = performance.now();
+      processCpuFrames();
     } catch (error) {
-      setCameraStatus("CAMERA: ACCESSO NEGATO", "#ff9b73", String(error && error.message || error));
+      const detail = String(error && (error.stack || error.message) || error);
+      setCameraStatus("CAMERA: ERRORE AVVIO", "#ff9b73", detail.slice(0,700));
+      debugState.textContent = "ERRORE AVVIO WEBCAM/MODELLO: " + detail.slice(0,260);
     }
   }
 
@@ -358,9 +344,17 @@ small{color:#70aeb8}
     try { if (preview.srcObject) preview.srcObject = null; } catch (_) {}
     try { if (handsTracker && handsTracker.close) handsTracker.close(); } catch (_) {}
   });
-  document.getElementById("forceCpu").addEventListener("click", () => {
+  document.getElementById("forceCpu").addEventListener("click", async () => {
+    if (!cameraStream) {
+      await startHandCamera();
+      return;
+    }
     cpuFallbackRequested = true;
-    void startCpuFallback("Avvio manuale richiesto dal pannello.");
+    await startCpuFallback("Avvio manuale richiesto dal pannello.");
+    if (cpuHandDetector && !cpuLoopStarted) {
+      cpuLoopStarted = true;
+      processCpuFrames();
+    }
   });
   startHandCamera();
   window.addEventListener("resize",resize);resize();draw();
