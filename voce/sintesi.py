@@ -236,6 +236,10 @@ class SintesiVocale:
 
     def _parla_con_voicepack(self, testo):
         """Riproduce audio gia presente, tranne frasi con la pronuncia difettosa."""
+        # I WAV pre-generati non rispettano il parametro velocita: sotto 0.9
+        # li saltiamo per provare XTTS con la velocita configurata o il fallback lento.
+        if self.velocita < 0.9:
+            return False
         if not self.xtts_attivo:
             return False
         if re.search(r"\bblu\b", str(testo), flags=re.IGNORECASE):
