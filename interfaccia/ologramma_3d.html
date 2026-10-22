@@ -212,11 +212,14 @@ small{color:#70aeb8}
       handsTracker.onResults(handleHandResults);
       cameraStream = new window.Camera(video, {
         onFrame: async () => {
+          // MediaPipe può essere chiamato prima che il video abbia un frame valido.
+          if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+              !video.videoWidth || !video.videoHeight || !handsTracker) return;
           try {
             await handsTracker.send({image: video});
           } catch (error) {
-            setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73",
-              String(error && error.message || error));
+            const detail = String(error && (error.stack || error.message) || error);
+            setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73", detail.slice(0, 700));
           }
         },
         width: 640,
