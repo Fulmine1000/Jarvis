@@ -247,10 +247,14 @@ small{color:#70aeb8}
           if (originalUrl.startsWith("https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/") &&
               !/[?&]tfjs-format=file(?:&|$)/.test(originalUrl)) {
             const fixedUrl = originalUrl + (originalUrl.includes("?") ? "&" : "?") + "tfjs-format=file";
-            if (typeof Request !== "undefined" && input instanceof Request) {
-              return nativeFetch(new Request(fixedUrl, input), init);
-            }
-            return nativeFetch(fixedUrl, init);
+            const requestUrl = fixedUrl;
+            const request = (typeof Request !== "undefined" && input instanceof Request)
+              ? new Request(requestUrl, input) : requestUrl;
+            return nativeFetch(request, init).catch(error => {
+              window.__jarvisLastModelFetchError = {url: requestUrl, message: String(error && error.message || error)};
+              debugState.textContent = "FETCH MODELLO FALLITO: " + requestUrl;
+              throw error;
+            });
           }
           return nativeFetch(input, init);
         };
@@ -270,12 +274,14 @@ small{color:#70aeb8}
       debugState.textContent = "MOTORE CPU PRONTO · in attesa della mano…";
     } catch (error) {
       const detail = String(error && (error.stack || error.message) || error);
+      const failedRequest = window.__jarvisLastModelFetchError;
       const fetchFailure = /failed to fetch|networkerror|load failed|fetch/i.test(detail);
       const advice = fetchFailure
         ? " Il modello remoto non è raggiungibile. Controlla connessione, VPN/filtri e accesso a tfhub.dev; il modello non è incluso nel repository."
         : "";
+      const failedUrlDetail = failedRequest ? " | URL fallito: " + failedRequest.url + " | motivo: " + failedRequest.message : "";
       setCameraStatus(fetchFailure ? "ERRORE DOWNLOAD MODELLO" : "ERRORE RICONOSCIMENTO CPU",
-        "#ff9b73", (reason + " | " + detail + advice).slice(0,900));
+        "#ff9b73", (reason + " | " + detail + failedUrlDetail + advice).slice(0,1200));
       debugState.textContent = fetchFailure
         ? "DOWNLOAD MODELLO FALLITO · verifica accesso a TensorFlow Hub"
         : "ERRORE AVVIO CPU: " + detail.slice(0,260);
