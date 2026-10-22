@@ -35,7 +35,7 @@
         "volume": 100,
         "stile": "Jarvis Cinematico PS3",
         "pausa_cinematica": true,
-        "rate_cinematico": 140
+        "rate_cinematico": 145
     },
     "memoria": {
         "attiva": true,
