@@ -73,25 +73,16 @@ Il nucleo centrale dell'HUD passa all'accento arancione mentre Jarvis ascolta o 
 - Pulsante nel viewer: vista esplosa/ricomposta dei componenti.
 - Se il controllo gestuale opzionale è attivo, scorrimento ruota il modello, due mani regolano lo zoom e il pizzico commuta la vista esplosa.
 
-Per abilitare il tracciamento delle mani:
+Per abilitare il controllo gestuale del visualizzatore, installa le dipendenze opzionali:
 
-PowerShell:
-
-```powershell
-python -m pip install -r requirements-gesti.txt
-$env:JARVIS_GESTI="1"
-python jarvis.py
-```
-
-Git Bash:
+PowerShell o Git Bash:
 
 ```bash
 python -m pip install -r requirements-gesti.txt
-export JARVIS_GESTI=1
 python jarvis.py
 ```
 
-La webcam si avvia solo con `JARVIS_GESTI=1`; i fotogrammi sono elaborati localmente e non vengono salvati. MediaPipe/OpenCV potrebbero non essere compatibili con ogni sistema o versione di Python. Senza le dipendenze, Jarvis continua a funzionare senza il controllo gestuale.
+La webcam parte quando apri il visualizzatore 3D, non durante il normale avvio di Jarvis. I fotogrammi vengono elaborati localmente e non vengono salvati. Su macOS, autorizza Terminale/Python in Privacy e Sicurezza > Fotocamera se il sistema lo richiede. MediaPipe/OpenCV potrebbero non essere compatibili con ogni sistema o versione di Python; se l'installazione fallisce, il viewer resta utilizzabile con mouse/touch ma non rileverà i gesti.
 
 Il viewer è una dimostrazione 3D wireframe procedurale: non è una scansione reale di un oggetto e non genera automaticamente modelli 3D da file. Il server di collegamento ascolta soltanto su `127.0.0.1` e serve la pagina e una coda limitata di eventi gestuali.
 
