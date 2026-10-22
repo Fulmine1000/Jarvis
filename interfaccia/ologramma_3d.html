@@ -42,10 +42,6 @@ small{color:#70aeb8}
   // La mini-anteprima rende verificabile che il video arrivi davvero al riconoscitore.
 </script>
 <video id="cameraPreview" playsinline muted autoplay></video>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.17.0/dist/tf-converter.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.17.0/dist/tf-backend-cpu.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
 <script>
 (() => {
   "use strict";
@@ -135,14 +131,15 @@ small{color:#70aeb8}
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
   const cameraState = document.getElementById("cameraState");
   const video = document.getElementById("handCamera");
-  let cameraStream = null, cpuHandDetector = null;
+  let cameraStream = null, handWorker = null;
+  let handWorkerReady = false, handWorkerBusy = false;
   let cpuFallbackStarting = false;
   const debugState = document.getElementById("debugState");
   const diagnosticHint = document.getElementById("diagnosticHint");
   let diagnosticBeat = 0;
   setInterval(() => {
     diagnosticBeat++;
-    if (processedFrames === 0 && !cpuHandDetector) {
+    if (processedFrames === 0 && !handWorkerReady) {
       debugState.textContent = "DIAGNOSTICA ATTIVA · attesa fotogrammi webcam · " + diagnosticBeat + "s";
     }
   }, 1000);
@@ -176,7 +173,7 @@ small{color:#70aeb8}
   function handleHandResults(results) {
     const found = results.multiHandLandmarks || [];
     lastDetectedHands = found.length;
-    debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames + " · motore " + (cpuHandDetector ? "CPU" : "MediaPipe");
+    debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames + " · motore " + (handWorkerReady ? "CPU worker" : "avvio worker");
     const now = performance.now();
     if (!found.length) {
       previousWristX = null;
@@ -242,85 +239,100 @@ small{color:#70aeb8}
   }
 
   async function startCpuFallback(reason) {
-    if (cpuHandDetector || cpuFallbackStarting) return;
+    if (handWorkerReady || cpuFallbackStarting) return;
     cpuFallbackStarting = true;
-    setCameraStatus("CAMERA: AVVIO MOTORE CPU…", "#48fff2", reason + " Carico il riconoscitore alternativo.");
+    setCameraStatus("CAMERA: AVVIO WORKER CPU…", "#48fff2",
+      reason + " Il riconoscimento viene eseguito in un thread separato.");
     try {
-      if (!window.tf || !window.handPoseDetection) throw new Error("Librerie CPU non caricate: verifica la connessione Internet e ricarica la pagina.");
-      await window.tf.setBackend("cpu");
-      await window.tf.ready();
-      // I modelli sono serviti dal server locale: niente redirect/CORS da TensorFlow Hub.
-      debugState.textContent = "CARICAMENTO MODELLI LOCALI CPU…";
-      cpuHandDetector = await window.handPoseDetection.createDetector(
-        window.handPoseDetection.SupportedModels.MediaPipeHands,
-        {
-          runtime:"tfjs", modelType:"lite", maxHands:2,
-          detectorModelUrl:"/models/detector/model.json",
-          landmarkModelUrl:"/models/landmark/model.json"
+      if (!window.Worker || !window.createImageBitmap) {
+        throw new Error("Questo browser non supporta Worker o createImageBitmap.");
+      }
+      debugState.textContent = "AVVIO WORKER · caricamento modelli fuori dal thread grafico…";
+      handWorker = new Worker("/ologramma_3d_worker.js");
+      const readyPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Timeout caricamento worker/modelli")), 90000);
+        handWorker.addEventListener("message", function onFirstMessage(event) {
+          if (event.data && event.data.type === "ready") {
+            clearTimeout(timeout);
+            handWorker.removeEventListener("message", onFirstMessage);
+            resolve();
+          } else if (event.data && event.data.type === "error") {
+            clearTimeout(timeout);
+            handWorker.removeEventListener("message", onFirstMessage);
+            reject(new Error(event.data.message || "Errore worker"));
+          }
+        });
+      });
+      handWorker.onmessage = (event) => {
+        const data = event.data || {};
+        if (data.type === "ready") {
+          handWorkerReady = true;
+          setCameraStatus("CAMERA: WORKER CPU ATTIVO", "#48fff2",
+            "Riconoscimento separato dal rendering per una grafica più fluida.");
+          debugState.textContent = "WORKER CPU PRONTO · grafica e riconoscimento separati";
+          return;
         }
-      );
-      setCameraStatus("CAMERA: MOTORE CPU ATTIVO", "#48fff2",
-        "Riconoscimento alternativo avviato. Tieni la mano aperta, intera e ben illuminata.");
-      debugState.textContent = "MOTORE CPU PRONTO · in attesa della mano…";
+        if (data.type === "result") {
+          handWorkerBusy = false;
+          processedFrames++;
+          debugState.textContent = "WORKER CPU · frame " + processedFrames +
+            " · mani " + data.hands.length + " · punti " + data.points;
+          handleHandResults({multiHandLandmarks:data.hands});
+          return;
+        }
+        if (data.type === "error") {
+          handWorkerBusy = false;
+          const detail = String(data.message || "Errore worker");
+          setCameraStatus("ERRORE WORKER CPU", "#ff9b73", detail.slice(0,700));
+          debugState.textContent = "ERRORE WORKER: " + detail.slice(0,260);
+        }
+      };
+      handWorker.onerror = (event) => {
+        handWorkerBusy = false;
+        const detail = String(event.message || "Errore nel Web Worker");
+        setCameraStatus("ERRORE WORKER CPU", "#ff9b73", detail.slice(0,700));
+        debugState.textContent = "ERRORE WORKER: " + detail.slice(0,260);
+      };
+      handWorker.postMessage({type:"init"});
+      await readyPromise;
+      handWorkerReady = true;
     } catch (error) {
       const detail = String(error && (error.stack || error.message) || error);
-      const fetchFailure = /failed to fetch|networkerror|load failed|fetch|model.json|json/i.test(detail);
-      const advice = fetchFailure
-        ? " I modelli sono serviti localmente. Il server prova a scaricarli automaticamente all’avvio; se il download fallisce, verifica che curl sia disponibile e che tfhub.dev sia raggiungibile."
-        : "";
-      const failedUrlDetail = " | Modelli locali: " + location.origin + "/models/detector/model.json e " + location.origin + "/models/landmark/model.json";
-      setCameraStatus(fetchFailure ? "ERRORE CARICAMENTO MODELLI" : "ERRORE RICONOSCIMENTO CPU",
-        "#ff9b73", (reason + " | " + detail + failedUrlDetail + advice).slice(0,1200));
-      debugState.textContent = fetchFailure
-        ? "CARICAMENTO MODELLI LOCALI FALLITO · verifica il download automatico"
-        : "ERRORE AVVIO CPU: " + detail.slice(0,260);
+      setCameraStatus("ERRORE AVVIO WORKER CPU", "#ff9b73", detail.slice(0,900));
+      debugState.textContent = "ERRORE WORKER: " + detail.slice(0,260);
+      if (handWorker) { try { handWorker.terminate(); } catch (_) {} handWorker = null; }
+      handWorkerReady = false;
       cpuFallbackRequested = true;
     } finally {
       cpuFallbackStarting = false;
     }
   }
 
-  let cpuFrameBusy = false;
   let lastCpuFrameAt = 0;
   let cpuLoopStarted = false;
 
   async function processCpuFrames() {
     if (!cpuLoopStarted) return;
     requestAnimationFrame(processCpuFrames);
-    if (!cpuHandDetector || !video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-        !video.videoWidth || !video.videoHeight || cpuFrameBusy) return;
+    if (!handWorkerReady || !handWorker || !video ||
+        video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+        !video.videoWidth || !video.videoHeight || handWorkerBusy) return;
     const now = performance.now();
-    if (now - lastCpuFrameAt < 250) return; // fino a circa 4 inferenze/s, indipendenti dal rendering a 60 FPS
+    if (now - lastCpuFrameAt < 250) return;
     lastCpuFrameAt = now;
-    cpuFrameBusy = true;
+    handWorkerBusy = true;
     try {
-      const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
-      processedFrames++;
-      const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
-        "index_finger_mcp","index_finger_pip","index_finger_dip","index_finger_tip",
-        "middle_finger_mcp","middle_finger_pip","middle_finger_dip","middle_finger_tip",
-        "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
-        "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
-      const normalized = predictions.map(hand => {
-        const points = hand.keypoints || [];
-        const byName = Object.fromEntries(points.filter(p => p.name).map(p => [p.name, p]));
-        return order.map((name, index) => {
-          const p = byName[name] || points[index];
-          if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return {x:0,y:0};
-          return {x: Math.max(0, Math.min(1, p.x / video.videoWidth)),
-                  y: Math.max(0, Math.min(1, p.y / video.videoHeight))};
-        });
-      });
-      debugState.textContent = "MOTORE CPU · frame " + processedFrames +
-        " · mani " + predictions.length + " · punti " +
-        (predictions[0] && predictions[0].keypoints ? predictions[0].keypoints.length : 0);
-      handleHandResults({multiHandLandmarks: normalized});
+      const bitmap = await createImageBitmap(video);
+      if (!handWorkerReady || !handWorker || handWorkerBusy !== true) {
+        bitmap.close();
+        handWorkerBusy = false;
+        return;
+      }
+      handWorker.postMessage({type:"frame", bitmap}, [bitmap]);
     } catch (error) {
+      handWorkerBusy = false;
       const detail = String(error && (error.stack || error.message) || error);
-      setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", detail.slice(0,700));
-      debugState.textContent = "ERRORE CPU: " + detail.slice(0,260);
-    } finally {
-      cpuFrameBusy = false;
+      setCameraStatus("ERRORE FOTOGRAMMA WEBCAM", "#ff9b73", detail.slice(0,600));
     }
   }
 
@@ -348,7 +360,7 @@ small{color:#70aeb8}
       setCameraStatus("CAMERA: ATTIVA • CARICO MODELLO CPU…", "#48fff2",
         "Webcam attiva. Riconoscimento locale senza WebGL.");
       await startCpuFallback("Motore CPU selezionato per evitare il problema WebGL.");
-      if (!cpuHandDetector) return;
+      if (!handWorkerReady) return;
       cpuLoopStarted = true;
       if (!firstFrameAt) firstFrameAt = performance.now();
       processCpuFrames();
@@ -374,7 +386,7 @@ small{color:#70aeb8}
     }
     cpuFallbackRequested = true;
     await startCpuFallback("Avvio manuale richiesto dal pannello.");
-    if (cpuHandDetector && !cpuLoopStarted) {
+    if (handWorkerReady && !cpuLoopStarted) {
       cpuLoopStarted = true;
       processCpuFrames();
     }
