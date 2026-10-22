@@ -12,6 +12,7 @@ header{position:absolute;z-index:2;left:18px;top:14px;right:18px;display:flex;ju
 header strong{font-size:16px}
 #cameraState{color:var(--green);font-size:11px;text-align:right}
 #trackingError{display:none;max-width:340px;overflow-wrap:anywhere;color:#ffb08f;font-size:11px;margin-top:6px;white-space:normal}
+#handCamera{display:none!important}
 #cameraPreview{position:absolute;z-index:2;right:16px;bottom:16px;width:180px;height:135px;object-fit:cover;transform:scaleX(-1);border:1px solid #1b8994;background:#02080e;opacity:.9}
 #debugState{color:#70aeb8;font-size:10px;max-width:330px;overflow-wrap:anywhere}
 #scene{width:100vw;height:100vh;display:block}
@@ -135,6 +136,8 @@ small{color:#70aeb8}
   const preview = document.getElementById("cameraPreview");
   let processedFrames = 0;
   let lastDetectedHands = 0;
+  let firstFrameAt = 0;
+  let cpuFallbackRequested = false;
   let previousWristX = null, previousTwoHands = null, movementAccum = 0;
   let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
 
@@ -151,7 +154,7 @@ small{color:#70aeb8}
   function handleHandResults(results) {
     const found = results.multiHandLandmarks || [];
     lastDetectedHands = found.length;
-    debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames;
+    debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames + " · motore " + (cpuHandDetector ? "CPU" : "MediaPipe");
     const now = performance.now();
     if (!found.length) {
       previousWristX = null;
@@ -207,6 +210,31 @@ small{color:#70aeb8}
     }
   }
 
+  async function startCpuFallback(reason) {
+    if (cpuHandDetector || cpuFallbackStarting) return;
+    cpuFallbackStarting = true;
+    setCameraStatus("CAMERA: AVVIO MOTORE CPU…", "#48fff2", reason + " Carico il riconoscitore alternativo.");
+    try {
+      if (!window.tf || !window.handPoseDetection) throw new Error("Librerie CPU non caricate: verifica la connessione Internet e ricarica la pagina.");
+      await window.tf.setBackend("cpu");
+      await window.tf.ready();
+      cpuHandDetector = await window.handPoseDetection.createDetector(
+        window.handPoseDetection.SupportedModels.MediaPipeHands,
+        {runtime:"tfjs", modelType:"lite", maxHands:2}
+      );
+      setCameraStatus("CAMERA: MOTORE CPU ATTIVO", "#48fff2",
+        "Riconoscimento alternativo avviato. Tieni la mano aperta, intera e ben illuminata.");
+      debugState.textContent = "MOTORE CPU PRONTO · in attesa della mano…";
+    } catch (error) {
+      const detail = String(error && (error.stack || error.message) || error);
+      setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", (reason + " | " + detail).slice(0,700));
+      debugState.textContent = "ERRORE AVVIO CPU: " + detail.slice(0,220);
+      cpuFallbackRequested = true;
+    } finally {
+      cpuFallbackStarting = false;
+    }
+  }
+
   async function startHandCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraStatus("CAMERA: NON SUPPORTATA", "#ff9b73", "Apri il viewer da http://127.0.0.1 per usare la webcam.");
@@ -240,8 +268,16 @@ small{color:#70aeb8}
               !video.videoWidth || !video.videoHeight || !handsTracker) return;
           try {
             processedFrames++;
+            if (!firstFrameAt) firstFrameAt = performance.now();
             debugState.textContent = "VIDEO " + video.videoWidth + "×" + video.videoHeight +
               " · frame " + processedFrames + " · motore " + (cpuHandDetector ? "CPU" : "MediaPipe");
+            // Se MediaPipe non rileva nulla, passa automaticamente al modello CPU.
+            // Evita di lasciare l’utente bloccato su una webcam attiva ma senza tracking.
+            if (!cpuHandDetector && !cpuFallbackStarting && !cpuFallbackRequested &&
+                performance.now() - firstFrameAt > 3500 && lastDetectedHands === 0) {
+              cpuFallbackRequested = true;
+              void startCpuFallback("MediaPipe non ha rilevato mani nei primi secondi.");
+            }
             if (preview.srcObject !== video.srcObject && video.srcObject) preview.srcObject = video.srcObject;
             if (cpuHandDetector) {
               const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
@@ -264,27 +300,10 @@ small{color:#70aeb8}
           } catch (error) {
             const detail = String(error && (error.stack || error.message) || error);
             if (!cpuHandDetector && !cpuFallbackStarting) {
-              cpuFallbackStarting = true;
-              setCameraStatus("CAMERA: ATTIVO RICONOSCIMENTO CPU", "#48fff2",
-                "Il percorso grafico di MediaPipe non è disponibile. Avvio il riconoscimento alternativo via CPU…");
-              try {
-                if (!window.tf || !window.handPoseDetection) throw new Error("Librerie di riconoscimento CPU non caricate");
-                await window.tf.setBackend("cpu");
-                await window.tf.ready();
-                cpuHandDetector = await window.handPoseDetection.createDetector(
-                  window.handPoseDetection.SupportedModels.MediaPipeHands,
-                  {runtime:"tfjs", modelType:"lite", maxHands:2}
-                );
-                setCameraStatus("CAMERA: RICONOSCIMENTO CPU", "#48fff2",
-                  "Modalità compatibile attiva. Il riconoscimento può essere più lento.");
-              } catch (fallbackError) {
-                setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73",
-                  (detail + " | Fallback CPU: " + String(fallbackError && fallbackError.message || fallbackError)).slice(0,700));
-              } finally {
-                cpuFallbackStarting = false;
-              }
-            } else if (!cpuHandDetector) {
-              setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73", detail.slice(0,700));
+              await startCpuFallback("Errore MediaPipe: " + detail.slice(0,220));
+            } else if (cpuHandDetector) {
+              setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", detail.slice(0,700));
+              debugState.textContent = "ERRORE CPU: " + detail.slice(0,220);
             }
           }
         },
