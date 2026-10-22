@@ -237,17 +237,25 @@ small{color:#70aeb8}
       if (!window.tf || !window.handPoseDetection) throw new Error("Librerie CPU non caricate: verifica la connessione Internet e ricarica la pagina.");
       await window.tf.setBackend("cpu");
       await window.tf.ready();
+      debugState.textContent = "DOWNLOAD MODELLO CPU · detector e landmark da TensorFlow Hub…";
       cpuHandDetector = await window.handPoseDetection.createDetector(
         window.handPoseDetection.SupportedModels.MediaPipeHands,
-        {runtime:"tfjs", modelType:"lite", maxHands:2}
+        {runtime:"tfjs", modelType:"lite", maxHands:1}
       );
       setCameraStatus("CAMERA: MOTORE CPU ATTIVO", "#48fff2",
         "Riconoscimento alternativo avviato. Tieni la mano aperta, intera e ben illuminata.");
       debugState.textContent = "MOTORE CPU PRONTO · in attesa della mano…";
     } catch (error) {
       const detail = String(error && (error.stack || error.message) || error);
-      setCameraStatus("ERRORE RICONOSCIMENTO CPU", "#ff9b73", (reason + " | " + detail).slice(0,700));
-      debugState.textContent = "ERRORE AVVIO CPU: " + detail.slice(0,220);
+      const fetchFailure = /failed to fetch|networkerror|load failed|fetch/i.test(detail);
+      const advice = fetchFailure
+        ? " Il modello remoto non è raggiungibile. Controlla connessione, VPN/filtri e accesso a tfhub.dev; il modello non è incluso nel repository."
+        : "";
+      setCameraStatus(fetchFailure ? "ERRORE DOWNLOAD MODELLO" : "ERRORE RICONOSCIMENTO CPU",
+        "#ff9b73", (reason + " | " + detail + advice).slice(0,900));
+      debugState.textContent = fetchFailure
+        ? "DOWNLOAD MODELLO FALLITO · verifica accesso a TensorFlow Hub"
+        : "ERRORE AVVIO CPU: " + detail.slice(0,260);
       cpuFallbackRequested = true;
     } finally {
       cpuFallbackStarting = false;
