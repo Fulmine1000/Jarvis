@@ -105,7 +105,7 @@ small{color:#70aeb8}
   let lastDrawAt = 0;
   function draw(timestamp) {
     requestAnimationFrame(draw);
-    if (timestamp - lastDrawAt < 50) return; // massimo 20 FPS per ridurre il lavoro del canvas
+    if (timestamp - lastDrawAt < 16.67) return; // target 60 FPS; il display/CPU può limitarli
     lastDrawAt = timestamp;
     const w=innerWidth,h=innerHeight;
     ctx.clearRect(0,0,w,h);
@@ -290,7 +290,7 @@ small{color:#70aeb8}
     if (!cpuHandDetector || !video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
         !video.videoWidth || !video.videoHeight || cpuFrameBusy) return;
     const now = performance.now();
-    if (now - lastCpuFrameAt < 600) return; // circa 1,6 inferenze/s: riduce i blocchi della CPU su Mac datati
+    if (now - lastCpuFrameAt < 250) return; // fino a circa 4 inferenze/s, indipendenti dal rendering a 60 FPS
     lastCpuFrameAt = now;
     cpuFrameBusy = true;
     try {
@@ -337,9 +337,9 @@ small{color:#70aeb8}
         audio: false,
         video: {
           facingMode: "user",
-          width: {ideal: 192},
-          height: {ideal: 144},
-          frameRate: {ideal: 8, max: 8}
+          width: {ideal: 256},
+          height: {ideal: 192},
+          frameRate: {ideal: 15, max: 15}
         }
       });
       video.srcObject = cameraStream;
