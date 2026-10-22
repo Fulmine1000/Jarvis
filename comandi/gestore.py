@@ -47,6 +47,8 @@ class GestoreComandi:
             if risposta is None:
                 risposta = self._esegui_cybersecurity_file_command(originale)
             if risposta is None:
+                risposta = self._esegui_comandi_visione(originale)
+            if risposta is None:
                 risposta = self._esegui_raw(c)
         except Exception as errore:
             if self.logger:
@@ -91,6 +93,27 @@ class GestoreComandi:
                 break
 
         return c.strip()
+
+    def _esegui_comandi_visione(self, comando_originale):
+        """Analisi esplicita di un'immagine locale, senza perdere maiuscole nei percorsi."""
+        testo = str(comando_originale or "").strip()
+        if testo.lower() in ("stato visione", "stato camera", "stato della visione"):
+            visione = getattr(self.kernel, "visione", None) if self.kernel else None
+            return str(visione.stato()) if visione else "Visione non disponibile."
+        prefissi = ("analizza immagine ", "descrivi immagine ", "cosa vedi nell'immagine ")
+        prefisso = next((p for p in prefissi if testo.lower().startswith(p)), None)
+        if not prefisso:
+            return None
+        visione = getattr(self.kernel, "visione", None) if self.kernel else None
+        if not visione:
+            return "Il modulo di visione non è disponibile."
+        percorso = testo[len(prefisso):].strip().strip('"').strip("'")
+        if not percorso:
+            return "Indichi il percorso completo dell'immagine da analizzare."
+        risultato = visione.analizza_immagine(percorso)
+        if risultato.get("ok"):
+            return "Analisi dell'immagine completata con " + risultato.get("motore", "modello locale") + ". " + risultato["risposta"]
+        return "Non sono riuscito ad analizzare l'immagine: " + str(risultato.get("errore", "errore sconosciuto"))
 
     def _esegui_controllo_telefono_video(self, comando_originale):
         """Comandi telefonici singoli e orchestrazione multi-dispositivo esplicita."""
@@ -360,17 +383,6 @@ class GestoreComandi:
         cap = getattr(k, "capacita", None) if k else None
         d = self.dispositivi
         t = getattr(k, "trasferimento", None) if k else None
-        if c in ("stato visione", "stato camera", "stato della visione"):
-            return str(k.visione.stato()) if k and getattr(k, "visione", None) else "Visione non disponibile."
-        if c.startswith(("analizza immagine ", "descrivi immagine ", "cosa vedi nell'immagine ")):
-            if not k or not getattr(k, "visione", None):
-                return "Il modulo di visione non è disponibile."
-            prefisso = next((p for p in ("analizza immagine ", "descrivi immagine ", "cosa vedi nell'immagine ") if c.startswith(p)), "")
-            percorso = str(c[len(prefisso):]).strip().strip('"').strip("'")
-            risultato = k.visione.analizza_immagine(percorso)
-            if risultato.get("ok"):
-                return "Analisi dell'immagine completata con " + risultato.get("motore", "modello locale") + ". " + risultato["risposta"]
-            return "Non sono riuscito ad analizzare l'immagine: " + str(risultato.get("errore", "errore sconosciuto"))
         if c in ("ciao", "salve", "ehi jarvis", "hey jarvis", "buongiorno", "buon pomeriggio", "buonasera"):
             return self.personalita.saluto() if self.personalita else "Salve. Tutti i sistemi sono pronti. Come posso assisterla?"
         if any(x in c for x in ("come stai", "come va", "tutto bene")):
