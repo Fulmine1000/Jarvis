@@ -16,7 +16,10 @@ header strong{font-size:16px}
 #cameraPreview{position:absolute;z-index:2;right:16px;bottom:16px;width:180px;height:135px;object-fit:cover;transform:scaleX(-1);border:1px solid #1b8994;background:#02080e;opacity:.9}
 #debugState{color:#70aeb8;font-size:10px;max-width:330px;overflow-wrap:anywhere}
 #scene{width:100vw;height:100vh;display:block}
-.panel{position:absolute;z-index:2;left:18px;bottom:18px;max-width:360px;padding:12px 14px;border:1px solid #1b8994;background:#03121ddd;line-height:1.7}
+.panel{position:fixed!important;z-index:99999!important;left:12px!important;bottom:12px!important;width:min(440px,calc(100vw - 24px))!important;max-width:none!important;max-height:42vh;overflow:auto;padding:14px 16px!important;border:2px solid #48fff2!important;border-radius:8px;background:rgba(1,10,18,.97)!important;box-shadow:0 0 18px #087e8b;line-height:1.7;color:#eaffff!important;display:block!important;visibility:visible!important;opacity:1!important}
+.panel small{display:block;color:#b4dce1}
+#debugState{display:block!important;min-height:2.5em;margin-top:8px;padding:8px;border:1px solid #48fff2;background:#001820;color:#fff!important;font-size:12px!important;max-width:none!important;overflow-wrap:anywhere}
+#trackingError{display:none;max-width:none!important;color:#ffb08f;font-size:12px!important;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere}
 button{background:#05212a;border:1px solid var(--cyan);color:#d7ffff;padding:7px 10px;margin:3px;font:inherit;cursor:pointer}
 button:hover,button:focus{background:#0a3b43;outline:1px solid var(--green)}
 small{color:#70aeb8}
@@ -31,7 +34,8 @@ small{color:#70aeb8}
   <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
   <div id="trackingError" role="status" aria-live="polite"></div>
-  <div id="debugState">WEBCAM: in attesa dei fotogrammi…</div>
+  <div id="debugState">DIAGNOSTICA: pagina caricata · in attesa della webcam…</div>
+  <div id="diagnosticHint" style="font-size:11px;color:#b4dce1;margin-top:5px">Se questo riquadro non appare, Chrome sta mostrando una vecchia pagina o un altro visualizzatore.</div>
 </div>
 <video id="handCamera" playsinline muted autoplay></video>
 <script>
@@ -133,6 +137,23 @@ small{color:#70aeb8}
   let handsTracker = null, cameraStream = null, cpuHandDetector = null;
   let cpuFallbackStarting = false;
   const debugState = document.getElementById("debugState");
+  const diagnosticHint = document.getElementById("diagnosticHint");
+  let diagnosticBeat = 0;
+  setInterval(() => {
+    diagnosticBeat++;
+    if (processedFrames === 0 && !cpuHandDetector) {
+      debugState.textContent = "DIAGNOSTICA ATTIVA · attesa fotogrammi webcam · " + diagnosticBeat + "s";
+    }
+  }, 1000);
+  window.addEventListener("error", event => {
+    debugState.textContent = "ERRORE JAVASCRIPT: " + String(event.message || "errore sconosciuto").slice(0,240);
+    setCameraStatus("ERRORE JAVASCRIPT", "#ff9b73", String(event.message || event.filename || "errore sconosciuto").slice(0,500));
+  });
+  window.addEventListener("unhandledrejection", event => {
+    const reason = event.reason && (event.reason.stack || event.reason.message) || event.reason || "errore sconosciuto";
+    debugState.textContent = "ERRORE ASINCRONO: " + String(reason).slice(0,240);
+    setCameraStatus("ERRORE ASINCRONO", "#ff9b73", String(reason).slice(0,500));
+  });
   const preview = document.getElementById("cameraPreview");
   let processedFrames = 0;
   let lastDetectedHands = 0;
