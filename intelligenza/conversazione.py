@@ -98,7 +98,7 @@ class ConversationEngine:
         """Restituisce l'ora locale del computer."""
         now = datetime.now()
         periodo = self._periodo_giornata(now.hour)
-        return f"Sono le {now.hour:02d}:{now.minute:02d}, Sir. È {periodo}."
+        return f"Sono le {now.hour} e {now.minute:02d}, Sir. È {periodo}."
 
     def _get_date_response(self) -> str:
         """Restituisce la data locale in italiano."""
