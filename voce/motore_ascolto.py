@@ -32,7 +32,7 @@ class MotoreAscolto:
                 if not parole:
                     parola = voce.get("wake_word", "jarvis")
                     parole = [parola]
-                timeout = voce.get("wake_timeout", 5)
+                timeout = voce.get("wake_timeout", 15)
                 return WakeWordJarvis(parole=parole, timeout=timeout)
             except Exception:
                 pass
