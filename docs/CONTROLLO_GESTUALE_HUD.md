@@ -18,16 +18,16 @@ reale dell'HUD e sui gesti del video di riferimento.
 
 ## Attivazione
 
-La camera viene aperta solo se richiesta esplicitamente:
+Per il modello 3D, la webcam viene aperta quando si apre il visualizzatore, così non resta attiva durante il normale uso di Jarvis. Installa prima le dipendenze opzionali:
 
 ```bash
 cd ~/Desktop/Jarvis
 source venv/bin/activate
-JARVIS_GESTI=1 python jarvis.py
+python -m pip install -r requirements-gesti.txt
+python jarvis.py
 ```
 
-Senza la variabile `JARVIS_GESTI=1`, Jarvis si avvia come prima e non apre la camera.
-macOS può chiedere il permesso fotocamera per Terminale o per l'app che avvia Python.
+Poi apri **APRI MODELLO 3D** nell'HUD. Su macOS, se richiesto, autorizza Terminale/Python in Privacy e Sicurezza > Fotocamera. Per avere il rilevamento gestuale attivo anche sull'HUD già all'avvio, puoi continuare a usare `JARVIS_GESTI=1`.
 
 ## Installazione e compatibilità
 
