@@ -96,7 +96,8 @@ def _handler_factory():
                 return
             if path == "/state":
                 with _LOCK:
-                    payload = json.dumps({"events": list(_EVENTS), **_stato_camera()}, ensure_ascii=False).encode("utf-8")
+                    events = list(_EVENTS)
+                payload = json.dumps({"events": events, **_stato_camera()}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:8766")
                 self._headers("application/json; charset=utf-8")
