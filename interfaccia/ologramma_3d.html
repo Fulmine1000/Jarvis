@@ -200,8 +200,13 @@ small{color:#70aeb8}
     }
     try {
       setCameraStatus("CAMERA: RICHIESTA PERMESSO...", "#48fff2");
+      // Evita il pacchetto SIMD: su alcune versioni di Chrome/macOS il suo
+      // percorso WebGL fallisce con GLctx.createTexture undefined.
       handsTracker = new window.Hands({
-        locateFile: file => "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/" + file
+        locateFile: file => {
+          const base = "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/";
+          return base + file.replace(/hands_solution_simd_wasm_bin/g, "hands_solution_wasm_bin");
+        }
       });
       handsTracker.setOptions({
         maxNumHands: 2,
