@@ -66,23 +66,20 @@ Le richieste meteo, notizie e velocità richiedono Internet e possono fallire se
 
 ## 3. Ologramma 3D e gesti
 
-Il nucleo centrale dell'HUD passa all'accento arancione mentre Jarvis ascolta o parla e torna al ciano in standby. Il pulsante **APRI MODELLO 3D** dell'HUD apre il visualizzatore locale `interfaccia/ologramma_3d.html`. Mostra un modello wireframe procedurale, senza scaricare modelli esterni o librerie JavaScript.
+Il nucleo centrale dell'HUD passa all'accento arancione mentre Jarvis ascolta o parla e torna al ciano in standby. Il pulsante **APRI MODELLO 3D** dell'HUD apre il visualizzatore locale `interfaccia/ologramma_3d.html`. Mostra una macchina wireframe procedurale. Il riconoscimento gestuale gira in Chrome tramite MediaPipe JavaScript caricato da CDN; serve una connessione Internet al primo caricamento.
 
 - Trascinamento mouse o dito: rotazione.
 - Rotella: zoom.
 - Pulsante nel viewer: vista esplosa/ricomposta dei componenti.
 - Se il controllo gestuale opzionale è attivo, scorrimento ruota il modello, due mani regolano lo zoom e il pizzico commuta la vista esplosa.
 
-Per abilitare il controllo gestuale del visualizzatore, installa le dipendenze opzionali:
-
-PowerShell o Git Bash:
+Per il controllo gestuale della macchina 3D non serve installare pacchetti Python:
 
 ```bash
-python -m pip install -r requirements-gesti.txt
 python jarvis.py
 ```
 
-La webcam parte quando apri il visualizzatore 3D, non durante il normale avvio di Jarvis. I fotogrammi vengono elaborati localmente e non vengono salvati. Su macOS, autorizza Terminale/Python in Privacy e Sicurezza > Fotocamera se il sistema lo richiede. MediaPipe/OpenCV potrebbero non essere compatibili con ogni sistema o versione di Python; se l'installazione fallisce, il viewer resta utilizzabile con mouse/touch ma non rileverà i gesti.
+Apri **APRI MODELLO 3D**: Chrome richiede il permesso per la fotocamera e avvia il tracciamento delle mani direttamente nel browser. I fotogrammi vengono elaborati localmente e non vengono salvati. Se il permesso viene negato, consenti la fotocamera per `127.0.0.1` nelle impostazioni di Chrome e ricarica la pagina. La pagina deve poter caricare MediaPipe dalla CDN, quindi è necessaria Internet.
 
 Il viewer è una dimostrazione 3D wireframe procedurale: non è una scansione reale di un oggetto e non genera automaticamente modelli 3D da file. Il server di collegamento ascolta soltanto su `127.0.0.1` e serve la pagina e una coda limitata di eventi gestuali.
 
