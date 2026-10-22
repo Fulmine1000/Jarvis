@@ -237,10 +237,33 @@ small{color:#70aeb8}
       if (!window.tf || !window.handPoseDetection) throw new Error("Librerie CPU non caricate: verifica la connessione Internet e ricarica la pagina.");
       await window.tf.setBackend("cpu");
       await window.tf.ready();
-      debugState.textContent = "DOWNLOAD MODELLO CPU · detector e landmark da TensorFlow Hub…";
+      // TF Hub deve ricevere ?tfjs-format=file sia per model.json sia per gli shard .bin.
+      // Senza il parametro può restituire una pagina HTML invece del modello TensorFlow.js.
+      if (!window.__jarvisTfHubFetchPatched) {
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          const originalUrl = typeof input === "string" || input instanceof URL
+            ? String(input) : (input && input.url ? input.url : "");
+          if (originalUrl.startsWith("https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/") &&
+              !/[?&]tfjs-format=file(?:&|$)/.test(originalUrl)) {
+            const fixedUrl = originalUrl + (originalUrl.includes("?") ? "&" : "?") + "tfjs-format=file";
+            if (typeof Request !== "undefined" && input instanceof Request) {
+              return nativeFetch(new Request(fixedUrl, input), init);
+            }
+            return nativeFetch(fixedUrl, init);
+          }
+          return nativeFetch(input, init);
+        };
+        window.__jarvisTfHubFetchPatched = true;
+      }
+      debugState.textContent = "DOWNLOAD MODELLO CPU · modello TFJS diretto…";
       cpuHandDetector = await window.handPoseDetection.createDetector(
         window.handPoseDetection.SupportedModels.MediaPipeHands,
-        {runtime:"tfjs", modelType:"lite", maxHands:1}
+        {
+          runtime:"tfjs", modelType:"lite", maxHands:1,
+          detectorModelUrl:"https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/detector/lite/1/model.json?tfjs-format=file",
+          landmarkModelUrl:"https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/landmark/lite/1/model.json?tfjs-format=file"
+        }
       );
       setCameraStatus("CAMERA: MOTORE CPU ATTIVO", "#48fff2",
         "Riconoscimento alternativo avviato. Tieni la mano aperta, intera e ben illuminata.");
