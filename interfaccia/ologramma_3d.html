@@ -30,7 +30,7 @@ small{color:#70aeb8}
 <canvas id="scene" aria-label="Modello tridimensionale wireframe di un'automobile"></canvas>
 <div class="panel">
   <div>MODEL X-01 // WIREFRAME</div>
-  <div><button id="explode">ESPLODI COMPONENTI</button><button id="reset">RESET VISTA</button></div>
+  <div><button id="explode">ESPLODI COMPONENTI</button><button id="reset">RESET VISTA</button><button id="forceCpu">AVVIA RILEVAMENTO CPU</button></div>
   <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
   <div id="trackingError" role="status" aria-live="polite"></div>
@@ -308,12 +308,18 @@ small{color:#70aeb8}
                 "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
                 "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
               const normalized = predictions.map(hand => {
-                const byName = Object.fromEntries((hand.keypoints || []).map(p => [p.name, p]));
-                return order.map(name => {
-                  const p = byName[name] || {x:0,y:0};
-                  return {x:p.x / video.videoWidth, y:p.y / video.videoHeight};
+                const points = hand.keypoints || [];
+                const byName = Object.fromEntries(points.filter(p => p.name).map(p => [p.name, p]));
+                return order.map((name, index) => {
+                  // Alcune build del modello omettono i nomi: in quel caso usa l'ordine canonico dei 21 punti.
+                  const p = byName[name] || points[index];
+                  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return {x:0,y:0};
+                  return {x: Math.max(0, Math.min(1, p.x / video.videoWidth)),
+                          y: Math.max(0, Math.min(1, p.y / video.videoHeight))};
                 });
               });
+              debugState.textContent = "MOTORE CPU · previsioni: " + predictions.length +
+                " · punti mano: " + (predictions[0] && predictions[0].keypoints ? predictions[0].keypoints.length : 0);
               handleHandResults({multiHandLandmarks: normalized});
               return;
             }
@@ -351,6 +357,10 @@ small{color:#70aeb8}
     } catch (_) {}
     try { if (preview.srcObject) preview.srcObject = null; } catch (_) {}
     try { if (handsTracker && handsTracker.close) handsTracker.close(); } catch (_) {}
+  });
+  document.getElementById("forceCpu").addEventListener("click", () => {
+    cpuFallbackRequested = true;
+    void startCpuFallback("Avvio manuale richiesto dal pannello.");
   });
   startHandCamera();
   window.addEventListener("resize",resize);resize();draw();
