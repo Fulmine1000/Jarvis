@@ -12,6 +12,8 @@ header{position:absolute;z-index:2;left:18px;top:14px;right:18px;display:flex;ju
 header strong{font-size:16px}
 #cameraState{color:var(--green);font-size:11px;text-align:right}
 #trackingError{display:none;max-width:340px;overflow-wrap:anywhere;color:#ffb08f;font-size:11px;margin-top:6px;white-space:normal}
+#cameraPreview{position:absolute;z-index:2;right:16px;bottom:16px;width:180px;height:135px;object-fit:cover;transform:scaleX(-1);border:1px solid #1b8994;background:#02080e;opacity:.9}
+#debugState{color:#70aeb8;font-size:10px;max-width:330px;overflow-wrap:anywhere}
 #scene{width:100vw;height:100vh;display:block}
 .panel{position:absolute;z-index:2;left:18px;bottom:18px;max-width:360px;padding:12px 14px;border:1px solid #1b8994;background:#03121ddd;line-height:1.7}
 button{background:#05212a;border:1px solid var(--cyan);color:#d7ffff;padding:7px 10px;margin:3px;font:inherit;cursor:pointer}
@@ -28,8 +30,13 @@ small{color:#70aeb8}
   <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
   <div id="trackingError" role="status" aria-live="polite"></div>
+  <div id="debugState">WEBCAM: in attesa dei fotogrammi…</div>
 </div>
-<video id="handCamera" playsinline muted style="display:none"></video>
+<video id="handCamera" playsinline muted autoplay></video>
+<script>
+  // La mini-anteprima rende verificabile che il video arrivi davvero al riconoscitore.
+</script>
+<video id="cameraPreview" playsinline muted autoplay></video>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
@@ -124,6 +131,10 @@ small{color:#70aeb8}
   const video = document.getElementById("handCamera");
   let handsTracker = null, cameraStream = null, cpuHandDetector = null;
   let cpuFallbackStarting = false;
+  const debugState = document.getElementById("debugState");
+  const preview = document.getElementById("cameraPreview");
+  let processedFrames = 0;
+  let lastDetectedHands = 0;
   let previousWristX = null, previousTwoHands = null, movementAccum = 0;
   let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
 
@@ -139,6 +150,8 @@ small{color:#70aeb8}
   }
   function handleHandResults(results) {
     const found = results.multiHandLandmarks || [];
+    lastDetectedHands = found.length;
+    debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames;
     const now = performance.now();
     if (!found.length) {
       previousWristX = null;
@@ -226,6 +239,10 @@ small{color:#70aeb8}
           if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
               !video.videoWidth || !video.videoHeight || !handsTracker) return;
           try {
+            processedFrames++;
+            debugState.textContent = "VIDEO " + video.videoWidth + "×" + video.videoHeight +
+              " · frame " + processedFrames + " · motore " + (cpuHandDetector ? "CPU" : "MediaPipe");
+            if (preview.srcObject !== video.srcObject && video.srcObject) preview.srcObject = video.srcObject;
             if (cpuHandDetector) {
               const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
               const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
@@ -275,6 +292,10 @@ small{color:#70aeb8}
         height: 480
       });
       await cameraStream.start();
+      if (video.srcObject) preview.srcObject = video.srcObject;
+      video.addEventListener("loadeddata", () => {
+        if (video.srcObject) preview.srcObject = video.srcObject;
+      }, {once:true});
       setCameraStatus("CAMERA: ATTIVA • CERCO LA MANO", "#48fff2",
         "Consenti la webcam e tieni una mano aperta davanti alla fotocamera. Elaborazione locale, senza registrazione.");
     } catch (error) {
@@ -288,6 +309,7 @@ small{color:#70aeb8}
       const stream = video.srcObject;
       if (stream && stream.getTracks) stream.getTracks().forEach(track => track.stop());
     } catch (_) {}
+    try { if (preview.srcObject) preview.srcObject = null; } catch (_) {}
     try { if (handsTracker && handsTracker.close) handsTracker.close(); } catch (_) {}
   });
   startHandCamera();
