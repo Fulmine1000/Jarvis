@@ -42,8 +42,6 @@ small{color:#70aeb8}
   // La mini-anteprima rende verificabile che il video arrivi davvero al riconoscitore.
 </script>
 <video id="cameraPreview" playsinline muted autoplay></video>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.17.0/dist/tf-converter.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.17.0/dist/tf-backend-cpu.min.js"></script>
@@ -134,7 +132,7 @@ small{color:#70aeb8}
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
   const cameraState = document.getElementById("cameraState");
   const video = document.getElementById("handCamera");
-  let handsTracker = null, cameraStream = null, cpuHandDetector = null;
+  let cameraStream = null, cpuHandDetector = null;
   let cpuFallbackStarting = false;
   const debugState = document.getElementById("debugState");
   const diagnosticHint = document.getElementById("diagnosticHint");
@@ -336,13 +334,12 @@ small{color:#70aeb8}
   }
 
   window.addEventListener("beforeunload", () => {
-    try { if (cameraStream && cameraStream.stop) cameraStream.stop(); } catch (_) {}
+    try { if (cameraStream && cameraStream.getTracks) cameraStream.getTracks().forEach(track => track.stop()); } catch (_) {}
     try {
       const stream = video.srcObject;
       if (stream && stream.getTracks) stream.getTracks().forEach(track => track.stop());
     } catch (_) {}
     try { if (preview.srcObject) preview.srcObject = null; } catch (_) {}
-    try { if (handsTracker && handsTracker.close) handsTracker.close(); } catch (_) {}
   });
   document.getElementById("forceCpu").addEventListener("click", async () => {
     if (!cameraStream) {
