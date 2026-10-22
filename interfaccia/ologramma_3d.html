@@ -11,6 +11,7 @@ body{margin:0;background:#02080e;color:#d7ffff;font:13px Consolas,Monaco,monospa
 header{position:absolute;z-index:2;left:18px;top:14px;right:18px;display:flex;justify-content:space-between;gap:16px;align-items:center;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan)}
 header strong{font-size:16px}
 #cameraState{color:var(--green);font-size:11px;text-align:right}
+#trackingError{display:none;max-width:340px;overflow-wrap:anywhere;color:#ffb08f;font-size:11px;margin-top:6px;white-space:normal}
 #scene{width:100vw;height:100vh;display:block}
 .panel{position:absolute;z-index:2;left:18px;bottom:18px;max-width:360px;padding:12px 14px;border:1px solid #1b8994;background:#03121ddd;line-height:1.7}
 button{background:#05212a;border:1px solid var(--cyan);color:#d7ffff;padding:7px 10px;margin:3px;font:inherit;cursor:pointer}
@@ -26,6 +27,7 @@ small{color:#70aeb8}
   <div><button id="explode">ESPLODI COMPONENTI</button><button id="reset">RESET VISTA</button></div>
   <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
+  <div id="trackingError" role="status" aria-live="polite"></div>
 </div>
 <video id="handCamera" playsinline muted style="display:none"></video>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
@@ -125,6 +127,10 @@ small{color:#70aeb8}
     cameraState.textContent = message;
     cameraState.style.color = color;
     cameraState.title = details;
+    const errorBox = document.getElementById("trackingError");
+    const hasError = /ERRORE|NEGATO|NON SUPPORTATA|LIBRERIE/i.test(message);
+    errorBox.style.display = hasError && details ? "block" : "none";
+    errorBox.textContent = hasError && details ? "Dettaglio: " + details : "";
   }
   function handleHandResults(results) {
     const found = results.multiHandLandmarks || [];
