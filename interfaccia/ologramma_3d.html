@@ -159,6 +159,7 @@ small{color:#70aeb8}
   let cpuFallbackRequested = false;
   let previousWristX = null, previousTwoHands = null, movementAccum = 0;
   let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false, pinchFrames = 0;
+  let previousHandX = null;
 
   function distance2D(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
   function setCameraStatus(message, color, details="") {
@@ -177,6 +178,7 @@ small{color:#70aeb8}
     const now = performance.now();
     if (!found.length) {
       previousWristX = null;
+      previousHandX = null;
       previousTwoHands = null;
       movementAccum = 0;
       pinchHeld = false;
@@ -193,15 +195,15 @@ small{color:#70aeb8}
     const pinchDistance = distance2D(first[4], first[8]);
     const palmScale = Math.max(distance2D(first[0], first[9]), 0.001);
     const pinchRatio = pinchDistance / palmScale;
-    if (pinchRatio < 0.28) {
+    if (pinchRatio < 0.32) {
       pinchFrames++;
-      if (pinchFrames >= 3 && !pinchHeld && now-lastPinch > 900) {
+      if (pinchFrames >= 2 && !pinchHeld && now-lastPinch > 650) {
         exploded = !exploded;
         lastPinch = now;
         pinchHeld = true;
         document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
       }
-    } else if (pinchRatio > 0.43) {
+    } else if (pinchRatio > 0.48) {
       pinchFrames = 0;
       pinchHeld = false;
     }
@@ -210,31 +212,26 @@ small{color:#70aeb8}
       const separation = distance2D(found[0][0], found[1][0]);
       if (previousTwoHands === null) previousTwoHands = separation;
       const delta = separation - previousTwoHands;
-      if (now-lastZoom > 250 && delta > 0.025) {
-        zoom = Math.min(1.8, zoom*1.07);
+      if (Math.abs(delta) > 0.008 && now-lastZoom > 70) {
+        zoom = Math.max(0.55, Math.min(1.8, zoom * (1 + delta * 1.8)));
         lastZoom = now;
-        previousTwoHands = separation;
-      } else if (now-lastZoom > 250 && delta < -0.025) {
-        zoom = Math.max(0.55, zoom*0.93);
-        lastZoom = now;
-        previousTwoHands = separation;
       }
+      previousTwoHands = separation;
       previousWristX = null;
+      previousHandX = null;
       movementAccum = 0;
     } else {
       previousTwoHands = null;
-      const wristX = first[0].x;
-      if (previousWristX !== null) movementAccum += wristX - previousWristX;
-      previousWristX = wristX;
-      if (now-lastRotate > 180 && movementAccum > 0.035) {
-        yaw += 0.28;
-        lastRotate = now;
-        movementAccum = 0;
-      } else if (now-lastRotate > 180 && movementAccum < -0.035) {
-        yaw -= 0.28;
-        lastRotate = now;
-        movementAccum = 0;
+      const handX = first[0].x * 0.35 + first[9].x * 0.65;
+      if (previousHandX !== null) {
+        const deltaX = handX - previousHandX;
+        if (Math.abs(deltaX) > 0.002 && now-lastRotate > 20) {
+          yaw += deltaX * 3.8;
+          lastRotate = now;
+        }
       }
+      previousHandX = handX;
+      previousWristX = first[0].x;
     }
   }
 
@@ -318,7 +315,7 @@ small{color:#70aeb8}
         video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
         !video.videoWidth || !video.videoHeight || handWorkerBusy) return;
     const now = performance.now();
-    if (now - lastCpuFrameAt < 250) return;
+    if (now - lastCpuFrameAt < 100) return;
     lastCpuFrameAt = now;
     handWorkerBusy = true;
     try {
@@ -351,7 +348,7 @@ small{color:#70aeb8}
           facingMode: "user",
           width: {ideal: 256},
           height: {ideal: 192},
-          frameRate: {ideal: 15, max: 15}
+          frameRate: {ideal: 20, max: 20}
         }
       });
       video.srcObject = cameraStream;
