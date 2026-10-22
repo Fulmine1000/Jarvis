@@ -20,7 +20,7 @@ Assistente personale modulare in Python, progettato per avvicinarsi il più poss
 - Calcolatrice sicura, ora/data, diagnostica, CPU/RAM/disco, browser, app, cartelle, screenshot, volume e timer.
 - Ricerca web esplicita con risultati, brevi estratti e link alle fonti, senza dipendenze Python obbligatorie.
 - Automazioni e attività pianificate.
-- Modulo visione predisposto e controllo gestuale opzionale per HUD (mano aperta, pizzico, scorrimento e zoom a due mani; vedi `docs/CONTROLLO_GESTUALE_HUD.md`).
+- Analisi facoltativa di immagini locali tramite modello visivo Ollama (solo endpoint localhost, nessun upload remoto; vedi `docs/VISIONE_ARTIFICIALE.md`) e controllo gestuale opzionale per HUD (mano aperta, pizzico, scorrimento e zoom a due mani; vedi `docs/CONTROLLO_GESTUALE_HUD.md`).
 - Integrazioni per computer, telefono Android, rete, Bluetooth, smart home e TV LG webOS.
 - Plugin caricabili.
 - Sicurezza con conferma per operazioni protette.
