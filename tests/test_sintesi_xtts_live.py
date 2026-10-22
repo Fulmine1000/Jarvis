@@ -17,9 +17,18 @@ class TestSintesiXTTSLive(unittest.TestCase):
         self.assertTrue(sintesi.xtts_live)
 
     @patch("voce.sintesi.platform.system", return_value="Darwin")
-    def test_xtts_live_attivo_per_default_su_macos(self, _platform):
+    def test_xtts_live_disattivato_per_default_su_macos(self, _platform):
         with patch.dict(os.environ, {"JARVIS_ENABLE_XTTS": "1"}, clear=False):
             os.environ.pop("JARVIS_XTTS_LIVE", None)
+            with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None):
+                with patch.object(SintesiVocale, "_trova_voce_italiana", return_value=None):
+                    with patch("voce.sintesi.ElevenLabsVoce"):
+                        sintesi = SintesiVocale()
+        self.assertFalse(sintesi.xtts_live)
+
+    @patch("voce.sintesi.platform.system", return_value="Darwin")
+    def test_xtts_live_attivabile_esplicitamente_su_macos(self, _platform):
+        with patch.dict(os.environ, {"JARVIS_ENABLE_XTTS": "1", "JARVIS_XTTS_LIVE": "1"}, clear=False):
             with patch.object(SintesiVocale, "_trova_campione_locale", return_value=None):
                 with patch.object(SintesiVocale, "_trova_voce_italiana", return_value=None):
                     with patch("voce.sintesi.ElevenLabsVoce"):
