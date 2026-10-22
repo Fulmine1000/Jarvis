@@ -117,7 +117,7 @@ small{color:#70aeb8}
   const cameraState = document.getElementById("cameraState");
   const video = document.getElementById("handCamera");
   let handsTracker = null, cameraStream = null;
-  let previousWristX = null, previousTwoHands = null;
+  let previousWristX = null, previousTwoHands = null, movementAccum = 0;
   let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
 
   function distance2D(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -132,6 +132,7 @@ small{color:#70aeb8}
     if (!found.length) {
       previousWristX = null;
       previousTwoHands = null;
+      movementAccum = 0;
       pinchHeld = false;
       return;
     }
@@ -148,22 +149,33 @@ small{color:#70aeb8}
 
     if (found.length >= 2) {
       const separation = distance2D(found[0][0], found[1][0]);
-      if (previousTwoHands !== null && now-lastZoom > 450) {
-        const delta = separation - previousTwoHands;
-        if (delta > 0.075) { zoom = Math.min(1.8, zoom*1.07); lastZoom = now; }
-        else if (delta < -0.075) { zoom = Math.max(0.55, zoom*0.93); lastZoom = now; }
+      if (previousTwoHands === null) previousTwoHands = separation;
+      const delta = separation - previousTwoHands;
+      if (now-lastZoom > 350 && delta > 0.075) {
+        zoom = Math.min(1.8, zoom*1.07);
+        lastZoom = now;
+        previousTwoHands = separation;
+      } else if (now-lastZoom > 350 && delta < -0.075) {
+        zoom = Math.max(0.55, zoom*0.93);
+        lastZoom = now;
+        previousTwoHands = separation;
       }
-      previousTwoHands = separation;
       previousWristX = null;
+      movementAccum = 0;
     } else {
       previousTwoHands = null;
       const wristX = first[0].x;
-      if (previousWristX !== null && now-lastRotate > 500) {
-        const delta = wristX - previousWristX;
-        if (delta > 0.14) { yaw += 0.28; lastRotate = now; }
-        else if (delta < -0.14) { yaw -= 0.28; lastRotate = now; }
-      }
+      if (previousWristX !== null) movementAccum += wristX - previousWristX;
       previousWristX = wristX;
+      if (now-lastRotate > 350 && movementAccum > 0.10) {
+        yaw += 0.28;
+        lastRotate = now;
+        movementAccum = 0;
+      } else if (now-lastRotate > 350 && movementAccum < -0.10) {
+        yaw -= 0.28;
+        lastRotate = now;
+        movementAccum = 0;
+      }
     }
   }
 
