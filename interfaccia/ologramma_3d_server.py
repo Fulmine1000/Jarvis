@@ -6,7 +6,6 @@ di eventi gestuali; non offre endpoint per eseguire comandi o leggere file.
 from __future__ import annotations
 
 import json
-import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,8 +18,6 @@ _EVENTS = []
 _SEQUENCE = 0
 _SERVER = None
 _SERVER_THREAD = None
-_GESTURE_TRACKER = None
-_GESTURE_ERROR = ""
 _PORT = 8766
 
 
@@ -33,42 +30,6 @@ def aggiorna_gesto(gesto: str) -> None:
         _SEQUENCE += 1
         _EVENTS.append({"seq": _SEQUENCE, "gesture": gesto})
         del _EVENTS[:-40]
-
-
-def _avvia_tracciamento_pagina() -> None:
-    """Avvia la webcam quando il viewer viene aperto, non durante l'avvio di Jarvis."""
-    global _GESTURE_TRACKER, _GESTURE_ERROR
-    if os.environ.get("JARVIS_GESTI") == "1":
-        # In questa modalità il launcher gestisce già la webcam e inoltra gli eventi.
-        return
-    with _LOCK:
-        if _GESTURE_TRACKER is not None:
-            return
-        try:
-            from interfaccia.gesti import ControlloGesti
-            tracker = ControlloGesti(callback=aggiorna_gesto)
-            _GESTURE_TRACKER = tracker
-        except Exception as errore:
-            _GESTURE_ERROR = str(errore)
-            return
-    if not tracker.avvia():
-        with _LOCK:
-            _GESTURE_ERROR = "Dipendenze webcam mancanti o fotocamera non disponibile."
-            _GESTURE_TRACKER = None
-
-
-def _stato_camera() -> dict:
-    if os.environ.get("JARVIS_GESTI") == "1":
-        return {"camera": "gestita-da-jarvis", "errore": ""}
-    with _LOCK:
-        tracker = _GESTURE_TRACKER
-        errore = _GESTURE_ERROR
-    if tracker is None:
-        return {"camera": "non-attiva", "errore": errore}
-    return {
-        "camera": "attiva" if tracker.disponibile else "avvio",
-        "errore": errore,
-    }
 
 
 def _handler_factory():
@@ -84,7 +45,6 @@ def _handler_factory():
         def do_GET(self):
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
-                _avvia_tracciamento_pagina()
                 try:
                     payload = _PAGE.read_bytes()
                 except OSError:
@@ -97,7 +57,7 @@ def _handler_factory():
             if path == "/state":
                 with _LOCK:
                     events = list(_EVENTS)
-                payload = json.dumps({"events": events, **_stato_camera()}, ensure_ascii=False).encode("utf-8")
+                payload = json.dumps({"events": events}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:8766")
                 self._headers("application/json; charset=utf-8")
@@ -130,7 +90,7 @@ def avvia_server(port: int = _PORT) -> str:
 
 
 def ferma_server() -> None:
-    global _SERVER, _SERVER_THREAD, _GESTURE_TRACKER
+    global _SERVER, _SERVER_THREAD
     with _LOCK:
         server = _SERVER
         _SERVER = None
@@ -138,14 +98,6 @@ def ferma_server() -> None:
     if server is not None:
         server.shutdown()
         server.server_close()
-    with _LOCK:
-        tracker = _GESTURE_TRACKER
-        _GESTURE_TRACKER = None
-    if tracker is not None:
-        try:
-            tracker.ferma()
-        except Exception:
-            pass
 
 
 __all__ = ["aggiorna_gesto", "avvia_server", "ferma_server"]
