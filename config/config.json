@@ -31,11 +31,11 @@
         "soglia_rms_whisper": 100,
         "motore": "voicepack",
         "modello": "voce/modelli/it_IT-riccardo-x_low.onnx",
-        "velocita": 0.82,
+        "velocita": 0.92,
         "volume": 100,
         "stile": "Jarvis Cinematico PS3",
         "pausa_cinematica": true,
-        "rate_cinematico": 125
+        "rate_cinematico": 175
     },
     "memoria": {
         "attiva": true,
