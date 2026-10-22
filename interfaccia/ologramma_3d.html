@@ -27,6 +27,9 @@ small{color:#70aeb8}
   <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
 </div>
+<video id="handCamera" playsinline muted style="display:none"></video>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 <script>
 (() => {
   "use strict";
@@ -111,46 +114,102 @@ small{color:#70aeb8}
   canvas.addEventListener("wheel",e=>{e.preventDefault();zoom=Math.max(.55,Math.min(1.8,zoom*(e.deltaY<0?1.06:.94)))},{passive:false});
   document.getElementById("explode").addEventListener("click",()=>{exploded=!exploded;document.getElementById("state").textContent=exploded?"MODEL: X-01 • EXPLODED VIEW":"MODEL: X-01 • INTERACTIVE"});
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
-  let lastGestureSequence = 0;
-  let gestureStreamInitialized = false;
-  async function pollGestures() {
-    try {
-      const response = await fetch("/state", {cache:"no-store"});
-      if (response.ok) {
-        const data = await response.json();
-        const cameraState = document.getElementById("cameraState");
-        if (data.camera === "attiva" || data.camera === "gestita-da-jarvis") {
-          cameraState.textContent = "CAMERA: ATTIVA";
-          cameraState.style.color = "#7dff9d";
-        } else if (data.camera === "avvio") {
-          cameraState.textContent = "CAMERA: AVVIO...";
-          cameraState.style.color = "#48fff2";
-        } else {
-          cameraState.textContent = "CAMERA: NON DISPONIBILE";
-          cameraState.style.color = "#ff9b73";
-          if (data.errore) cameraState.title = data.errore;
-        }
-        const events = data.events || [];
-        if (!gestureStreamInitialized) {
-          lastGestureSequence = events.reduce((highest, event) => Math.max(highest, event.seq || 0), 0);
-          gestureStreamInitialized = true;
-        } else {
-          for (const event of events) {
-            if (event.seq <= lastGestureSequence) continue;
-            lastGestureSequence = event.seq;
-            if (event.gesture === "scorri_destra") yaw += .28;
-            else if (event.gesture === "scorri_sinistra") yaw -= .28;
-            else if (event.gesture === "zoom_avanti") zoom = Math.min(1.8, zoom * 1.08);
-            else if (event.gesture === "zoom_indietro") zoom = Math.max(.55, zoom * .92);
-            else if (event.gesture === "pizzico") exploded = !exploded;
-            document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
-          }
-        }
-      }
-    } catch (_) { /* Il viewer resta utilizzabile con mouse/touch anche senza ponte gestuale. */ }
-    window.setTimeout(pollGestures, 160);
+  const cameraState = document.getElementById("cameraState");
+  const video = document.getElementById("handCamera");
+  let handsTracker = null, cameraStream = null;
+  let previousWristX = null, previousTwoHands = null;
+  let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
+
+  function distance2D(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+  function setCameraStatus(message, color, details="") {
+    cameraState.textContent = message;
+    cameraState.style.color = color;
+    cameraState.title = details;
   }
-  window.addEventListener("resize",resize);resize();draw();pollGestures();
+  function handleHandResults(results) {
+    const found = results.multiHandLandmarks || [];
+    const now = performance.now();
+    if (!found.length) {
+      previousWristX = null;
+      previousTwoHands = null;
+      pinchHeld = false;
+      return;
+    }
+    const first = found[0];
+    const pinchDistance = distance2D(first[4], first[8]);
+    if (pinchDistance < 0.045 && !pinchHeld && now-lastPinch > 800) {
+      exploded = !exploded;
+      lastPinch = now;
+      pinchHeld = true;
+      document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
+    } else if (pinchDistance > 0.075) {
+      pinchHeld = false;
+    }
+
+    if (found.length >= 2) {
+      const separation = distance2D(found[0][0], found[1][0]);
+      if (previousTwoHands !== null && now-lastZoom > 450) {
+        const delta = separation - previousTwoHands;
+        if (delta > 0.075) { zoom = Math.min(1.8, zoom*1.07); lastZoom = now; }
+        else if (delta < -0.075) { zoom = Math.max(0.55, zoom*0.93); lastZoom = now; }
+      }
+      previousTwoHands = separation;
+      previousWristX = null;
+    } else {
+      previousTwoHands = null;
+      const wristX = first[0].x;
+      if (previousWristX !== null && now-lastRotate > 500) {
+        const delta = wristX - previousWristX;
+        if (delta > 0.14) { yaw += 0.28; lastRotate = now; }
+        else if (delta < -0.14) { yaw -= 0.28; lastRotate = now; }
+      }
+      previousWristX = wristX;
+    }
+  }
+
+  async function startHandCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraStatus("CAMERA: NON SUPPORTATA", "#ff9b73", "Apri il viewer da http://127.0.0.1 per usare la webcam.");
+      return;
+    }
+    if (typeof window.Hands !== "function" || typeof window.Camera !== "function") {
+      setCameraStatus("CAMERA: ERRORE LIBRERIE", "#ff9b73", "Serve una connessione Internet per caricare il tracciamento delle mani.");
+      return;
+    }
+    try {
+      setCameraStatus("CAMERA: RICHIESTA PERMESSO...", "#48fff2");
+      handsTracker = new window.Hands({
+        locateFile: file => "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/" + file
+      });
+      handsTracker.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.65,
+        minTrackingConfidence: 0.55
+      });
+      handsTracker.onResults(handleHandResults);
+      cameraStream = new window.Camera(video, {
+        onFrame: async () => { await handsTracker.send({image: video}); },
+        width: 640,
+        height: 480
+      });
+      await cameraStream.start();
+      setCameraStatus("CAMERA: ATTIVA", "#7dff9d", "La mano viene elaborata localmente; non vengono salvati video o immagini.");
+    } catch (error) {
+      setCameraStatus("CAMERA: ACCESSO NEGATO", "#ff9b73", String(error && error.message || error));
+    }
+  }
+
+  window.addEventListener("beforeunload", () => {
+    try { if (cameraStream && cameraStream.stop) cameraStream.stop(); } catch (_) {}
+    try {
+      const stream = video.srcObject;
+      if (stream && stream.getTracks) stream.getTracks().forEach(track => track.stop());
+    } catch (_) {}
+    try { if (handsTracker && handsTracker.close) handsTracker.close(); } catch (_) {}
+  });
+  startHandCamera();
+  window.addEventListener("resize",resize);resize();draw();
 })();
 </script>
 </body>
