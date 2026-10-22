@@ -58,7 +58,7 @@ class TestComandi(unittest.TestCase):
 
     def test_ora(self):
         risposta = self._cmd("che ore sono")
-        self.assertIn(":", risposta)
+        self.assertRegex(risposta, r"Sono le \d{1,2}(?::\d{2}| e \d{2})\.")
 
     def test_data(self):
         risposta = self._cmd("che giorno è")
