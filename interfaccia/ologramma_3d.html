@@ -158,7 +158,7 @@ small{color:#70aeb8}
   let firstFrameAt = 0;
   let cpuFallbackRequested = false;
   let previousWristX = null, previousTwoHands = null, movementAccum = 0;
-  let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
+  let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false, pinchFrames = 0;
 
   function distance2D(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
   function setCameraStatus(message, color, details="") {
@@ -180,6 +180,7 @@ small{color:#70aeb8}
       previousTwoHands = null;
       movementAccum = 0;
       pinchHeld = false;
+      pinchFrames = 0;
       setCameraStatus("CAMERA: ATTIVA • MANO NON RILEVATA", "#ffcf70",
         "Tieni la mano aperta davanti alla webcam, ben illuminata e interamente visibile.");
       return;
@@ -187,13 +188,21 @@ small{color:#70aeb8}
     setCameraStatus("TRACCIAMENTO: " + found.length + (found.length === 1 ? " MANO" : " MANI"),
       "#7dff9d", "Mani riconosciute: " + found.length + ". Muovi la mano lateralmente per ruotare.");
     const first = found[0];
+    // Il pizzico viene valutato rispetto alla dimensione del palmo: una mano
+    // semplicemente aperta non deve attivare accidentalmente l'esplosione.
     const pinchDistance = distance2D(first[4], first[8]);
-    if (pinchDistance < 0.045 && !pinchHeld && now-lastPinch > 800) {
-      exploded = !exploded;
-      lastPinch = now;
-      pinchHeld = true;
-      document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
-    } else if (pinchDistance > 0.075) {
+    const palmScale = Math.max(distance2D(first[0], first[9]), 0.001);
+    const pinchRatio = pinchDistance / palmScale;
+    if (pinchRatio < 0.28) {
+      pinchFrames++;
+      if (pinchFrames >= 3 && !pinchHeld && now-lastPinch > 900) {
+        exploded = !exploded;
+        lastPinch = now;
+        pinchHeld = true;
+        document.getElementById("state").textContent = exploded ? "MODEL: X-01 • EXPLODED VIEW" : "MODEL: X-01 • INTERACTIVE";
+      }
+    } else if (pinchRatio > 0.43) {
+      pinchFrames = 0;
       pinchHeld = false;
     }
 
@@ -242,7 +251,7 @@ small{color:#70aeb8}
       cpuHandDetector = await window.handPoseDetection.createDetector(
         window.handPoseDetection.SupportedModels.MediaPipeHands,
         {
-          runtime:"tfjs", modelType:"lite", maxHands:1,
+          runtime:"tfjs", modelType:"lite", maxHands:2,
           detectorModelUrl:"/models/detector/model.json",
           landmarkModelUrl:"/models/landmark/model.json"
         }
