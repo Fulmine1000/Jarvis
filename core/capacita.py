@@ -212,7 +212,8 @@ class CapacitaJarvis:
 
     def ora(self):
         """Restituisce l'ora in formato digitale, chiaro anche nei test e nel testo."""
-        return f"Sono le {dt.datetime.now().strftime('%H:%M')}."
+        now = dt.datetime.now()
+        return f"Sono le {now.hour} e {now.minute:02d}."
 
     def data(self):
         giorni = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
