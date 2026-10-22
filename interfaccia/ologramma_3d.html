@@ -96,13 +96,17 @@ small{color:#70aeb8}
     return [canvas.clientWidth/2+x*scale*7/depth,canvas.clientHeight*.53-y*scale*7/depth,depth];
   }
   function resize() {
-    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const dpr=1; // Evita il rendering Retina: dimezza larghezza/altezza e riduce i pixel a un quarto.
     canvas.width=Math.floor(innerWidth*dpr);
     canvas.height=Math.floor(innerHeight*dpr);
     canvas.style.width=innerWidth+"px";canvas.style.height=innerHeight+"px";
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-  function draw() {
+  let lastDrawAt = 0;
+  function draw(timestamp) {
+    requestAnimationFrame(draw);
+    if (timestamp - lastDrawAt < 33) return; // circa 30 FPS, più leggeri sui PC meno potenti
+    lastDrawAt = timestamp;
     const w=innerWidth,h=innerHeight;
     ctx.clearRect(0,0,w,h);
     ctx.strokeStyle="#09212d";ctx.lineWidth=1;
@@ -116,12 +120,11 @@ small{color:#70aeb8}
       const pts=part.vertices.map(v=>project([v[0]+offset[0],v[1]+offset[1],v[2]+offset[2]]));
       ctx.beginPath();
       for(const [a,b] of part.edges){ctx.moveTo(pts[a][0],pts[a][1]);ctx.lineTo(pts[b][0],pts[b][1])}
-      ctx.strokeStyle=part.color;ctx.lineWidth=1.35;ctx.shadowBlur=7;ctx.shadowColor=part.color;ctx.stroke();ctx.shadowBlur=0;
+      ctx.strokeStyle=part.color;ctx.lineWidth=1.15;ctx.stroke();
     }
     ctx.fillStyle="#48fff2";ctx.font="11px Consolas, monospace";
     ctx.fillText("OPTICAL TRACKING: READY",w-205,h-22);
     readout.textContent="ZOOM "+Math.round(zoom*100)+"% // "+(exploded?"COMPONENTI SEPARATI":"COMPONENTI UNITI");
-    requestAnimationFrame(draw);
   }
   canvas.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId)});
   canvas.addEventListener("pointermove",e=>{if(!dragging)return;yaw+=(e.clientX-lastX)*.009;pitch=Math.max(-1.05,Math.min(.7,pitch+(e.clientY-lastY)*.009));lastX=e.clientX;lastY=e.clientY});
@@ -287,7 +290,7 @@ small{color:#70aeb8}
     if (!cpuHandDetector || !video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
         !video.videoWidth || !video.videoHeight || cpuFrameBusy) return;
     const now = performance.now();
-    if (now - lastCpuFrameAt < 140) return;
+    if (now - lastCpuFrameAt < 260) return; // inferenza a circa 3-4 FPS: meno carico CPU
     lastCpuFrameAt = now;
     cpuFrameBusy = true;
     try {
@@ -334,9 +337,9 @@ small{color:#70aeb8}
         audio: false,
         video: {
           facingMode: "user",
-          width: {ideal: 320},
-          height: {ideal: 240},
-          frameRate: {ideal: 15, max: 20}
+          width: {ideal: 256},
+          height: {ideal: 192},
+          frameRate: {ideal: 10, max: 12}
         }
       });
       video.srcObject = cameraStream;
