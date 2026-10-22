@@ -10,6 +10,7 @@
 body{margin:0;background:#02080e;color:#d7ffff;font:13px Consolas,Monaco,monospace;overflow:hidden}
 header{position:absolute;z-index:2;left:18px;top:14px;right:18px;display:flex;justify-content:space-between;gap:16px;align-items:center;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan)}
 header strong{font-size:16px}
+#cameraState{color:var(--green);font-size:11px;text-align:right}
 #scene{width:100vw;height:100vh;display:block}
 .panel{position:absolute;z-index:2;left:18px;bottom:18px;max-width:360px;padding:12px 14px;border:1px solid #1b8994;background:#03121ddd;line-height:1.7}
 button{background:#05212a;border:1px solid var(--cyan);color:#d7ffff;padding:7px 10px;margin:3px;font:inherit;cursor:pointer}
@@ -18,12 +19,12 @@ small{color:#70aeb8}
 </style>
 </head>
 <body>
-<header><strong>J.A.R.V.I.S. // 3D HOLOGRAM</strong><span id="state">MODEL: X-01 • INTERACTIVE</span></header>
+<header><strong>J.A.R.V.I.S. // 3D HOLOGRAM</strong><span id="state">MODEL: X-01 • INTERACTIVE</span><span id="cameraState">CAMERA: IN ATTESA</span></header>
 <canvas id="scene" aria-label="Modello tridimensionale wireframe di un'automobile"></canvas>
 <div class="panel">
   <div>MODEL X-01 // WIREFRAME</div>
   <div><button id="explode">ESPLODI COMPONENTI</button><button id="reset">RESET VISTA</button></div>
-  <small>Trascina per ruotare · rotella per zoom · touch supportato</small>
+  <small>Webcam attivata all’apertura · mano aperta per rilevamento · scorri per ruotare · due mani per zoom · pizzico per separare i componenti</small>
   <div id="readout">ZOOM 100% // COMPONENTI UNITI</div>
 </div>
 <script>
@@ -117,6 +118,18 @@ small{color:#70aeb8}
       const response = await fetch("/state", {cache:"no-store"});
       if (response.ok) {
         const data = await response.json();
+        const cameraState = document.getElementById("cameraState");
+        if (data.camera === "attiva" || data.camera === "gestita-da-jarvis") {
+          cameraState.textContent = "CAMERA: ATTIVA";
+          cameraState.style.color = "#7dff9d";
+        } else if (data.camera === "avvio") {
+          cameraState.textContent = "CAMERA: AVVIO...";
+          cameraState.style.color = "#48fff2";
+        } else {
+          cameraState.textContent = "CAMERA: NON DISPONIBILE";
+          cameraState.style.color = "#ff9b73";
+          if (data.errore) cameraState.title = data.errore;
+        }
         const events = data.events || [];
         if (!gestureStreamInitialized) {
           lastGestureSequence = events.reduce((highest, event) => Math.max(highest, event.seq || 0), 0);
