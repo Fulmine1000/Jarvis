@@ -32,6 +32,10 @@ small{color:#70aeb8}
 <video id="handCamera" playsinline muted style="display:none"></video>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.17.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.17.0/dist/tf-backend-cpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
 <script>
 (() => {
   "use strict";
@@ -118,7 +122,8 @@ small{color:#70aeb8}
   document.getElementById("reset").addEventListener("click",()=>{yaw=-.55;pitch=-.18;zoom=1;exploded=false;document.getElementById("state").textContent="MODEL: X-01 • INTERACTIVE"});
   const cameraState = document.getElementById("cameraState");
   const video = document.getElementById("handCamera");
-  let handsTracker = null, cameraStream = null;
+  let handsTracker = null, cameraStream = null, cpuHandDetector = null;
+  let cpuFallbackStarting = false;
   let previousWristX = null, previousTwoHands = null, movementAccum = 0;
   let lastRotate = 0, lastZoom = 0, lastPinch = 0, pinchHeld = false;
 
@@ -221,10 +226,49 @@ small{color:#70aeb8}
           if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
               !video.videoWidth || !video.videoHeight || !handsTracker) return;
           try {
+            if (cpuHandDetector) {
+              const predictions = await cpuHandDetector.estimateHands(video, {flipHorizontal: false});
+              const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
+                "index_finger_mcp","index_finger_pip","index_finger_dip","index_finger_tip",
+                "middle_finger_mcp","middle_finger_pip","middle_finger_dip","middle_finger_tip",
+                "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
+                "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
+              const normalized = predictions.map(hand => {
+                const byName = Object.fromEntries((hand.keypoints || []).map(p => [p.name, p]));
+                return order.map(name => {
+                  const p = byName[name] || {x:0,y:0};
+                  return {x:p.x / video.videoWidth, y:p.y / video.videoHeight};
+                });
+              });
+              handleHandResults({multiHandLandmarks: normalized});
+              return;
+            }
             await handsTracker.send({image: video});
           } catch (error) {
             const detail = String(error && (error.stack || error.message) || error);
-            setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73", detail.slice(0, 700));
+            if (!cpuHandDetector && !cpuFallbackStarting) {
+              cpuFallbackStarting = true;
+              setCameraStatus("CAMERA: ATTIVO RICONOSCIMENTO CPU", "#48fff2",
+                "Il percorso grafico di MediaPipe non è disponibile. Avvio il riconoscimento alternativo via CPU…");
+              try {
+                if (!window.tf || !window.handPoseDetection) throw new Error("Librerie di riconoscimento CPU non caricate");
+                await window.tf.setBackend("cpu");
+                await window.tf.ready();
+                cpuHandDetector = await window.handPoseDetection.createDetector(
+                  window.handPoseDetection.SupportedModels.MediaPipeHands,
+                  {runtime:"tfjs", modelType:"lite", maxHands:2}
+                );
+                setCameraStatus("CAMERA: RICONOSCIMENTO CPU", "#48fff2",
+                  "Modalità compatibile attiva. Il riconoscimento può essere più lento.");
+              } catch (fallbackError) {
+                setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73",
+                  (detail + " | Fallback CPU: " + String(fallbackError && fallbackError.message || fallbackError)).slice(0,700));
+              } finally {
+                cpuFallbackStarting = false;
+              }
+            } else if (!cpuHandDetector) {
+              setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73", detail.slice(0,700));
+            }
           }
         },
         width: 640,
