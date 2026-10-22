@@ -46,7 +46,8 @@ class SintesiVocale:
         # Deve essere attiva anche su macOS, altrimenti la configurazione
         # voicepack ricade sempre su Piper/say e non usa la voce creata.
         # Per disabilitarla manualmente: JARVIS_XTTS_LIVE=0.
-        default_xtts_live = "1"
+        # Su Windows il worker XTTS puo lasciare la prima risposta bloccata; usa prima la sintesi di sistema, piu affidabile. XTTS resta attivabile con JARVIS_XTTS_LIVE=1.
+        default_xtts_live = "0" if platform.system() == "Windows" else "1"
         self.xtts_live = os.environ.get(
             "JARVIS_XTTS_LIVE", default_xtts_live
         ).strip().lower() in ("1", "true", "yes", "on")
