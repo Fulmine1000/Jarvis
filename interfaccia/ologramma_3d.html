@@ -134,8 +134,12 @@ small{color:#70aeb8}
       previousTwoHands = null;
       movementAccum = 0;
       pinchHeld = false;
+      setCameraStatus("CAMERA: ATTIVA • MANO NON RILEVATA", "#ffcf70",
+        "Tieni la mano aperta davanti alla webcam, ben illuminata e interamente visibile.");
       return;
     }
+    setCameraStatus("TRACCIAMENTO: " + found.length + (found.length === 1 ? " MANO" : " MANI"),
+      "#7dff9d", "Mani riconosciute: " + found.length + ". Muovi la mano lateralmente per ruotare.");
     const first = found[0];
     const pinchDistance = distance2D(first[4], first[8]);
     if (pinchDistance < 0.045 && !pinchHeld && now-lastPinch > 800) {
@@ -151,11 +155,11 @@ small{color:#70aeb8}
       const separation = distance2D(found[0][0], found[1][0]);
       if (previousTwoHands === null) previousTwoHands = separation;
       const delta = separation - previousTwoHands;
-      if (now-lastZoom > 350 && delta > 0.075) {
+      if (now-lastZoom > 250 && delta > 0.025) {
         zoom = Math.min(1.8, zoom*1.07);
         lastZoom = now;
         previousTwoHands = separation;
-      } else if (now-lastZoom > 350 && delta < -0.075) {
+      } else if (now-lastZoom > 250 && delta < -0.025) {
         zoom = Math.max(0.55, zoom*0.93);
         lastZoom = now;
         previousTwoHands = separation;
@@ -167,11 +171,11 @@ small{color:#70aeb8}
       const wristX = first[0].x;
       if (previousWristX !== null) movementAccum += wristX - previousWristX;
       previousWristX = wristX;
-      if (now-lastRotate > 350 && movementAccum > 0.10) {
+      if (now-lastRotate > 180 && movementAccum > 0.035) {
         yaw += 0.28;
         lastRotate = now;
         movementAccum = 0;
-      } else if (now-lastRotate > 350 && movementAccum < -0.10) {
+      } else if (now-lastRotate > 180 && movementAccum < -0.035) {
         yaw -= 0.28;
         lastRotate = now;
         movementAccum = 0;
@@ -201,12 +205,20 @@ small{color:#70aeb8}
       });
       handsTracker.onResults(handleHandResults);
       cameraStream = new window.Camera(video, {
-        onFrame: async () => { await handsTracker.send({image: video}); },
+        onFrame: async () => {
+          try {
+            await handsTracker.send({image: video});
+          } catch (error) {
+            setCameraStatus("ERRORE RICONOSCIMENTO", "#ff9b73",
+              String(error && error.message || error));
+          }
+        },
         width: 640,
         height: 480
       });
       await cameraStream.start();
-      setCameraStatus("CAMERA: ATTIVA", "#7dff9d", "La mano viene elaborata localmente; non vengono salvati video o immagini.");
+      setCameraStatus("CAMERA: ATTIVA • CERCO LA MANO", "#48fff2",
+        "Consenti la webcam e tieni una mano aperta davanti alla fotocamera. Elaborazione locale, senza registrazione.");
     } catch (error) {
       setCameraStatus("CAMERA: ACCESSO NEGATO", "#ff9b73", String(error && error.message || error));
     }
