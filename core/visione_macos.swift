@@ -27,15 +27,38 @@ let barcodeRequest = VNDetectBarcodesRequest()
 do {
     try handler.perform([faceRequest, rectangleRequest, barcodeRequest])
 
-    for observation in faceRequest.results ?? [] {
-        detections.append(JarvisVisionDetection(label: "volto rilevato", confidence: observation.confidence))
+    let faces = (faceRequest.results ?? []).compactMap { $0 as? VNFaceObservation }
+    for observation in faces {
+        detections.append(
+            JarvisVisionDetection(
+                label: "volto rilevato",
+                confidence: observation.confidence
+            )
+        )
     }
-    for observation in rectangleRequest.results ?? [] {
-        detections.append(JarvisVisionDetection(label: "forma rettangolare", confidence: observation.confidence))
+
+    let rectangles = (rectangleRequest.results ?? []).compactMap { $0 as? VNRectangleObservation }
+    for observation in rectangles {
+        detections.append(
+            JarvisVisionDetection(
+                label: "forma rettangolare",
+                confidence: observation.confidence
+            )
+        )
     }
-    for observation in barcodeRequest.results ?? [] {
-        let label = observation.payloadStringValue.map { "codice a barre/QR: " + $0 } ?? "codice a barre/QR"
-        detections.append(JarvisVisionDetection(label: label, confidence: observation.confidence))
+
+    let barcodes = (barcodeRequest.results ?? []).compactMap { $0 as? VNBarcodeObservation }
+    for observation in barcodes {
+        let label = observation.payloadStringValue.map {
+            "codice a barre/QR: " + $0
+        } ?? "codice a barre/QR"
+
+        detections.append(
+            JarvisVisionDetection(
+                label: label,
+                confidence: observation.confidence
+            )
+        )
     }
 
     if detections.isEmpty {
