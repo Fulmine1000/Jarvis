@@ -54,8 +54,9 @@ class TestVisioneImmagine(unittest.TestCase):
             self.assertEqual(timeout, 90)
             return FakeResponse()
 
-        with patch("core.visione.urllib.request.urlopen", side_effect=fake_urlopen):
-            result = VisioneJarvis().analizza_immagine(self.image, "Descrivi l'immagine.")
+        with patch.dict(os.environ, {"JARVIS_VISION_BACKEND": "ollama"}):
+            with patch("core.visione.urllib.request.urlopen", side_effect=fake_urlopen):
+                result = VisioneJarvis().analizza_immagine(self.image, "Descrivi l'immagine.")
         self.assertTrue(result["ok"])
         self.assertEqual(result["risposta"], "Vedo un componente elettronico.")
         self.assertEqual(result["motore"], "Ollama locale: moondream")
