@@ -63,7 +63,7 @@ class TestVisioneImmagine(unittest.TestCase):
     def test_backend_apple_vision_esplicito(self):
         risposta = {
             "ok": True,
-            "risposta": "Classificazioni visive più probabili: laptop (91%).",
+            "risposta": "Rilevamenti visivi: forma rettangolare (91%).",
             "motore": "Apple Vision locale (classificazione, non generativa)",
             "percorso": self.image,
         }
@@ -78,7 +78,7 @@ class TestVisioneImmagine(unittest.TestCase):
     def test_auto_seleziona_apple_vision_su_high_sierra(self):
         risposta = {
             "ok": True,
-            "risposta": "Classificazioni visive più probabili: laptop (91%).",
+            "risposta": "Rilevamenti visivi: forma rettangolare (91%).",
             "motore": "Apple Vision locale (classificazione, non generativa)",
             "percorso": self.image,
         }
