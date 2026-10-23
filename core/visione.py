@@ -109,8 +109,8 @@ class VisioneJarvis:
         return {
             "ok": True,
             "risposta": (
-                "Classificazioni visive più probabili: " + ", ".join(lines)
-                + ". Nota: questo motore classifica la scena; non genera una descrizione "
+                "Rilevamenti visivi: " + ", ".join(lines)
+                + ". Nota: questo motore rileva volti, forme rettangolari e codici a barre/QR; non genera una descrizione "
                   "libera e non risponde a domande specifiche sull'immagine."
             ),
             "motore": self.motore,
@@ -136,7 +136,7 @@ class VisioneJarvis:
                 if domanda:
                     result["domanda_limite"] = (
                         "La richiesta specifica non è stata interpretata: Apple Vision su High Sierra "
-                        "fornisce etichette di classificazione, non risposte generative."
+                        "rileva forme e codici, ma non genera risposte libere sull’immagine."
                     )
                 return result
 
