@@ -40,7 +40,10 @@ class TestVisioneImmagine(unittest.TestCase):
         self.assertIn("Formato non supportato", result["errore"])
 
     def test_endpoint_remoto_bloccato(self):
-        with patch.dict(os.environ, {"JARVIS_OLLAMA_URL": "https://example.com"}):
+        with patch.dict(os.environ, {
+            "JARVIS_OLLAMA_URL": "https://example.com",
+            "JARVIS_VISION_BACKEND": "ollama",
+        }):
             result = VisioneJarvis().analizza_immagine(self.image)
         self.assertFalse(result["ok"])
         self.assertIn("solo Ollama locale", result["errore"])
