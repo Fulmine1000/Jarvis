@@ -40,7 +40,10 @@ class TestVisioneImmagine(unittest.TestCase):
         self.assertIn("Formato non supportato", result["errore"])
 
     def test_endpoint_remoto_bloccato(self):
-        with patch.dict(os.environ, {"JARVIS_OLLAMA_URL": "https://example.com"}):
+        with patch.dict(os.environ, {
+            "JARVIS_OLLAMA_URL": "https://example.com",
+            "JARVIS_VISION_BACKEND": "ollama",
+        }):
             result = VisioneJarvis().analizza_immagine(self.image)
         self.assertFalse(result["ok"])
         self.assertIn("solo Ollama locale", result["errore"])
@@ -56,6 +59,35 @@ class TestVisioneImmagine(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["risposta"], "Vedo un componente elettronico.")
         self.assertEqual(result["motore"], "Ollama locale: moondream")
+
+    def test_backend_apple_vision_esplicito(self):
+        risposta = {
+            "ok": True,
+            "risposta": "Classificazioni visive più probabili: laptop (91%).",
+            "motore": "Apple Vision locale (classificazione, non generativa)",
+            "percorso": self.image,
+        }
+        with patch.dict(os.environ, {"JARVIS_VISION_BACKEND": "apple-vision"}):
+            with patch.object(VisioneJarvis, "_analizza_apple_vision", return_value=risposta) as native:
+                result = VisioneJarvis().analizza_immagine(self.image, "Che cos'è?")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["motore"], "Apple Vision locale (classificazione, non generativa)")
+        self.assertIn("domanda_limite", result)
+        native.assert_called_once_with(self.image)
+
+    def test_auto_seleziona_apple_vision_su_high_sierra(self):
+        risposta = {
+            "ok": True,
+            "risposta": "Classificazioni visive più probabili: laptop (91%).",
+            "motore": "Apple Vision locale (classificazione, non generativa)",
+            "percorso": self.image,
+        }
+        with patch("core.visione.platform.system", return_value="Darwin"):
+            with patch("core.visione.platform.mac_ver", return_value=("10.13.6", ("", "", ""), "x86_64")):
+                with patch.object(VisioneJarvis, "_analizza_apple_vision", return_value=risposta) as native:
+                    result = VisioneJarvis().analizza_immagine(self.image)
+        self.assertTrue(result["ok"])
+        native.assert_called_once_with(self.image)
 
 
 if __name__ == "__main__":
