@@ -262,9 +262,10 @@ ApplicationWindow {
                 var pitch = -0.20 + Math.sin(root.t * 0.16) * 0.055;
 
                 // Alone atmosferico ampio e diffuso, mantenuto leggero per GPU datate.
-                var glow = ctx.createRadialGradient(cx, cy, radius * 0.12, cx, cy, radius * 1.58);
-                glow.addColorStop(0.0, "rgba(0,235,255,0.25)");
-                glow.addColorStop(0.42, "rgba(0,185,255,0.13)");
+                var activePulse = active ? (0.035 * (0.5 + 0.5 * Math.sin(root.t * 5.0))) : 0.0;
+                var glow = ctx.createRadialGradient(cx, cy, radius * 0.12, cx, cy, radius * (active ? 1.72 : 1.58));
+                glow.addColorStop(0.0, active ? "rgba(80,245,255," + (0.31 + activePulse) + ")" : "rgba(0,235,255,0.25)");
+                glow.addColorStop(0.42, active ? "rgba(0,205,255,0.19)" : "rgba(0,185,255,0.13)");
                 glow.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = glow;
                 ctx.beginPath(); ctx.arc(cx, cy, radius * 1.58, 0, Math.PI * 2); ctx.fill();
@@ -287,9 +288,9 @@ ApplicationWindow {
                     cx - radius * 0.22, cy - radius * 0.27, radius * 0.04,
                     cx, cy, radius * 1.05 * pulse
                 );
-                aura.addColorStop(0.0, "rgba(65,235,255,0.15)");
-                aura.addColorStop(0.48, "rgba(0,170,255,0.075)");
-                aura.addColorStop(0.82, "rgba(0,110,210,0.025)");
+                aura.addColorStop(0.0, active ? "rgba(115,250,255,0.22)" : "rgba(65,235,255,0.15)");
+                aura.addColorStop(0.48, active ? "rgba(0,205,255,0.12)" : "rgba(0,170,255,0.075)");
+                aura.addColorStop(0.82, active ? "rgba(0,145,230,0.045)" : "rgba(0,110,210,0.025)");
                 aura.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = aura;
                 ctx.beginPath();
@@ -318,8 +319,8 @@ ApplicationWindow {
                     var back = Math.max(0.0, -depth);
                     var dotSize = 1.10 + (depth + 1.0) * 0.95;
                     var alpha = depth >= 0.0
-                        ? 0.42 + front * 0.48
-                        : 0.035 + (1.0 - back) * 0.075;
+                        ? Math.min(1.0, 0.42 + front * 0.48 + (active ? 0.07 : 0.0))
+                        : 0.035 + (1.0 - back) * (active ? 0.095 : 0.075);
 
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = depth > 0.48 ? "#d8fdff" : "#38dcff";
