@@ -256,45 +256,64 @@ ApplicationWindow {
                     return [cx + xr * radius * perspective, cy - yr * radius * perspective, zz];
                 }
 
-                // Nucleo 3D a nuvola di punti: distribuzione uniforme sulla superficie sferica.
-                // I punti vengono proiettati con yaw e pitch, quindi ruotano come un unico oggetto.
-                var pointCount = 520;
+                // Alone volumetrico molto leggero dietro la nuvola, non una sfera piena.
+                var pulse = 1.0 + 0.025 * Math.sin(root.t * 1.4);
+                var aura = ctx.createRadialGradient(
+                    cx - radius * 0.22, cy - radius * 0.27, radius * 0.04,
+                    cx, cy, radius * 1.05 * pulse
+                );
+                aura.addColorStop(0.0, "rgba(65,235,255,0.15)");
+                aura.addColorStop(0.48, "rgba(0,170,255,0.075)");
+                aura.addColorStop(0.82, "rgba(0,110,210,0.025)");
+                aura.addColorStop(1.0, "rgba(0,0,0,0)");
+                ctx.fillStyle = aura;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 1.05 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Sfera 3D a punti: spirale di Fibonacci per una distribuzione uniforme.
+                // Il numero resta moderato per mantenere fluido il MacBook Pro meno recente.
+                var pointCount = 760;
                 var goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0));
+                var points = [];
                 for (var pi = 0; pi < pointCount; pi++) {
                     var ny = 1.0 - 2.0 * (pi + 0.5) / pointCount;
                     var latP = Math.asin(ny);
                     var lonP = pi * goldenAngle;
                     var p3 = project(latP, lonP);
-                    var depth = p3[2];
+                    points.push({ x: p3[0], y: p3[1], z: p3[2], id: pi });
+                }
 
-                    // I punti sul retro sono appena visibili, quelli davanti più brillanti.
-                    var dotSize = 0.65 + (depth + 1.0) * 0.95;
-                    var alpha = depth > 0.0
-                        ? 0.30 + depth * 0.62
-                        : 0.045 + (depth + 1.0) * 0.10;
+                // Prima il retro, poi la superficie frontale: la profondità risulta più credibile.
+                points.sort(function(a, b) { return a.z - b.z; });
+                for (var pj = 0; pj < points.length; pj++) {
+                    var point = points[pj];
+                    var depth = point.z;
+                    var front = Math.max(0.0, depth);
+                    var back = Math.max(0.0, -depth);
+                    var dotSize = 0.62 + (depth + 1.0) * 0.62;
+                    var alpha = depth >= 0.0
+                        ? 0.42 + front * 0.48
+                        : 0.035 + (1.0 - back) * 0.075;
 
                     ctx.globalAlpha = alpha;
-                    ctx.fillStyle = depth > 0.35 ? "#c9fcff" : "#27dfff";
+                    ctx.fillStyle = depth > 0.48 ? "#d8fdff" : "#38dcff";
                     ctx.beginPath();
-                    ctx.arc(p3[0], p3[1], dotSize, 0, Math.PI * 2);
+                    ctx.arc(point.x, point.y, dotSize, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Piccolo alone solo per pochi punti frontali, senza macchiare tutta la sfera.
-                    if (depth > 0.72 && pi % 5 === 0) {
-                        ctx.globalAlpha = 0.18;
+                    // Pochi punti frontali hanno un alone sottile, come impulsi energetici.
+                    if (depth > 0.78 && point.id % 19 === 0) {
+                        ctx.globalAlpha = 0.14;
+                        ctx.fillStyle = "#63f4ff";
                         ctx.beginPath();
-                        ctx.arc(p3[0], p3[1], dotSize * 2.5, 0, Math.PI * 2);
+                        ctx.arc(point.x, point.y, dotSize * 2.15, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
                 ctx.globalAlpha = 1.0;
 
-                // Bordo circolare molto discreto per definire la silhouette del nucleo.
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(65,225,255,0.42)";
-                ctx.lineWidth = 1.0;
-                ctx.stroke();
+                // Nessun contorno geometrico pesante: la silhouette nasce dai punti stessi.
 
                 // Base discreta direttamente sotto la sfera, senza anelli sospesi.
                 ctx.beginPath();
