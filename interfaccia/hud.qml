@@ -232,7 +232,7 @@ ApplicationWindow {
                 var dimColor = active ? "rgba(75,225,255,0.52)" : "rgba(30,170,220,0.42)";
                 var cx = w / 2;
                 var cy = Math.min(190, h * 0.36);
-                var radius = Math.min(160, Math.max(128, (Math.min(w, h) * 0.32))) * hologram.zoom;
+                var radius = Math.min(184, Math.max(146, (Math.min(w, h) * 0.36))) * hologram.zoom;
                 var yaw = root.t * 0.22 + hologram.gestureTurn * Math.PI / 180.0;
                 var pitch = -0.20 + Math.sin(root.t * 0.16) * 0.055;
 
