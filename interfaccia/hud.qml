@@ -291,7 +291,7 @@ ApplicationWindow {
                     var depth = point.z;
                     var front = Math.max(0.0, depth);
                     var back = Math.max(0.0, -depth);
-                    var dotSize = 0.62 + (depth + 1.0) * 0.62;
+                    var dotSize = 0.82 + (depth + 1.0) * 0.78;
                     var alpha = depth >= 0.0
                         ? 0.42 + front * 0.48
                         : 0.035 + (1.0 - back) * 0.075;
