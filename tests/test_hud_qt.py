@@ -38,11 +38,16 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("self.bridge.stopTimerRequested.emit()", metodo_ferma)
         self.assertIn("threading.current_thread() is threading.main_thread()", metodo_ferma)
 
-    def test_hud_include_scansione_olografica(self):
+    def test_hud_include_nucleo_sferico_olografico(self):
         source = HUD_QML.read_text(encoding="utf-8")
-        self.assertIn("Holographic scan plane", source)
-        self.assertIn("orbiting holographic markers", source)
-        self.assertIn('rotation: root.t * 52', source)
+        self.assertIn("id: orbCanvas", source)
+        self.assertIn("Canvas {", source)
+        self.assertIn("// Meridiani:", source)
+        self.assertIn("ctx.ellipse(", source)
+        self.assertIn("interval: 33", source)
+        self.assertIn("root.gestureZoom", source)
+        self.assertIn("root.gestureTurn", source)
+        self.assertIn("CORE ORB-01", source)
 
 
 if __name__ == "__main__":
