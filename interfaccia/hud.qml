@@ -256,49 +256,45 @@ ApplicationWindow {
                     return [cx + xr * radius * perspective, cy - yr * radius * perspective, zz];
                 }
 
-                // Sfera pulita: volume luminoso e pochi contorni, senza griglia incrociata.
-                var sphere = ctx.createRadialGradient(
-                    cx - radius * 0.30, cy - radius * 0.34, radius * 0.025,
-                    cx + radius * 0.04, cy + radius * 0.04, radius * 1.08
-                );
-                sphere.addColorStop(0.0, "rgba(220,255,255,0.98)");
-                sphere.addColorStop(0.09, "rgba(75,225,255,0.78)");
-                sphere.addColorStop(0.30, "rgba(0,155,235,0.42)");
-                sphere.addColorStop(0.67, "rgba(0,92,180,0.20)");
-                sphere.addColorStop(1.0, "rgba(0,35,85,0.06)");
-                ctx.fillStyle = sphere;
+                // Nucleo 3D a nuvola di punti: distribuzione uniforme sulla superficie sferica.
+                // I punti vengono proiettati con yaw e pitch, quindi ruotano come un unico oggetto.
+                var pointCount = 520;
+                var goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0));
+                for (var pi = 0; pi < pointCount; pi++) {
+                    var ny = 1.0 - 2.0 * (pi + 0.5) / pointCount;
+                    var latP = Math.asin(ny);
+                    var lonP = pi * goldenAngle;
+                    var p3 = project(latP, lonP);
+                    var depth = p3[2];
+
+                    // I punti sul retro sono appena visibili, quelli davanti più brillanti.
+                    var dotSize = 0.65 + (depth + 1.0) * 0.95;
+                    var alpha = depth > 0.0
+                        ? 0.30 + depth * 0.62
+                        : 0.045 + (depth + 1.0) * 0.10;
+
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = depth > 0.35 ? "#c9fcff" : "#27dfff";
+                    ctx.beginPath();
+                    ctx.arc(p3[0], p3[1], dotSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Piccolo alone solo per pochi punti frontali, senza macchiare tutta la sfera.
+                    if (depth > 0.72 && pi % 5 === 0) {
+                        ctx.globalAlpha = 0.18;
+                        ctx.beginPath();
+                        ctx.arc(p3[0], p3[1], dotSize * 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+
+                // Bordo circolare molto discreto per definire la silhouette del nucleo.
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Bordo esterno unico, sottile.
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(90,235,255,0.88)";
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "rgba(65,225,255,0.42)";
+                ctx.lineWidth = 1.0;
                 ctx.stroke();
-
-                // Un solo meridiano centrale molto tenue, per dare profondita' senza incroci.
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, radius * 0.30, radius * 0.99, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(170,250,255,0.25)";
-                ctx.lineWidth = 0.9;
-                ctx.stroke();
-
-                // Nessun anello orbitale esterno: la silhouette della sfera resta pulita.
-
-                // Riflesso morbido sul lato superiore sinistro.
-                var highlight = ctx.createRadialGradient(
-                    cx - radius * 0.30, cy - radius * 0.34, 1,
-                    cx - radius * 0.20, cy - radius * 0.25, radius * 0.48
-                );
-                highlight.addColorStop(0.0, "rgba(255,255,255,0.90)");
-                highlight.addColorStop(0.18, "rgba(180,250,255,0.42)");
-                highlight.addColorStop(1.0, "rgba(120,230,255,0)");
-                ctx.fillStyle = highlight;
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius * 0.99, 0, Math.PI * 2);
-                ctx.fill();
 
                 // Base discreta direttamente sotto la sfera, senza anelli sospesi.
                 ctx.beginPath();
