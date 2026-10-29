@@ -256,35 +256,41 @@ ApplicationWindow {
                     return [cx + xr * radius * perspective, cy - yr * radius * perspective, zz];
                 }
 
-                // Sfera volumetrica: fasce di latitudine con profondita' e luminosita' differenziate.
-                ctx.lineWidth = 1.05;
-                for (var li = -5; li <= 5; li++) {
-                    var lat = li * Math.PI / 12;
-                    ctx.beginPath();
-                    for (var j = 0; j <= 64; j++) {
-                        var p = project(lat, j * Math.PI * 2 / 64);
-                        if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
-                    }
-                    ctx.strokeStyle = li === 0 ? mainColor : dimColor;
-                    ctx.globalAlpha = li === 0 ? 0.95 : (0.38 + 0.045 * (5 - Math.abs(li)));
-                    ctx.stroke();
-                }
+                // Sfera pulita: volume luminoso e pochi contorni, senza griglia incrociata.
+                var sphere = ctx.createRadialGradient(
+                    cx - radius * 0.30, cy - radius * 0.34, radius * 0.025,
+                    cx + radius * 0.04, cy + radius * 0.04, radius * 1.08
+                );
+                sphere.addColorStop(0.0, "rgba(220,255,255,0.98)");
+                sphere.addColorStop(0.09, "rgba(75,225,255,0.78)");
+                sphere.addColorStop(0.30, "rgba(0,155,235,0.42)");
+                sphere.addColorStop(0.67, "rgba(0,92,180,0.20)");
+                sphere.addColorStop(1.0, "rgba(0,35,85,0.06)");
+                ctx.fillStyle = sphere;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
 
-                // Meridiani e linee guida sferiche.
-                for (var mi = 0; mi < 14; mi++) {
-                    var lon = mi * Math.PI / 14 + yaw * 0.08;
-                    ctx.beginPath();
-                    for (var k = 0; k <= 44; k++) {
-                        var lat2 = -Math.PI / 2 + k * Math.PI / 44;
-                        var p2 = project(lat2, lon);
-                        if (k === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
-                    }
-                    ctx.strokeStyle = mi % 3 === 0 ? brightColor : mainColor;
-                    ctx.globalAlpha = mi % 3 === 0 ? 0.75 : 0.43;
-                    ctx.lineWidth = mi % 3 === 0 ? 1.15 : 0.75;
-                    ctx.stroke();
-                }
-                ctx.globalAlpha = 1.0;
+                // Bordo esterno unico, sottile.
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(90,235,255,0.88)";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Tre sole curve verticali per suggerire il volume 3D senza frammentarlo.
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, radius * 0.34, radius * 0.99, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(170,250,255,0.48)";
+                ctx.lineWidth = 1.0;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, radius * 0.68, radius * 0.99, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(70,220,255,0.30)";
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                ctx.restore();
 
                 // Anelli orbitali sottili dietro la sfera.
                 ctx.save();
@@ -302,37 +308,30 @@ ApplicationWindow {
                 ctx.stroke();
                 ctx.restore();
 
-                // Nucleo interno sfumato, luminoso ma non opaco/nero.
-                var core = ctx.createRadialGradient(cx - radius * 0.22, cy - radius * 0.26, 2, cx, cy, radius * 1.02);
-                core.addColorStop(0.0, "rgba(255,255,255,0.96)");
-                core.addColorStop(0.07, "rgba(190,255,255,0.78)");
-                core.addColorStop(0.18, "rgba(35,220,255,0.38)");
-                core.addColorStop(0.42, "rgba(0,150,255,0.20)");
-                core.addColorStop(0.70, "rgba(0,90,190,0.09)");
-                core.addColorStop(1.0, "rgba(0,0,0,0)");
-                ctx.fillStyle = core;
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 1.02, 0, Math.PI * 2); ctx.fill();
-
-                // Punti energetici sulla superficie, pochi e ben distribuiti.
-                for (var q = 0; q < 12; q++) {
-                    var a = root.t * 0.28 + q * Math.PI / 6;
-                    var px = cx + Math.cos(a) * radius * 1.10;
-                    var py = cy + Math.sin(a) * radius * 0.46;
-                    ctx.fillStyle = brightColor;
-                    ctx.globalAlpha = 0.42 + 0.28 * Math.sin(root.t * 1.8 + q);
-                    ctx.beginPath(); ctx.arc(px, py, q % 3 === 0 ? 2.2 : 1.25, 0, Math.PI * 2); ctx.fill();
-                }
-                ctx.globalAlpha = 1.0;
-
-                // Piattaforma olografica sotto la sfera.
+                // Riflesso morbido sul lato superiore sinistro.
+                var highlight = ctx.createRadialGradient(
+                    cx - radius * 0.30, cy - radius * 0.34, 1,
+                    cx - radius * 0.20, cy - radius * 0.25, radius * 0.48
+                );
+                highlight.addColorStop(0.0, "rgba(255,255,255,0.90)");
+                highlight.addColorStop(0.18, "rgba(180,250,255,0.42)");
+                highlight.addColorStop(1.0, "rgba(120,230,255,0)");
+                ctx.fillStyle = highlight;
                 ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.06, radius * 1.02, radius * 0.17, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(53,232,255,0.76)";
-                ctx.lineWidth = 1.3; ctx.stroke();
+                ctx.arc(cx, cy, radius * 0.99, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Base discreta direttamente sotto la sfera, senza anelli sospesi.
                 ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.06, radius * 0.68, radius * 0.09, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(200,252,255,0.76)";
-                ctx.lineWidth = 0.9; ctx.stroke();
+                ctx.ellipse(cx, cy + radius * 1.08, radius * 0.72, radius * 0.105, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(53,232,255,0.68)";
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(cx, cy + radius * 1.08, radius * 0.42, radius * 0.055, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(200,252,255,0.52)";
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
 
                 // Etichette allineate al centro e distanziate dal nucleo.
                 ctx.textAlign = "center";
