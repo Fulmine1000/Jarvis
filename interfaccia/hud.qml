@@ -238,8 +238,9 @@ ApplicationWindow {
 
                 // Alone atmosferico ampio e diffuso, mantenuto leggero per GPU datate.
                 var glow = ctx.createRadialGradient(cx, cy, radius * 0.12, cx, cy, radius * 1.58);
-                glow.addColorStop(0.0, "rgba(0,235,255,0.25)");
-                glow.addColorStop(0.42, "rgba(0,185,255,0.13)");
+                glow.addColorStop(0.0, "rgba(0,245,255,0.34)");
+                glow.addColorStop(0.24, "rgba(0,215,255,0.23)");
+                glow.addColorStop(0.52, "rgba(0,155,255,0.12)");
                 glow.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = glow;
                 ctx.beginPath(); ctx.arc(cx, cy, radius * 1.58, 0, Math.PI * 2); ctx.fill();
@@ -262,9 +263,9 @@ ApplicationWindow {
                     cx - radius * 0.22, cy - radius * 0.27, radius * 0.04,
                     cx, cy, radius * 1.05 * pulse
                 );
-                aura.addColorStop(0.0, "rgba(65,235,255,0.15)");
-                aura.addColorStop(0.48, "rgba(0,170,255,0.075)");
-                aura.addColorStop(0.82, "rgba(0,110,210,0.025)");
+                aura.addColorStop(0.0, "rgba(90,245,255,0.24)");
+                aura.addColorStop(0.30, "rgba(0,205,255,0.13)");
+                aura.addColorStop(0.62, "rgba(0,135,255,0.055)");
                 aura.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = aura;
                 ctx.beginPath();
@@ -309,6 +310,34 @@ ApplicationWindow {
                         ctx.beginPath();
                         ctx.arc(point.x, point.y, dotSize * 2.15, 0, Math.PI * 2);
                         ctx.fill();
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+
+                // Scintille leggere sulla superficie; punti base invariati per le GPU datate.
+                for (var si = 0; si < 54; si++) {
+                    var seed = si * 2.399963229728653;
+                    var sparkLat = -1.20 + ((si * 37) % 109) / 108.0 * 2.40;
+                    var sparkLon = seed + root.t * (0.12 + (si % 4) * 0.025);
+                    var spark = project(sparkLat, sparkLon);
+                    if (spark[2] < 0.12) continue;
+                    var twinkle = 0.45 + 0.55 * Math.abs(Math.sin(root.t * (1.8 + (si % 5) * 0.31) + si * 1.7));
+                    var sparkR = (1.0 + (si % 3) * 0.42) * (0.8 + spark[2] * 0.65);
+                    ctx.globalAlpha = twinkle * (0.34 + spark[2] * 0.50);
+                    ctx.fillStyle = si % 5 === 0 ? "#ffffff" : "#65f4ff";
+                    ctx.beginPath();
+                    ctx.arc(spark[0], spark[1], sparkR, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (si % 9 === 0 && twinkle > 0.78) {
+                        ctx.globalAlpha = twinkle * 0.22;
+                        ctx.strokeStyle = "#b9fcff";
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(spark[0] - 3.2, spark[1]);
+                        ctx.lineTo(spark[0] + 3.2, spark[1]);
+                        ctx.moveTo(spark[0], spark[1] - 3.2);
+                        ctx.lineTo(spark[0], spark[1] + 3.2);
+                        ctx.stroke();
                     }
                 }
                 ctx.globalAlpha = 1.0;
