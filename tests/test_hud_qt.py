@@ -49,6 +49,13 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("root.gestureTurn", source)
         self.assertIn("CORE ORB-01", source)
 
+    def test_pannelli_hud_non_condividono_le_coordinate(self):
+        source = HUD_QML.read_text(encoding="utf-8")
+        self.assertIn("x: 236; y: 66; width: 200; height: root.height - 82", source)
+        self.assertIn("x: 446\n        y: 70\n        width: Math.min(360, root.width - 700)", source)
+        self.assertIn("x: root.width - 232\n        y: 66", source)
+        self.assertIn("x: 446; y: root.height - 68; width: root.width - 678; height: 48", source)
+
 
 if __name__ == "__main__":
     unittest.main()
