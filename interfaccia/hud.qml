@@ -206,9 +206,9 @@ ApplicationWindow {
         Text { x: 22; y: 550; text: "LINK          LOCAL"; color: "#5dbddf"; font.pixelSize: 8; font.bold: true }
     }
 
-    // Right environment panel
+    // Environment panel in the inner-left column, separate from the widget dock.
     Rectangle {
-        x: root.width - 232; y: 66; width: 220; height: root.height - 82
+        x: 236; y: 66; width: 200; height: root.height - 82
         color: "#061421"; border.color: "#105477"; border.width: 1
         Text { x: 12; y: 11; text: "ENVIRONMENT / DEVICES"; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true }
         Rectangle { x: 12; y: 29; width: parent.width - 24; height: 1; color: "#0d3852" }
@@ -251,9 +251,10 @@ ApplicationWindow {
     // Canvas leggero, senza browser esterno, WebGL o librerie aggiuntive.
     Item {
         id: hologram
-        x: (root.width - width) / 2
+        // Fits between the environment panel and the right widget dock, including at minimum window width.
+        x: 446
         y: 70
-        width: 360
+        width: Math.min(360, root.width - 700)
         height: 390
         property real zoom: root.gestureZoom
         property real gestureTurn: root.gestureTurn
@@ -481,7 +482,8 @@ ApplicationWindow {
 
     // Bottom command/response strip
     Rectangle {
-        x: 236; y: root.height - 68; width: root.width - 472; height: 48
+        // Keep the command strip under the core, not over either side panel.
+        x: 446; y: root.height - 68; width: root.width - 678; height: 48
         color: "#081e30"
         border.color: "#105477"
         border.width: 1
