@@ -145,7 +145,7 @@ ApplicationWindow {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             text: "J.A.R.V.I.S. — NEURAL COMMAND INTERFACE"
-            color: "#03101c"; font.pixelSize: 14; font.bold: true
+            color: "#b9f8ff"; font.pixelSize: 12; font.bold: true
             elide: Text.ElideRight
         }
         Text {
@@ -163,8 +163,8 @@ ApplicationWindow {
     Rectangle {
         x: (root.width - 230) / 2; y: 105; width: 230; height: 28
         color: "#061a2a"; border.color: "#087aa7"; border.width: 1
-        Rectangle { x: 10; y: 10; width: 8; height: 8; radius: 4; color: root.listening ? "#ffffff" : "#00eaff" }
-        Text { anchors.centerIn: parent; text: root.stateText; color: "#00eaff"; font.pixelSize: 11; font.bold: true }
+        Rectangle { x: 12; y: 10; width: 8; height: 8; radius: 4; color: root.speaking ? "#ffffff" : root.listening ? "#55f7ff" : "#00eaff" }
+        Text { anchors.fill: parent; anchors.leftMargin: 28; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; text: root.stateText; color: "#b9f8ff"; font.pixelSize: 10; font.bold: true; elide: Text.ElideRight }
     }
 
     // Pannello laterale sinistro in stile reference.
@@ -179,10 +179,20 @@ ApplicationWindow {
         Rectangle { x: 0; y: 0; width: 3; height: 45; color: "#00cfff" }
         Text { x: 16; y: 14; text: "STATO SISTEMA"; color: "#00dfff"; font.pixelSize: 15; font.bold: true }
         Rectangle { x: 16; y: 42; width: parent.width - 32; height: 1; color: "#087aa7" }
-        Text { x: 16; y: 59; text: "Memoria:  " + root.memoryState + "  🧠"; color: "#8ceeff"; font.pixelSize: 12; font.bold: true }
-        Text { x: 16; y: 91; text: "Rete:  " + root.networkText; color: "#8ceeff"; font.pixelSize: 12 }
-        Text { x: 16; y: 123; text: "Dispositivi:  " + root.deviceText; color: "#8ceeff"; font.pixelSize: 12 }
-        Text { x: 16; y: 155; text: "Kernel:  " + root.kernelText; color: "#56cde9"; font.pixelSize: 10; width: parent.width - 32; elide: Text.ElideRight }
+        Text { x: 16; y: 56; text: "MEMORIA"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: parent.width - 116; y: 55; width: 98; horizontalAlignment: Text.AlignRight; text: root.memoryState; color: "#b9f8ff"; font.pixelSize: 10; font.bold: true; elide: Text.ElideRight }
+        Rectangle { x: 16; y: 75; width: parent.width - 32; height: 3; color: "#102a3c" }
+        Rectangle { x: 16; y: 75; width: (parent.width - 32) * 0.82; height: 3; color: "#00cfff" }
+        Text { x: 16; y: 88; text: "RETE"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 80; y: 87; width: parent.width - 98; text: root.networkText; color: "#8ceeff"; font.pixelSize: 10; elide: Text.ElideRight }
+        Text { x: 16; y: 111; text: "DISPOSITIVI"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 105; y: 110; width: parent.width - 122; text: root.deviceText; color: "#8ceeff"; font.pixelSize: 10; elide: Text.ElideRight }
+        Text { x: 16; y: 135; text: "CPU"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 58; y: 134; text: root.cpuText; color: "#8ceeff"; font.pixelSize: 10 }
+        Text { x: 124; y: 135; text: "RAM"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 166; y: 134; width: parent.width - 180; text: root.memoryText; color: "#8ceeff"; font.pixelSize: 10; elide: Text.ElideRight }
+        Text { x: 16; y: 159; text: "KERNEL"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 76; y: 158; width: parent.width - 92; text: root.kernelText; color: "#56cde9"; font.pixelSize: 10; elide: Text.ElideRight }
     }
 
     // Meteo e accesso ai comandi in alto a sinistra.
@@ -190,9 +200,9 @@ ApplicationWindow {
         x: 22; y: 98; width: 310; height: 112
         color: "#050f1d"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: 0; y: 0; width: 76; height: 3; color: "#00eaff" }
-        Text { x: 16; y: 12; text: "METEO"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
-        Text { x: 16; y: 36; text: "Richiedi condizioni attuali"; color: "#8ceeff"; font.pixelSize: 11 }
-        Text { x: 16; y: 52; text: "e previsioni a Jarvis"; color: "#8ceeff"; font.pixelSize: 11 }
+        Text { x: 16; y: 12; text: "METEO  /  AMBIENTE"; color: "#00dfff"; font.pixelSize: 12; font.bold: true }
+        Text { x: 16; y: 39; text: "DATI IN ATTESA DI RICHIESTA"; color: "#8ceeff"; font.pixelSize: 9; font.bold: true }
+        Text { x: 16; y: 56; text: "Chiedi a Jarvis le condizioni locali"; color: "#62b8d5"; font.pixelSize: 10 }
         Button {
             x: 16; y: 68; width: 88; height: 28; text: "METEO"
             onClicked: bridge.executeCommand("meteo")
@@ -378,9 +388,10 @@ ApplicationWindow {
         x: 22; y: root.height - 124; width: 330; height: 92
         color: "#050f1d"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: 0; y: 0; width: 80; height: 3; color: "#00eaff" }
-        Text { x: 16; y: 10; text: "J.A.R.V.I.S. / v2.0.0"; color: "#8ceeff"; font.pixelSize: 13; font.bold: true }
-        Text { x: 16; y: 36; width: parent.width - 30; text: root.responseText; color: "#d9f8ff"; font.pixelSize: 12; elide: Text.ElideRight }
-        Text { x: 16; y: 64; text: root.voiceDisplay(); color: "#00dfff"; font.pixelSize: 10; font.bold: true }
+        Text { x: 16; y: 10; text: "ULTIMA RISPOSTA"; color: "#62b8d5"; font.pixelSize: 9; font.bold: true }
+        Text { x: 16; y: 29; width: parent.width - 30; text: root.responseText; color: "#d9f8ff"; font.pixelSize: 11; elide: Text.ElideRight }
+        Rectangle { x: 16; y: 57; width: 6; height: 6; radius: 3; color: root.speaking ? "#ffffff" : root.listening ? "#00eaff" : "#16718e" }
+        Text { x: 29; y: 53; text: "VOICE  /  " + root.voiceDisplay(); color: "#00dfff"; font.pixelSize: 9; font.bold: true }
     }
 
     // Modalità assistente in basso a destra.
