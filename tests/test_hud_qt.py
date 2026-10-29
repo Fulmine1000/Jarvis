@@ -42,7 +42,7 @@ class TestHUDQtQuick(unittest.TestCase):
         source = HUD_QML.read_text(encoding="utf-8")
         self.assertIn("id: orbCanvas", source)
         self.assertIn("Canvas {", source)
-        self.assertIn("// Meridiani:", source)
+        self.assertIn("// Meridiani e linee guida sferiche.", source)
         self.assertIn("ctx.ellipse(", source)
         self.assertIn("interval: 42", source)
         self.assertIn("root.gestureZoom", source)
