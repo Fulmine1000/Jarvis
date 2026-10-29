@@ -247,8 +247,8 @@ ApplicationWindow {
         Text { x: 22; y: 420; width: 176; height: parent.height - 440; text: root.eventsText; color: "#5dbddf"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideLeft }
     }
 
-    // Proiettore centrale: energia verticale sospesa sopra un emettitore ellittico,
-    // ispirato al reattore del riferimento video (tutto in ciano, senza sfera piena).
+    // Nucleo sferico 3D integrato direttamente nell'HUD Qt Quick.
+    // Canvas leggero, senza browser esterno, WebGL o librerie aggiuntive.
     Item {
         id: hologram
         x: (root.width - width) / 2
@@ -258,233 +258,127 @@ ApplicationWindow {
         property real zoom: root.gestureZoom
         property real gestureTurn: root.gestureTurn
 
-        // Alone verticale morbido: evita il grande disco circolare dietro al nucleo.
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 8
-            width: 168 * hologram.zoom
-            height: 250 * hologram.zoom
-            radius: width / 2
-            color: root.hologramActive ? "#ff8a00" : "#00eaff"
-            opacity: 0.07 + root.activity * 0.035
-        }
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 20
-            width: 126 * hologram.zoom
-            height: 222 * hologram.zoom
-            radius: width / 2
-            color: root.hologramActive ? "#ffd166" : "#5affff"
-            opacity: 0.07
-        }
+        Canvas {
+            id: orbCanvas
+            anchors.fill: parent
+            onPaint: {
+                var ctx = getContext("2d");
+                var w = width, h = height;
+                ctx.clearRect(0, 0, w, h);
 
-        // Colonna di energia luminosa: ovale verticale, con nucleo bianco e
-        // sottili fasce interne, non una sfera o una serie di cerchi concentrici.
-        Item {
-            id: energyCore
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 10
-            width: 154 * hologram.zoom
-            height: 242 * hologram.zoom
-            rotation: hologram.gestureTurn
+                var active = root.hologramActive;
+                var mainColor = active ? "#ffad42" : "#48fff2";
+                var brightColor = active ? "#fff0cf" : "#d7ffff";
+                var yaw = root.t * 0.24 + hologram.gestureTurn * Math.PI / 180.0;
+                var pitch = -0.22 + Math.sin(root.t * 0.19) * 0.08;
+                var radius = 82 * hologram.zoom;
+                var cx = w / 2;
+                var cy = 139;
 
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.96
-                height: parent.height * 0.98
-                radius: width / 2
-                color: root.hologramActive ? "#ffad42" : "#28faff"
-                opacity: 0.12 + root.activity * 0.08
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.76
-                height: parent.height * 0.92
-                radius: width / 2
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: root.hologramActive ? "#ffe0a3" : "#6affff" }
-                    GradientStop { position: 0.18; color: root.hologramActive ? "#ffb347" : "#19e9f7" }
-                    GradientStop { position: 0.48; color: root.hologramActive ? "#e96a00" : "#008fae" }
-                    GradientStop { position: 0.76; color: root.hologramActive ? "#8a3200" : "#075a7a" }
-                    GradientStop { position: 1.0; color: root.hologramActive ? "#fff0cf" : "#8affff" }
+                // Alone morbido e nucleo centrale: gradienti semplici, senza mesh pesanti.
+                var glow = ctx.createRadialGradient(cx, cy, 3, cx, cy, radius * 1.25);
+                glow.addColorStop(0.0, active ? "rgba(255,138,0,0.28)" : "rgba(0,220,255,0.20)");
+                glow.addColorStop(0.55, active ? "rgba(255,138,0,0.07)" : "rgba(0,220,255,0.06)");
+                glow.addColorStop(1.0, "rgba(0,0,0,0)");
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 1.25, 0, Math.PI * 2);
+                ctx.fill();
+
+                function project(lat, lon) {
+                    var x = Math.cos(lat) * Math.cos(lon);
+                    var y = Math.sin(lat);
+                    var z = Math.cos(lat) * Math.sin(lon);
+                    var xr = x * Math.cos(yaw) - z * Math.sin(yaw);
+                    var zr = x * Math.sin(yaw) + z * Math.cos(yaw);
+                    var yr = y * Math.cos(pitch) - zr * Math.sin(pitch);
+                    var zz = y * Math.sin(pitch) + zr * Math.cos(pitch);
+                    var perspective = 1.0 / (1.65 - zz * 0.25);
+                    return [cx + xr * radius * perspective, cy - yr * radius * perspective, zz];
                 }
-                opacity: 0.28
-            }
 
-            // Fasce luminose inclinate che danno l'effetto di energia in rotazione.
-            Repeater {
-                model: 5
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width * (0.88 - index * 0.075)
-                    height: parent.height * (0.78 - index * 0.075)
-                    radius: width / 2
-                    color: "transparent"
-                    border.color: index === 3 ? "#fff5e6" : (root.hologramActive ? "#ffb347" : "#5bffff")
-                    border.width: index === 3 ? 2 : 1
-                    opacity: 0.25 + (6 - index) * 0.065
-                    RotationAnimator on rotation {
-                    from: index % 2 === 0 ? 0 : 360
-                    to: index % 2 === 0 ? 360 : 0
-                    duration: 18000 + index * 3500
-                    loops: Animation.Infinite
-                    running: root.visible
+                // Paralleli: pochi segmenti e una sola traccia per anello.
+                ctx.lineWidth = 1;
+                for (var li = -3; li <= 3; li++) {
+                    var lat = li * Math.PI / 8;
+                    ctx.beginPath();
+                    for (var j = 0; j <= 36; j++) {
+                        var p = project(lat, j * Math.PI * 2 / 36);
+                        if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+                    }
+                    ctx.strokeStyle = li === 0 ? mainColor : (active ? "rgba(255,173,66,0.58)" : "rgba(72,255,242,0.58)");
+                    ctx.globalAlpha = li === 0 ? 0.95 : 0.64;
+                    ctx.stroke();
                 }
-                }
-            }
 
-            // Filamenti e particelle all'interno della proiezione.
-            Repeater {
-                model: 9
-                Rectangle {
-                    width: index % 3 === 0 ? 3 : 2
-                    height: 20 + (index % 4) * 11
-                    radius: width
-                    x: 26 + (index * 19 % 104)
-                    y: 18 + (index * 31 % 198)
-                    rotation: (index % 2 === 0 ? -1 : 1) * (12 + index * 3)
-                    color: index % 3 === 0 ? "#ffffff" : "#9bffff"
-                    opacity: 0.22 + (index % 5) * 0.075
+                // Meridiani: wireframe sferico leggibile, non una pila di forme geometriche.
+                for (var mi = 0; mi < 10; mi++) {
+                    var lon = mi * Math.PI / 10 + yaw * 0.08;
+                    ctx.beginPath();
+                    for (var k = 0; k <= 28; k++) {
+                        var lat2 = -Math.PI / 2 + k * Math.PI / 28;
+                        var p2 = project(lat2, lon);
+                        if (k === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
+                    }
+                    ctx.strokeStyle = mi % 3 === 0 ? brightColor : mainColor;
+                    ctx.globalAlpha = mi % 3 === 0 ? 0.85 : 0.48;
+                    ctx.stroke();
                 }
-            }
+                ctx.globalAlpha = 1.0;
 
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.42
-                height: parent.height * 0.43
-                radius: width / 2
-                color: root.hologramActive ? "#ff9b24" : "#00efff"
-                opacity: 0.25
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.27
-                height: parent.height * 0.28
-                radius: width / 2
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#ffffff" }
-                    GradientStop { position: 0.45; color: "#eaffff" }
-                    GradientStop { position: 1.0; color: root.hologramActive ? "#ff8a00" : "#49faff" }
+                // Nucleo luminoso centrale e piccoli punti di riferimento.
+                var core = ctx.createRadialGradient(cx - 8, cy - 10, 2, cx, cy, radius * 0.52);
+                core.addColorStop(0, "#ffffff");
+                core.addColorStop(0.22, brightColor);
+                core.addColorStop(0.58, active ? "rgba(255,138,0,0.42)" : "rgba(0,180,230,0.35)");
+                core.addColorStop(1, "rgba(0,0,0,0)");
+                ctx.fillStyle = core;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 0.52, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (var q = 0; q < 8; q++) {
+                    var a = root.t * 0.45 + q * Math.PI / 4;
+                    var px = cx + Math.cos(a) * radius * 1.12;
+                    var py = cy + Math.sin(a) * radius * 1.12;
+                    ctx.fillStyle = brightColor;
+                    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(root.t * 2 + q);
+                    ctx.beginPath();
+                    ctx.arc(px, py, q % 2 === 0 ? 2 : 1.3, 0, Math.PI * 2);
+                    ctx.fill();
                 }
-                opacity: 0.92
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.12
-                height: parent.height * 0.13
-                radius: width / 2
-                color: "#ffffff"
-                opacity: 1.0
+                ctx.globalAlpha = 1.0;
+
+                // Base prospettica sottile, separata dalla sfera.
+                ctx.beginPath();
+                ctx.ellipse(cx, 257, 112 * hologram.zoom, 20 * hologram.zoom, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = mainColor;
+                ctx.lineWidth = 1.3;
+                ctx.globalAlpha = 0.72;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(cx, 257, 78 * hologram.zoom, 11 * hologram.zoom, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = brightColor;
+                ctx.globalAlpha = 0.82;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                ctx.fillStyle = "#b7ffff";
+                ctx.font = "bold 9px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(root.listening ? "JARVIS CORE // LISTENING" : root.speaking ? "JARVIS CORE // ACTIVE" : "J.A.R.V.I.S. // HOLOGRAPHIC CORE", cx, 300);
+                ctx.fillStyle = "#38c9f4";
+                ctx.font = "8px sans-serif";
+                ctx.fillText("ENERGY " + Math.round(root.activity * 100) + "%  //  " + root.gestureMode, cx, 316);
             }
         }
 
-        // Anelli prospettici della base: larghi, bassi e separati dal nucleo.
-        Item {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 248
-            width: 340
-            height: 76
-            Repeater {
-                model: 4
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width - index * 25
-                    height: parent.height - index * 11
-                    radius: height / 2
-                    color: "transparent"
-                    border.color: index === 1 ? "#efffff" : "#00eaff"
-                    border.width: index === 1 ? 2 : 1
-                    RotationAnimator on rotation {
-                    from: index % 2 === 0 ? 0 : 360
-                    to: index % 2 === 0 ? 360 : 0
-                    duration: 26000 + index * 4500
-                    loops: Animation.Infinite
-                    running: root.visible
-                }
-                    opacity: 0.82 - index * 0.10
-                }
-            }
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: 36
-                width: 270
-                height: 2
-                color: "#efffff"
-                opacity: 0.72
-            }
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: 33
-                width: 190
-                height: 7
-                radius: 3
-                color: root.hologramActive ? "#ff8a00" : "#00eaff"
-                opacity: 0.22 + root.activity * 0.12
-            }
-        }
-
-        // Holographic scan plane: raggio leggero che ruota e scansiona il nucleo.
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 16
-            SequentialAnimation on y {
-                loops: Animation.Infinite
-                running: root.visible
-                NumberAnimation { to: 220; duration: 3500; easing.type: Easing.InOutSine }
-                NumberAnimation { to: 16; duration: 3500; easing.type: Easing.InOutSine }
-            }
-            width: 226
-            height: 1
-            RotationAnimator on rotation {
-                from: 0
-                to: 360
-                duration: 8000
-                loops: Animation.Infinite
-                running: root.visible
-            }
-            color: "#e4fdff"
-            opacity: 0.32 + root.activity * 0.28
-        }
-        // orbiting holographic markers: particelle contenute nell'area centrale.
-        Repeater {
-            model: 10
-            Rectangle {
-                width: index % 4 === 0 ? 3 : 2
-                height: width
-                radius: width / 2
-                x: 26 + (index * 43 % 308)
-                y: 18 + (index * 37 % 300)
-                color: "#9af1ff"
-                opacity: 0.18 + (index % 4) * 0.1
-            }
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 329
-            text: root.listening ? "ARC REACTOR  //  LISTENING" : root.speaking ? "ARC REACTOR  //  ACTIVE" : "ARC REACTOR"
-            color: "#b7ffff"
-            font.pixelSize: 9
-            font.bold: true
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 346
-            text: "HOLOGRAPHIC ENERGY CORE  //  " + Math.round(root.activity * 100) + "%"
-            color: "#38c9f4"
-            font.pixelSize: 7
-            font.bold: true
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 363
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: root.gestureMode
-            color: "#7ce8ff"
-            font.pixelSize: 7
-            font.bold: true
-            elide: Text.ElideRight
+        // 30 FPS: animazione fluida con carico limitato anche su Mac meno recenti.
+        Timer {
+            interval: 33
+            repeat: true
+            running: root.visible
+            onTriggered: orbCanvas.requestPaint()
         }
     }
 
