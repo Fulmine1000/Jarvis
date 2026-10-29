@@ -87,7 +87,27 @@ ApplicationWindow {
         onTriggered: root.t += 0.05
     }
 
-    Rectangle { anchors.fill: parent; color: "#030811" }
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "#020711" }
+            GradientStop { position: 0.52; color: "#041326" }
+            GradientStop { position: 1.0; color: "#020711" }
+        }
+    }
+
+    // Bagliore laterale leggero, senza modificare il renderer della sfera.
+    Rectangle {
+        x: 0; y: 76; width: root.width; height: root.height - 150
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.0; color: "#092d4a" }
+            GradientStop { position: 0.24; color: "#030b17" }
+            GradientStop { position: 0.76; color: "#030b17" }
+            GradientStop { position: 1.0; color: "#092d4a" }
+        }
+        opacity: 0.28
+    }
 
     // Griglia tecnica discreta: separa le zone senza affollare la scena.
     Repeater {
@@ -106,10 +126,13 @@ ApplicationWindow {
     Rectangle {
         id: header
         x: 14; y: 12; width: root.width - 28; height: 44
-        color: "#071725"
-        border.color: "#145477"
+        color: "#071a2c"
+        border.color: "#00aee8"
         border.width: 1
-        Rectangle { x: 0; y: parent.height - 2; width: 260; height: 2; color: "#00cfff" }
+        Rectangle { x: 0; y: 0; width: parent.width * 0.30; height: 3; color: "#42eaff" }
+        Rectangle { x: parent.width * 0.67; y: parent.height - 3; width: parent.width * 0.33; height: 3; color: "#00cfff" }
+        Rectangle { x: 10; y: 8; width: 22; height: 2; color: "#00cfff"; rotation: -35 }
+        Rectangle { x: parent.width - 31; y: parent.height - 10; width: 22; height: 2; color: "#00cfff"; rotation: -35 }
         Text {
             x: 14; width: 132; height: parent.height
             verticalAlignment: Text.AlignVCenter
@@ -146,9 +169,9 @@ ApplicationWindow {
     Rectangle {
         id: leftPanel
         x: 14; y: 70; width: 204; height: root.height - 86
-        color: "#061421"; border.color: "#124762"; border.width: 1
+        color: "#071a2b"; border.color: "#00aee8"; border.width: 1
         Text { x: 12; y: 12; text: "SYSTEM STATUS"; color: "#e0faff"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#087aa7" }
 
         Text { x: 12; y: 44; text: "TELEMETRY"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Repeater {
@@ -162,7 +185,7 @@ ApplicationWindow {
             }
         }
 
-        Rectangle { x: 12; y: 218; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 218; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text { x: 12; y: 230; text: "CORE MATRIX"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Repeater {
             model: [["KERNEL", root.kernelText], ["MEMORY", root.memoryState], ["DEVICES", root.deviceText], ["VOICE", root.voiceText]]
@@ -178,14 +201,14 @@ ApplicationWindow {
             }
         }
 
-        Rectangle { x: 12; y: 348; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 348; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text { x: 12; y: 360; text: "VOICE CHANNEL"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Text {
             x: 12; y: 381; text: root.voiceDisplay()
             color: root.listening ? "#00cfff" : root.speaking ? "#a4faff" : "#c5f3ff"
             font.pixelSize: 12; font.bold: true
         }
-        Rectangle { x: 12; y: 405; width: parent.width - 24; height: 25; color: "#030d17"; border.color: "#124762" }
+        Rectangle { x: 12; y: 405; width: parent.width - 24; height: 25; color: "#030d17"; border.color: "#087aa7" }
         Repeater {
             model: 16
             Rectangle {
@@ -198,7 +221,7 @@ ApplicationWindow {
         }
         Text { x: 12; y: 419; text: "WAKE WORD  /  HEY JARVIS"; color: "#5798b2"; font.pixelSize: 7 }
 
-        Rectangle { x: 12; y: 435; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 435; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text { x: 12; y: 446; text: "SESSION"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Text { x: 12; y: 465; text: root.dateText; color: "#c5f3ff"; font.pixelSize: 9 }
         Text { x: 12; y: 484; text: "SECURITY  //  ARMED"; color: "#8af4ff"; font.pixelSize: 7; font.bold: true }
@@ -344,13 +367,13 @@ ApplicationWindow {
     Rectangle {
         id: rightPanel
         x: root.width - 218; y: 70; width: 204; height: root.height - 86
-        color: "#061421"; border.color: "#124762"; border.width: 1
+        color: "#061421"; border.color: "#087aa7"; border.width: 1
         Text { x: 12; y: 12; text: "QUICK TOOLS"; color: "#e0faff"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#087aa7" }
 
         Rectangle {
             x: 12; y: 43; width: parent.width - 24; height: 56
-            color: "#081e30"; border.color: "#124762"
+            color: "#081e30"; border.color: "#087aa7"
             Text { x: 9; y: 7; text: "LOCAL TIME"; color: "#42d8f5"; font.pixelSize: 7; font.bold: true }
             Text { x: 9; y: 22; text: root.clockText; color: "#e0faff"; font.pixelSize: 17; font.bold: true }
             Text { anchors.right: parent.right; anchors.rightMargin: 8; y: 29; text: root.dateText; color: "#67cde8"; font.pixelSize: 7 }
@@ -361,29 +384,29 @@ ApplicationWindow {
             x: 12; y: 131; width: 86; height: 28; text: "METEO"
             onClicked: bridge.executeCommand("meteo")
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
         }
         Button {
             x: 104; y: 131; width: 86; height: 28; text: "NOTIZIE"
             onClicked: bridge.executeCommand("notizie")
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
         }
 
-        Rectangle { x: 12; y: 172; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 172; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text { x: 12; y: 184; text: "SCIENTIFIC CALCULATOR"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         TextField {
             id: calcInput
             x: 12; y: 203; width: parent.width - 24; height: 30
             placeholderText: "Es. (12 + 4) * 3"
             color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
-            background: Rectangle { color: "#030811"; border.color: "#12618a" }
+            background: Rectangle { color: "#030811"; border.color: "#00aee8" }
         }
         Button {
             x: 12; y: 238; width: parent.width - 24; height: 27; text: "CALCOLA"
             onClicked: bridge.executeCommand("calcola " + calcInput.text)
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
         }
 
         Text { x: 12; y: 278; text: "LOCAL NOTEPAD"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
@@ -392,26 +415,26 @@ ApplicationWindow {
             x: 12; y: 297; width: parent.width - 24; height: 30
             placeholderText: "Scrivi una nota..."
             color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
-            background: Rectangle { color: "#030811"; border.color: "#12618a" }
+            background: Rectangle { color: "#030811"; border.color: "#00aee8" }
         }
         Button {
             x: 12; y: 332; width: 86; height: 27; text: "SALVA"
             onClicked: bridge.executeCommand("nota: " + noteInput.text)
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
         }
         Button {
             x: 104; y: 332; width: 86; height: 27; text: "LEGGI"
             onClicked: bridge.executeCommand("leggi nota")
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#09273a"; border.color: "#00aee8"; radius: 2 }
+            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
         }
 
-        Rectangle { x: 12; y: 373; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 373; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text { x: 12; y: 385; text: "GESTURE CONTROL"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Text { x: 12; y: 405; width: parent.width - 24; text: root.gestureMode; color: "#c5f3ff"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideRight }
         Text { x: 12; y: 443; width: parent.width - 24; text: "Pinch: select   /   Swipe: rotate   /   Two hands: zoom"; color: "#5798b2"; font.pixelSize: 7; wrapMode: Text.Wrap }
-        Rectangle { x: 12; y: 450; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 450; width: parent.width - 24; height: 1; color: "#087aa7" }
         Text {
             x: 12; y: 462; width: parent.width - 24; height: 30
             text: "CORE ORB-01  /  INTEGRATED"
@@ -425,8 +448,10 @@ ApplicationWindow {
     // Fascia comandi dedicata, sotto la sfera e senza coprire le colonne.
     Rectangle {
         x: 230; y: root.height - 65; width: root.width - 456; height: 49
-        color: "#071725"; border.color: "#124762"; border.width: 1
-        Rectangle { x: 0; y: 0; width: 3; height: parent.height; color: "#00cfff" }
+        color: "#071a2c"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: 0; y: 0; width: 4; height: parent.height; color: "#00e5ff" }
+        Rectangle { x: 0; y: 0; width: parent.width * 0.24; height: 2; color: "#00e5ff" }
+        Rectangle { x: parent.width * 0.76; y: parent.height - 2; width: parent.width * 0.24; height: 2; color: "#00e5ff" }
         Text { x: 14; y: 6; text: "LAST COMMAND"; color: "#42d8f5"; font.pixelSize: 7; font.bold: true }
         Text { x: 14; y: 22; width: parent.width - 28; text: root.commandText; color: "#d0f7ff"; font.pixelSize: 10; elide: Text.ElideRight }
         Rectangle { x: parent.width - 78; y: 8; width: 58; height: 3; color: "#0d3852" }
