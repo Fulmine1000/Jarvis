@@ -134,43 +134,48 @@ ApplicationWindow {
         Rectangle { x: 10; y: 8; width: 22; height: 2; color: "#00cfff"; rotation: -35 }
         Rectangle { x: parent.width - 31; y: parent.height - 10; width: 22; height: 2; color: "#00cfff"; rotation: -35 }
         Text {
-            x: 14; width: 132; height: parent.height
+            x: 24; width: 130; height: parent.height
             verticalAlignment: Text.AlignVCenter
-            text: "J.A.R.V.I.S."; color: "#e0faff"
-            font.pixelSize: 15; font.bold: true
-        }
-        Text {
-            x: 148; width: 200; height: parent.height
-            verticalAlignment: Text.AlignVCenter
-            text: "NEURAL INTERFACE"; color: "#42d8f5"
-            font.pixelSize: 9; font.bold: true
+            text: "‹‹   J.A.R.V.I.S."; color: "#e0faff"
+            font.pixelSize: 14; font.bold: true
         }
         Text {
             anchors.centerIn: parent
-            width: 240; height: parent.height
+            width: Math.min(500, parent.width * 0.48); height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            text: "●  " + root.stateText
-            color: "#8af4ff"; font.pixelSize: 9; font.bold: true
+            text: "J.A.R.V.I.S. — NEURAL COMMAND INTERFACE"
+            color: "#03101c"; font.pixelSize: 14; font.bold: true
             elide: Text.ElideRight
         }
         Text {
-            anchors.right: parent.right; anchors.rightMargin: 14
-            width: 200; height: parent.height
+            anchors.right: parent.right; anchors.rightMargin: 18
+            width: 220; height: parent.height
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignVCenter
-            text: "SIMONE  //  " + root.clockText
-            color: "#67cde8"; font.pixelSize: 9
+            text: "SIMONE  //  " + root.clockText + "   ››"
+            color: "#67eaff"; font.pixelSize: 10; font.bold: true
             elide: Text.ElideRight
         }
+    }
+
+    // Indicatore di stato centrale, sopra il nucleo.
+    Rectangle {
+        x: (root.width - 230) / 2; y: 105; width: 230; height: 28
+        color: "#061a2a"; border.color: "#087aa7"; border.width: 1
+        Rectangle { x: 10; y: 10; width: 8; height: 8; radius: 4; color: root.listening ? "#ffffff" : "#00eaff" }
+        Text { anchors.centerIn: parent; text: root.stateText; color: "#00eaff"; font.pixelSize: 11; font.bold: true }
     }
 
     // Pannello laterale sinistro in stile reference.
     Rectangle {
         id: leftPanel
         x: 22; y: root.height * 0.405; width: 265; height: 190
-        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        color: "#040d19"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: 0; y: 0; width: 90; height: 3; color: "#00eaff" }
+        Rectangle { x: 0; y: 0; width: 3; height: 30; color: "#00eaff" }
+        Rectangle { x: 0; y: parent.height - 3; width: 56; height: 3; color: "#00eaff" }
+        Rectangle { x: parent.width - 3; y: parent.height - 30; width: 3; height: 30; color: "#087aa7" }
         Rectangle { x: 0; y: 0; width: 3; height: 45; color: "#00cfff" }
         Text { x: 16; y: 14; text: "STATO SISTEMA"; color: "#00dfff"; font.pixelSize: 15; font.bold: true }
         Rectangle { x: 16; y: 42; width: parent.width - 32; height: 1; color: "#087aa7" }
@@ -185,8 +190,9 @@ ApplicationWindow {
         x: 22; y: 98; width: 310; height: 112
         color: "#050f1d"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: 0; y: 0; width: 76; height: 3; color: "#00eaff" }
-        Text { x: 16; y: 12; text: "METEO / NEWS"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
-        Text { x: 16; y: 38; text: "Richiedi aggiornamenti a Jarvis"; color: "#8ceeff"; font.pixelSize: 11 }
+        Text { x: 16; y: 12; text: "METEO"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
+        Text { x: 16; y: 36; text: "Richiedi condizioni attuali"; color: "#8ceeff"; font.pixelSize: 11 }
+        Text { x: 16; y: 52; text: "e previsioni a Jarvis"; color: "#8ceeff"; font.pixelSize: 11 }
         Button {
             x: 16; y: 68; width: 88; height: 28; text: "METEO"
             onClicked: bridge.executeCommand("meteo")
@@ -206,9 +212,12 @@ ApplicationWindow {
         x: root.width - 287; y: 98; width: 265; height: 112
         color: "#050f1d"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: parent.width - 76; y: 0; width: 76; height: 3; color: "#00eaff" }
-        Text { x: 16; y: 12; text: "ORA LOCALE"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
-        Text { x: 16; y: 36; text: root.clockText; color: "#e0faff"; font.pixelSize: 25; font.bold: true }
-        Text { x: 16; y: 75; text: root.dateText; color: "#67cde8"; font.pixelSize: 11 }
+        Rectangle { x: 18; y: 32; width: 42; height: 42; radius: 21; color: "transparent"; border.color: "#00cfff"; border.width: 2 }
+        Rectangle { x: 38; y: 39; width: 2; height: 14; color: "#00eaff"; transform: Rotation { origin.x: 1; origin.y: 14; angle: 0 } }
+        Rectangle { x: 38; y: 51; width: 13; height: 2; color: "#00eaff" }
+        Text { x: 76; y: 12; text: "ORA"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
+        Text { x: 76; y: 34; text: root.clockText; color: "#e0faff"; font.pixelSize: 24; font.bold: true }
+        Text { x: 76; y: 75; text: root.dateText; color: "#67cde8"; font.pixelSize: 11 }
     }
 
     // Area centrale ampia: la sfera e' l'elemento visivo dominante.
@@ -350,8 +359,11 @@ ApplicationWindow {
     Rectangle {
         id: rightPanel
         x: root.width - 287; y: root.height * 0.405; width: 265; height: 190
-        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        color: "#040d19"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: parent.width - 90; y: 0; width: 90; height: 3; color: "#00eaff" }
+        Rectangle { x: parent.width - 3; y: 0; width: 3; height: 30; color: "#00eaff" }
+        Rectangle { x: parent.width - 56; y: parent.height - 3; width: 56; height: 3; color: "#00eaff" }
+        Rectangle { x: 0; y: parent.height - 30; width: 3; height: 30; color: "#087aa7" }
         Rectangle { x: parent.width - 3; y: 0; width: 3; height: 45; color: "#00cfff" }
         Text { x: 16; y: 14; width: parent.width - 32; text: "DISPOSITIVI"; color: "#00dfff"; font.pixelSize: 15; font.bold: true; horizontalAlignment: Text.AlignRight }
         Rectangle { x: 16; y: 42; width: parent.width - 32; height: 1; color: "#087aa7" }
