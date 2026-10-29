@@ -165,76 +165,59 @@ ApplicationWindow {
         }
     }
 
-    // Colonna sinistra unica: dati di sistema raggruppati per categoria.
+    // Pannello laterale sinistro in stile reference.
     Rectangle {
         id: leftPanel
-        x: 14; y: 70; width: 204; height: root.height - 86
-        color: "#071a2b"; border.color: "#00aee8"; border.width: 1
-        Text { x: 12; y: 12; text: "SYSTEM STATUS"; color: "#e0faff"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#087aa7" }
+        x: 22; y: root.height * 0.405; width: 265; height: 190
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: 0; y: 0; width: 90; height: 3; color: "#00eaff" }
+        Rectangle { x: 0; y: 0; width: 3; height: 45; color: "#00cfff" }
+        Text { x: 16; y: 14; text: "STATO SISTEMA"; color: "#00dfff"; font.pixelSize: 15; font.bold: true }
+        Rectangle { x: 16; y: 42; width: parent.width - 32; height: 1; color: "#087aa7" }
+        Text { x: 16; y: 59; text: "Memoria:  " + root.memoryState + "  🧠"; color: "#8ceeff"; font.pixelSize: 12; font.bold: true }
+        Text { x: 16; y: 91; text: "Rete:  " + root.networkText; color: "#8ceeff"; font.pixelSize: 12 }
+        Text { x: 16; y: 123; text: "Dispositivi:  " + root.deviceText; color: "#8ceeff"; font.pixelSize: 12 }
+        Text { x: 16; y: 155; text: "Kernel:  " + root.kernelText; color: "#56cde9"; font.pixelSize: 10; width: parent.width - 32; elide: Text.ElideRight }
+    }
 
-        Text { x: 12; y: 44; text: "TELEMETRY"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Repeater {
-            model: [["CPU", root.cpuText], ["MEMORY", root.memoryText], ["STORAGE", root.diskText], ["NETWORK", root.networkText]]
-            Item {
-                x: 12; y: 64 + index * 37; width: parent.width - 24; height: 30
-                Text { text: modelData[0]; color: "#5798b2"; font.pixelSize: 7; font.bold: true }
-                Text { anchors.right: parent.right; text: modelData[1]; color: "#d0f7ff"; font.pixelSize: 10; font.bold: true }
-                Rectangle { y: 19; width: parent.width; height: 2; color: "#0d3045" }
-                Rectangle { y: 19; width: parent.width * Math.min(1, Math.max(0.03, Number(modelData[1]) / 100 || 0.03)); height: 2; color: "#00bce8" }
-            }
+    // Meteo e accesso ai comandi in alto a sinistra.
+    Rectangle {
+        x: 22; y: 98; width: 310; height: 112
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: 0; y: 0; width: 76; height: 3; color: "#00eaff" }
+        Text { x: 16; y: 12; text: "METEO / NEWS"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
+        Text { x: 16; y: 38; text: "Richiedi aggiornamenti a Jarvis"; color: "#8ceeff"; font.pixelSize: 11 }
+        Button {
+            x: 16; y: 68; width: 88; height: 28; text: "METEO"
+            onClicked: bridge.executeCommand("meteo")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 10; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
+        Button {
+            x: 112; y: 68; width: 100; height: 28; text: "NOTIZIE"
+            onClicked: bridge.executeCommand("notizie")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 10; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
+        }
+    }
 
-        Rectangle { x: 12; y: 218; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text { x: 12; y: 230; text: "CORE MATRIX"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Repeater {
-            model: [["KERNEL", root.kernelText], ["MEMORY", root.memoryState], ["DEVICES", root.deviceText], ["VOICE", root.voiceText]]
-            Item {
-                x: 12; y: 250 + index * 22; width: parent.width - 24; height: 18
-                Text { text: modelData[0]; color: "#5798b2"; font.pixelSize: 7 }
-                Text {
-                    anchors.right: parent.right; width: 96
-                    horizontalAlignment: Text.AlignRight
-                    text: modelData[1]; color: index === 3 && root.listening ? "#8af4ff" : "#c5f3ff"
-                    font.pixelSize: 7; font.bold: true; elide: Text.ElideRight
-                }
-            }
-        }
-
-        Rectangle { x: 12; y: 348; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text { x: 12; y: 360; text: "VOICE CHANNEL"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Text {
-            x: 12; y: 381; text: root.voiceDisplay()
-            color: root.listening ? "#00cfff" : root.speaking ? "#a4faff" : "#c5f3ff"
-            font.pixelSize: 12; font.bold: true
-        }
-        Rectangle { x: 12; y: 405; width: parent.width - 24; height: 25; color: "#030d17"; border.color: "#087aa7" }
-        Repeater {
-            model: 16
-            Rectangle {
-                width: 4
-                height: 3 + Math.abs(Math.sin(root.t * (root.listening ? 9 : root.speaking ? 7 : 2.5) + index * 0.72)) * (root.listening || root.speaking ? 16 : 3)
-                x: 19 + index * 9; y: 417 - height / 2; radius: 1
-                color: root.speaking ? "#a4faff" : "#00cfff"
-                opacity: 0.45 + root.activity * 0.55
-            }
-        }
-        Text { x: 12; y: 419; text: "WAKE WORD  /  HEY JARVIS"; color: "#5798b2"; font.pixelSize: 7 }
-
-        Rectangle { x: 12; y: 435; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text { x: 12; y: 446; text: "SESSION"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Text { x: 12; y: 465; text: root.dateText; color: "#c5f3ff"; font.pixelSize: 9 }
-        Text { x: 12; y: 484; text: "SECURITY  //  ARMED"; color: "#8af4ff"; font.pixelSize: 7; font.bold: true }
-        Text { x: 12; y: 503; text: "LOCAL LINK  //  ACTIVE"; color: "#67cde8"; font.pixelSize: 7; font.bold: true }
+    // Orologio in alto a destra.
+    Rectangle {
+        x: root.width - 287; y: 98; width: 265; height: 112
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: parent.width - 76; y: 0; width: 76; height: 3; color: "#00eaff" }
+        Text { x: 16; y: 12; text: "ORA LOCALE"; color: "#00dfff"; font.pixelSize: 13; font.bold: true }
+        Text { x: 16; y: 36; text: root.clockText; color: "#e0faff"; font.pixelSize: 25; font.bold: true }
+        Text { x: 16; y: 75; text: root.dateText; color: "#67cde8"; font.pixelSize: 11 }
     }
 
     // Area centrale ampia: la sfera e' l'elemento visivo dominante.
     Item {
         id: hologram
-        x: 230
-        y: 70
-        width: root.width - 456
-        height: root.height - 86
+        x: 332
+        y: 145
+        width: root.width - 664
+        height: root.height - 290
         property real zoom: root.gestureZoom
         property real gestureTurn: root.gestureTurn
 
@@ -254,7 +237,7 @@ ApplicationWindow {
                 var brightColor = active ? "#ffffff" : "#c8fcff";
                 var dimColor = active ? "rgba(75,225,255,0.52)" : "rgba(30,170,220,0.42)";
                 var cx = w / 2;
-                var cy = Math.min(190, h * 0.36);
+                var cy = h * 0.48;
                 var radius = Math.min(260, Math.max(200, (Math.min(w, h) * 0.47))) * hologram.zoom;
                 var yaw = root.t * 0.22 + hologram.gestureTurn * Math.PI / 180.0;
                 var pitch = -0.20 + Math.sin(root.t * 0.16) * 0.055;
@@ -363,91 +346,44 @@ ApplicationWindow {
         }
     }
 
-    // Colonna destra: strumenti in gruppi coerenti e con spazi regolari.
+    // Dispositivi sulla destra.
     Rectangle {
         id: rightPanel
-        x: root.width - 218; y: 70; width: 204; height: root.height - 86
-        color: "#061421"; border.color: "#087aa7"; border.width: 1
-        Text { x: 12; y: 12; text: "QUICK TOOLS"; color: "#e0faff"; font.pixelSize: 9; font.bold: true }
-        Rectangle { x: 12; y: 31; width: parent.width - 24; height: 1; color: "#087aa7" }
+        x: root.width - 287; y: root.height * 0.405; width: 265; height: 190
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: parent.width - 90; y: 0; width: 90; height: 3; color: "#00eaff" }
+        Rectangle { x: parent.width - 3; y: 0; width: 3; height: 45; color: "#00cfff" }
+        Text { x: 16; y: 14; width: parent.width - 32; text: "DISPOSITIVI"; color: "#00dfff"; font.pixelSize: 15; font.bold: true; horizontalAlignment: Text.AlignRight }
+        Rectangle { x: 16; y: 42; width: parent.width - 32; height: 1; color: "#087aa7" }
+        Text { x: 20; y: 59; text: "▣   •  Computer"; color: "#8ceeff"; font.pixelSize: 12 }
+        Text { x: 20; y: 91; text: "⌘   •  Rete"; color: "#8ceeff"; font.pixelSize: 12 }
+        Text { x: 20; y: 123; text: "ᛒ   •  Bluetooth"; color: "#8ceeff"; font.pixelSize: 12 }
+        Text { x: 20; y: 155; text: "⌂   •  Smart Home"; color: "#8ceeff"; font.pixelSize: 12 }
+    }
 
-        Rectangle {
-            x: 12; y: 43; width: parent.width - 24; height: 56
-            color: "#081e30"; border.color: "#087aa7"
-            Text { x: 9; y: 7; text: "LOCAL TIME"; color: "#42d8f5"; font.pixelSize: 7; font.bold: true }
-            Text { x: 9; y: 22; text: root.clockText; color: "#e0faff"; font.pixelSize: 17; font.bold: true }
-            Text { anchors.right: parent.right; anchors.rightMargin: 8; y: 29; text: root.dateText; color: "#67cde8"; font.pixelSize: 7 }
-        }
+    // Stato della voce in basso a sinistra.
+    Rectangle {
+        x: 22; y: root.height - 124; width: 330; height: 92
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: 0; y: 0; width: 80; height: 3; color: "#00eaff" }
+        Text { x: 16; y: 10; text: "J.A.R.V.I.S. / v2.0.0"; color: "#8ceeff"; font.pixelSize: 13; font.bold: true }
+        Text { x: 16; y: 36; width: parent.width - 30; text: root.responseText; color: "#d9f8ff"; font.pixelSize: 12; elide: Text.ElideRight }
+        Text { x: 16; y: 64; text: root.voiceDisplay(); color: "#00dfff"; font.pixelSize: 10; font.bold: true }
+    }
 
-        Text { x: 12; y: 112; text: "WEATHER / NEWS"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Button {
-            x: 12; y: 131; width: 86; height: 28; text: "METEO"
-            onClicked: bridge.executeCommand("meteo")
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
-        }
-        Button {
-            x: 104; y: 131; width: 86; height: 28; text: "NOTIZIE"
-            onClicked: bridge.executeCommand("notizie")
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
-        }
-
-        Rectangle { x: 12; y: 172; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text { x: 12; y: 184; text: "SCIENTIFIC CALCULATOR"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        TextField {
-            id: calcInput
-            x: 12; y: 203; width: parent.width - 24; height: 30
-            placeholderText: "Es. (12 + 4) * 3"
-            color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
-            background: Rectangle { color: "#030811"; border.color: "#00aee8" }
-        }
-        Button {
-            x: 12; y: 238; width: parent.width - 24; height: 27; text: "CALCOLA"
-            onClicked: bridge.executeCommand("calcola " + calcInput.text)
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
-        }
-
-        Text { x: 12; y: 278; text: "LOCAL NOTEPAD"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        TextField {
-            id: noteInput
-            x: 12; y: 297; width: parent.width - 24; height: 30
-            placeholderText: "Scrivi una nota..."
-            color: "#d9f8ff"; placeholderTextColor: "#4287a8"; font.pixelSize: 10
-            background: Rectangle { color: "#030811"; border.color: "#00aee8" }
-        }
-        Button {
-            x: 12; y: 332; width: 86; height: 27; text: "SALVA"
-            onClicked: bridge.executeCommand("nota: " + noteInput.text)
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
-        }
-        Button {
-            x: 104; y: 332; width: 86; height: 27; text: "LEGGI"
-            onClicked: bridge.executeCommand("leggi nota")
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: "#08263d"; border.color: "#00aee8"; radius: 2 }
-        }
-
-        Rectangle { x: 12; y: 373; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text { x: 12; y: 385; text: "GESTURE CONTROL"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Text { x: 12; y: 405; width: parent.width - 24; text: root.gestureMode; color: "#c5f3ff"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideRight }
-        Text { x: 12; y: 443; width: parent.width - 24; text: "Pinch: select   /   Swipe: rotate   /   Two hands: zoom"; color: "#5798b2"; font.pixelSize: 7; wrapMode: Text.Wrap }
-        Rectangle { x: 12; y: 450; width: parent.width - 24; height: 1; color: "#087aa7" }
-        Text {
-            x: 12; y: 462; width: parent.width - 24; height: 30
-            text: "CORE ORB-01  /  INTEGRATED"
-            color: "#8af4ff"; font.pixelSize: 8; font.bold: true
-            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-        Text { x: 12; y: 500; width: parent.width - 24; text: "LOCAL SYSTEM  •  SECURE LINK"; color: "#2b718e"; font.pixelSize: 7; horizontalAlignment: Text.AlignHCenter }
+    // Modalità assistente in basso a destra.
+    Rectangle {
+        x: root.width - 352; y: root.height - 124; width: 330; height: 92
+        color: "#050f1d"; border.color: "#00cfff"; border.width: 1
+        Rectangle { x: parent.width - 80; y: 0; width: 80; height: 3; color: "#00eaff" }
+        Text { x: 14; y: 10; width: parent.width - 28; text: "MODALITÀ"; color: "#00dfff"; font.pixelSize: 13; font.bold: true; horizontalAlignment: Text.AlignRight }
+        Text { x: 14; y: 36; width: parent.width - 28; text: root.speaking ? "Assistente in risposta" : root.listening ? "In ascolto" : "Assistente attivo"; color: "#d9f8ff"; font.pixelSize: 12; horizontalAlignment: Text.AlignRight }
+        Text { x: 14; y: 64; width: parent.width - 28; text: root.gestureMode; color: "#56cde9"; font.pixelSize: 9; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
     }
 
     // Fascia comandi dedicata, sotto la sfera e senza coprire le colonne.
     Rectangle {
-        x: 230; y: root.height - 65; width: root.width - 456; height: 49
+        x: 375; y: root.height - 58; width: root.width - 750; height: 38
         color: "#071a2c"; border.color: "#00cfff"; border.width: 1
         Rectangle { x: 0; y: 0; width: 4; height: parent.height; color: "#00e5ff" }
         Rectangle { x: 0; y: 0; width: parent.width * 0.24; height: 2; color: "#00e5ff" }
