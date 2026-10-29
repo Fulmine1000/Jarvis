@@ -43,7 +43,9 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("id: orbCanvas", source)
         self.assertIn("Canvas {", source)
         self.assertIn("// Nucleo 3D a nuvola di punti: distribuzione uniforme sulla superficie sferica.", source)
-        self.assertIn("var pointCount = 520", source)
+        self.assertIn("var pointCount = 760", source)
+        self.assertIn("points.sort(function(a, b) { return a.z - b.z; })", source)
+        self.assertIn("Alone volumetrico molto leggero", source)
         self.assertIn("var goldenAngle", source)
         self.assertIn("var p3 = project(latP, lonP)", source)
         self.assertNotIn("Punti energetici sulla superficie", source)
@@ -62,7 +64,7 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("x: root.width - 218; y: 70; width: 204; height: root.height - 86", source)
         self.assertIn("x: 230; y: root.height - 65; width: root.width - 456; height: 49", source)
         self.assertIn("var radius = Math.min(160", source)
-        self.assertIn("rgba(0,235,255,0.25)", source)
+        self.assertIn("rgba(65,235,255,0.15)", source)
         self.assertNotIn("#ffad42", source)
 
 
