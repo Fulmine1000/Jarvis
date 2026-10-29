@@ -278,35 +278,14 @@ ApplicationWindow {
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                // Tre sole curve verticali per suggerire il volume 3D senza frammentarlo.
-                ctx.save();
+                // Un solo meridiano centrale molto tenue, per dare profondita' senza incroci.
                 ctx.beginPath();
-                ctx.ellipse(cx, cy, radius * 0.34, radius * 0.99, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(170,250,255,0.48)";
-                ctx.lineWidth = 1.0;
+                ctx.ellipse(cx, cy, radius * 0.30, radius * 0.99, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(170,250,255,0.25)";
+                ctx.lineWidth = 0.9;
                 ctx.stroke();
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, radius * 0.68, radius * 0.99, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(70,220,255,0.30)";
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
-                ctx.restore();
 
-                // Anelli orbitali sottili dietro la sfera.
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(-0.18 + Math.sin(root.t * 0.12) * 0.035);
-                ctx.beginPath();
-                ctx.ellipse(0, 0, radius * 1.34, radius * 0.36, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(45,220,255,0.64)";
-                ctx.lineWidth = 1.15;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.ellipse(0, 0, radius * 1.47, radius * 0.43, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(32,155,220,0.36)";
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
-                ctx.restore();
+                // Nessun anello orbitale esterno: la silhouette della sfera resta pulita.
 
                 // Riflesso morbido sul lato superiore sinistro.
                 var highlight = ctx.createRadialGradient(
