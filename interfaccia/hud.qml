@@ -196,13 +196,13 @@ ApplicationWindow {
                 opacity: 0.45 + root.activity * 0.55
             }
         }
-        Text { x: 12; y: 440; text: "WAKE WORD  /  HEY JARVIS"; color: "#5798b2"; font.pixelSize: 7 }
+        Text { x: 12; y: 419; text: "WAKE WORD  /  HEY JARVIS"; color: "#5798b2"; font.pixelSize: 7 }
 
-        Rectangle { x: 12; y: 463; width: parent.width - 24; height: 1; color: "#10405a" }
-        Text { x: 12; y: 475; text: "SESSION"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
-        Text { x: 12; y: 494; text: root.dateText; color: "#c5f3ff"; font.pixelSize: 9 }
-        Text { x: 12; y: 514; text: "SECURITY  //  ARMED"; color: "#8af4ff"; font.pixelSize: 7; font.bold: true }
-        Text { x: 12; y: 534; text: "LOCAL LINK  //  ACTIVE"; color: "#67cde8"; font.pixelSize: 7; font.bold: true }
+        Rectangle { x: 12; y: 435; width: parent.width - 24; height: 1; color: "#10405a" }
+        Text { x: 12; y: 446; text: "SESSION"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
+        Text { x: 12; y: 465; text: root.dateText; color: "#c5f3ff"; font.pixelSize: 9 }
+        Text { x: 12; y: 484; text: "SECURITY  //  ARMED"; color: "#8af4ff"; font.pixelSize: 7; font.bold: true }
+        Text { x: 12; y: 503; text: "LOCAL LINK  //  ACTIVE"; color: "#67cde8"; font.pixelSize: 7; font.bold: true }
     }
 
     // Area centrale ampia: la sfera e' l'elemento visivo dominante.
@@ -427,15 +427,15 @@ ApplicationWindow {
         Text { x: 12; y: 385; text: "GESTURE CONTROL"; color: "#42d8f5"; font.pixelSize: 8; font.bold: true }
         Text { x: 12; y: 405; width: parent.width - 24; text: root.gestureMode; color: "#c5f3ff"; font.pixelSize: 8; wrapMode: Text.Wrap; elide: Text.ElideRight }
         Text { x: 12; y: 443; width: parent.width - 24; text: "Pinch: select   /   Swipe: rotate   /   Two hands: zoom"; color: "#5798b2"; font.pixelSize: 7; wrapMode: Text.Wrap }
-        Rectangle { x: 12; y: 478; width: parent.width - 24; height: 1; color: "#10405a" }
+        Rectangle { x: 12; y: 450; width: parent.width - 24; height: 1; color: "#10405a" }
         Text {
-            x: 12; y: 490; width: parent.width - 24; height: 30
+            x: 12; y: 462; width: parent.width - 24; height: 30
             text: "CORE ORB-01  /  INTEGRATED"
             color: "#8af4ff"; font.pixelSize: 8; font.bold: true
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
-        Text { x: 12; y: 530; width: parent.width - 24; text: "LOCAL SYSTEM  •  SECURE LINK"; color: "#2b718e"; font.pixelSize: 7; horizontalAlignment: Text.AlignHCenter }
+        Text { x: 12; y: 500; width: parent.width - 24; text: "LOCAL SYSTEM  •  SECURE LINK"; color: "#2b718e"; font.pixelSize: 7; horizontalAlignment: Text.AlignHCenter }
     }
 
     // Fascia comandi dedicata, sotto la sfera e senza coprire le colonne.
