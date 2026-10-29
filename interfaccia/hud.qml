@@ -315,17 +315,7 @@ ApplicationWindow {
 
                 // Nessun contorno geometrico pesante: la silhouette nasce dai punti stessi.
 
-                // Base discreta direttamente sotto la sfera, senza anelli sospesi.
-                ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.08, radius * 0.72, radius * 0.105, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(53,232,255,0.68)";
-                ctx.lineWidth = 1.2;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.08, radius * 0.42, radius * 0.055, 0, 0, Math.PI * 2);
-                ctx.strokeStyle = "rgba(200,252,255,0.52)";
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
+                // Nessuna piattaforma ellittica: il nucleo resta una sfera di punti pulita.
 
                 // Etichette allineate al centro e distanziate dal nucleo.
                 ctx.textAlign = "center";
