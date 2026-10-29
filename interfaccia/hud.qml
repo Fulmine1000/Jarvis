@@ -231,15 +231,15 @@ ApplicationWindow {
                 var brightColor = active ? "#ffffff" : "#c8fcff";
                 var dimColor = active ? "rgba(75,225,255,0.52)" : "rgba(30,170,220,0.42)";
                 var cx = w / 2;
-                var cy = Math.min(205, h * 0.39);
-                var radius = Math.min(137, Math.max(108, (Math.min(w, h) * 0.29))) * hologram.zoom;
+                var cy = Math.min(190, h * 0.36);
+                var radius = Math.min(160, Math.max(128, (Math.min(w, h) * 0.32))) * hologram.zoom;
                 var yaw = root.t * 0.22 + hologram.gestureTurn * Math.PI / 180.0;
                 var pitch = -0.20 + Math.sin(root.t * 0.16) * 0.055;
 
                 // Alone atmosferico ampio e diffuso, mantenuto leggero per GPU datate.
                 var glow = ctx.createRadialGradient(cx, cy, radius * 0.12, cx, cy, radius * 1.58);
-                glow.addColorStop(0.0, "rgba(0,220,255,0.19)");
-                glow.addColorStop(0.48, "rgba(0,170,230,0.09)");
+                glow.addColorStop(0.0, "rgba(0,235,255,0.25)");
+                glow.addColorStop(0.42, "rgba(0,185,255,0.13)");
                 glow.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = glow;
                 ctx.beginPath(); ctx.arc(cx, cy, radius * 1.58, 0, Math.PI * 2); ctx.fill();
@@ -303,14 +303,15 @@ ApplicationWindow {
                 ctx.restore();
 
                 // Nucleo interno sfumato, luminoso ma non opaco/nero.
-                var core = ctx.createRadialGradient(cx - radius * 0.23, cy - radius * 0.27, 2, cx, cy, radius * 0.92);
-                core.addColorStop(0.0, "rgba(255,255,255,0.92)");
-                core.addColorStop(0.10, "rgba(170,252,255,0.52)");
-                core.addColorStop(0.34, "rgba(0,195,255,0.16)");
-                core.addColorStop(0.72, "rgba(0,90,170,0.045)");
+                var core = ctx.createRadialGradient(cx - radius * 0.22, cy - radius * 0.26, 2, cx, cy, radius * 1.02);
+                core.addColorStop(0.0, "rgba(255,255,255,0.96)");
+                core.addColorStop(0.07, "rgba(190,255,255,0.78)");
+                core.addColorStop(0.18, "rgba(35,220,255,0.38)");
+                core.addColorStop(0.42, "rgba(0,150,255,0.20)");
+                core.addColorStop(0.70, "rgba(0,90,190,0.09)");
                 core.addColorStop(1.0, "rgba(0,0,0,0)");
                 ctx.fillStyle = core;
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.92, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, radius * 1.02, 0, Math.PI * 2); ctx.fill();
 
                 // Punti energetici sulla superficie, pochi e ben distribuiti.
                 for (var q = 0; q < 12; q++) {
@@ -325,11 +326,11 @@ ApplicationWindow {
 
                 // Piattaforma olografica sotto la sfera.
                 ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.10, radius * 1.08, radius * 0.19, 0, 0, Math.PI * 2);
+                ctx.ellipse(cx, cy + radius * 1.06, radius * 1.02, radius * 0.17, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = "rgba(53,232,255,0.76)";
                 ctx.lineWidth = 1.3; ctx.stroke();
                 ctx.beginPath();
-                ctx.ellipse(cx, cy + radius * 1.10, radius * 0.75, radius * 0.105, 0, 0, Math.PI * 2);
+                ctx.ellipse(cx, cy + radius * 1.06, radius * 0.68, radius * 0.09, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = "rgba(200,252,255,0.76)";
                 ctx.lineWidth = 0.9; ctx.stroke();
 
@@ -337,13 +338,13 @@ ApplicationWindow {
                 ctx.textAlign = "center";
                 ctx.fillStyle = "#d8fcff";
                 ctx.font = "bold 10px sans-serif";
-                ctx.fillText(root.listening ? "J.A.R.V.I.S.  /  LISTENING" : root.speaking ? "J.A.R.V.I.S.  /  SPEAKING" : "J.A.R.V.I.S.  /  NEURAL CORE", cx, Math.min(h - 104, cy + radius * 1.52));
+                ctx.fillText(root.listening ? "J.A.R.V.I.S.  /  LISTENING" : root.speaking ? "J.A.R.V.I.S.  /  SPEAKING" : "J.A.R.V.I.S.  /  NEURAL CORE", cx, Math.min(h - 104, cy + radius * 1.43));
                 ctx.fillStyle = "#52cce8";
                 ctx.font = "8px sans-serif";
-                ctx.fillText("ENERGY  " + Math.round(root.activity * 100) + "%", cx, Math.min(h - 88, cy + radius * 1.52 + 17));
+                ctx.fillText("ENERGY  " + Math.round(root.activity * 100) + "%", cx, Math.min(h - 88, cy + radius * 1.43 + 17));
                 ctx.fillStyle = "#2b718e";
                 ctx.font = "7px sans-serif";
-                ctx.fillText(root.gestureMode, cx, Math.min(h - 72, cy + radius * 1.52 + 32));
+                ctx.fillText(root.gestureMode, cx, Math.min(h - 72, cy + radius * 1.43 + 32));
             }
         }
 
