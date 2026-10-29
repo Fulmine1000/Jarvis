@@ -342,17 +342,19 @@ ApplicationWindow {
 
                 // Nessuna piattaforma ellittica: il nucleo resta una sfera di punti pulita.
 
-                // Etichette allineate al centro e distanziate dal nucleo.
+                // Etichette del nucleo: sempre sotto la sfera, mai sovrapposte ai punti.
+                // Il layout riserva una fascia inferiore dedicata per le tre righe.
                 ctx.textAlign = "center";
+                var labelY = Math.min(h - 48, cy + radius * 1.43);
                 ctx.fillStyle = "#d8fcff";
                 ctx.font = "bold 10px sans-serif";
-                ctx.fillText(root.listening ? "J.A.R.V.I.S.  /  LISTENING" : root.speaking ? "J.A.R.V.I.S.  /  SPEAKING" : "J.A.R.V.I.S.  /  NEURAL CORE", cx, Math.min(h - 104, cy + radius * 1.43));
+                ctx.fillText(root.listening ? "J.A.R.V.I.S.  /  LISTENING" : root.speaking ? "J.A.R.V.I.S.  /  SPEAKING" : "J.A.R.V.I.S.  /  NEURAL CORE", cx, labelY);
                 ctx.fillStyle = "#52cce8";
                 ctx.font = "8px sans-serif";
-                ctx.fillText("ENERGY  " + Math.round(root.activity * 100) + "%", cx, Math.min(h - 88, cy + radius * 1.43 + 17));
+                ctx.fillText("ENERGY  " + Math.round(root.activity * 100) + "%", cx, labelY + 15);
                 ctx.fillStyle = "#2b718e";
                 ctx.font = "7px sans-serif";
-                ctx.fillText(root.gestureMode, cx, Math.min(h - 72, cy + radius * 1.43 + 32));
+                ctx.fillText(root.gestureMode, cx, labelY + 29);
             }
         }
 
