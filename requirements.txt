@@ -20,12 +20,12 @@ PyQt5-Qt5==5.15.2
 # SpeechRecognition è usato da voce/stt.py.
 # Il microfono può richiedere PyAudio; Jarvis continua comunque a funzionare
 # tramite il proprio motore Vosk/sounddevice se PyAudio non è disponibile.
-SpeechRecognition==3.10.0
+SpeechRecognition>=3.17.0,<4.0
 
 # HTTP/configurazione usati dai componenti del progetto e dal Voice Pack.
 requests==2.31.0
 python-dotenv==1.0.0
-PyYAML==6.0.2
+PyYAML>=6.0.2; python_version < '3.15'  # Python 3.15: wheel non sempre disponibile; non bloccare l'installazione base
 
 # Piper viene installato come binario macOS Intel da voce/prepara_modello.py.
 
