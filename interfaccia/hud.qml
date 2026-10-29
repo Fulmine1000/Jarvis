@@ -6,10 +6,10 @@ ApplicationWindow {
     id: root
     visible: true
     visibility: Window.Windowed
-    width: 1050
-    height: 650
-    minimumWidth: 980
-    minimumHeight: 600
+    width: 1440
+    height: 810
+    minimumWidth: 1100
+    minimumHeight: 650
     title: "J.A.R.V.I.S. — Neural Command Interface"
     color: "#030811"
 
