@@ -44,17 +44,20 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIn("Canvas {", source)
         self.assertIn("// Meridiani:", source)
         self.assertIn("ctx.ellipse(", source)
-        self.assertIn("interval: 33", source)
+        self.assertIn("interval: 42", source)
         self.assertIn("root.gestureZoom", source)
         self.assertIn("root.gestureTurn", source)
         self.assertIn("CORE ORB-01", source)
 
     def test_pannelli_hud_non_condividono_le_coordinate(self):
         source = HUD_QML.read_text(encoding="utf-8")
-        self.assertIn("x: 236; y: 66; width: 200; height: root.height - 82", source)
-        self.assertIn("x: 446\n        y: 70\n        width: Math.min(360, root.width - 700)", source)
-        self.assertIn("x: root.width - 232\n        y: 66", source)
-        self.assertIn("x: 446; y: root.height - 68; width: root.width - 678; height: 48", source)
+        self.assertIn("x: 14; y: 70; width: 204; height: root.height - 86", source)
+        self.assertIn("x: 230\\n        y: 70\\n        width: root.width - 456", source)
+        self.assertIn("x: root.width - 218; y: 70; width: 204; height: root.height - 86", source)
+        self.assertIn("x: 230; y: root.height - 65; width: root.width - 456; height: 49", source)
+        self.assertIn("var radius = Math.min(137", source)
+        self.assertIn("rgba(0,220,255,0.19)", source)
+        self.assertNotIn("#ffad42", source)
 
 
 if __name__ == "__main__":
