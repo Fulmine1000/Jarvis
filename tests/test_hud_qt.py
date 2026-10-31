@@ -1,6 +1,7 @@
-"""Test strutturali dell'HUD Qt Quick definitivo."""
+"""Test strutturali dell'HUD Qt Quick."""
 
 from pathlib import Path
+import re
 import unittest
 
 
@@ -42,30 +43,55 @@ class TestHUDQtQuick(unittest.TestCase):
         source = HUD_QML.read_text(encoding="utf-8")
         self.assertIn("id: orbCanvas", source)
         self.assertIn("Canvas {", source)
-        self.assertIn("// Nucleo 3D a nuvola di punti: distribuzione uniforme sulla superficie sferica.", source)
-        self.assertIn("var pointCount = 760", source)
+        # Verifica il renderer effettivo, senza dipendere dal testo dei commenti.
+        self.assertRegex(source, r"var pointCount\s*=\s*760\s*;")
+        self.assertIn("var goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0));", source)
+        self.assertIn("var p3 = project(latP, lonP)", source)
         self.assertIn("points.sort(function(a, b) { return a.z - b.z; })", source)
         self.assertIn("Alone volumetrico molto leggero", source)
-        self.assertIn("var goldenAngle", source)
-        self.assertIn("var p3 = project(latP, lonP)", source)
+        self.assertIn("ctx.arc(point.x, point.y, dotSize", source)
+        self.assertIn("interval: 42", source)
+        self.assertIn("root.gestureZoom", source)
+        self.assertIn("root.gestureTurn", source)
         self.assertNotIn("Punti energetici sulla superficie", source)
         self.assertNotIn("Meridiani e linee guida sferiche", source)
         self.assertNotIn("var sphere = ctx.createRadialGradient", source)
         self.assertNotIn("// Base discreta direttamente sotto la sfera", source)
         self.assertNotIn("ctx.ellipse(cx, cy + radius", source)
-        self.assertIn("interval: 42", source)
-        self.assertIn("root.gestureZoom", source)
-        self.assertIn("root.gestureTurn", source)
-        self.assertIn("CORE ORB-01", source)
 
     def test_pannelli_hud_non_condividono_le_coordinate(self):
         source = HUD_QML.read_text(encoding="utf-8")
-        self.assertIn("x: 14; y: 70; width: 204; height: root.height - 86", source)
-        self.assertIn("x: 230\n        y: 70\n        width: root.width - 456", source)
-        self.assertIn("x: root.width - 218; y: 70; width: 204; height: root.height - 86", source)
-        self.assertIn("x: 230; y: root.height - 65; width: root.width - 456; height: 49", source)
+
+        # I pannelli laterali devono avere identità e geometrie indipendenti.
+        left = re.search(
+            r"Rectangle\s*\{\s*id: leftPanel\s*"
+            r"x:\s*([^;\n]+);\s*y:\s*([^;\n]+);\s*"
+            r"width:\s*([^;\n]+);\s*height:\s*([^\n]+)",
+            source,
+        )
+        right = re.search(
+            r"Rectangle\s*\{\s*id: rightPanel\s*"
+            r"x:\s*([^;\n]+);\s*y:\s*([^;\n]+);\s*"
+            r"width:\s*([^;\n]+);\s*height:\s*([^\n]+)",
+            source,
+        )
+        self.assertIsNotNone(left, "Pannello sinistro non trovato")
+        self.assertIsNotNone(right, "Pannello destro non trovato")
+        self.assertNotEqual(left.group(1).strip(), right.group(1).strip())
+        self.assertNotEqual(left.group(2).strip(), right.group(2).strip())
+        self.assertNotEqual(left.group(3).strip(), right.group(3).strip())
+        self.assertIn("x: 22; y: root.height * 0.405; width: 265; height: 190", source)
+        self.assertIn(
+            "x: root.width - 287; y: root.height * 0.405; width: 265; height: 190",
+            source,
+        )
+
+        # La zona centrale resta dimensionata in modo autonomo dai pannelli.
+        self.assertIn("id: hologram", source)
+        self.assertIn("width: root.width - 664", source)
+        self.assertIn("height: root.height - 290", source)
         self.assertIn("var radius = Math.min(260", source)
-        self.assertIn("rgba(65,235,255,0.15)", source)
+        self.assertIn('rgba(65,235,255,0.15)', source)
         self.assertNotIn("#ffad42", source)
 
 
