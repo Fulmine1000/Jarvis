@@ -80,7 +80,9 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertNotEqual(left.group(1).strip(), right.group(1).strip())
         # La stessa quota verticale e intenzionale: i pannelli sono allineati.
         self.assertEqual(left.group(2).strip(), right.group(2).strip())
-        self.assertNotEqual(left.group(3).strip(), right.group(3).strip())
+        # Larghezza e altezza uguali sono intenzionali; cambia la posizione orizzontale.
+        self.assertEqual(left.group(3).strip(), right.group(3).strip())
+        self.assertEqual(left.group(4).strip(), right.group(4).strip())
         self.assertIn("x: 22; y: root.height * 0.405; width: 265; height: 190", source)
         self.assertIn(
             "x: root.width - 287; y: root.height * 0.405; width: 265; height: 190",
