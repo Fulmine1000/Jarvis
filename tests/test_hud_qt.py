@@ -78,7 +78,8 @@ class TestHUDQtQuick(unittest.TestCase):
         self.assertIsNotNone(left, "Pannello sinistro non trovato")
         self.assertIsNotNone(right, "Pannello destro non trovato")
         self.assertNotEqual(left.group(1).strip(), right.group(1).strip())
-        self.assertNotEqual(left.group(2).strip(), right.group(2).strip())
+        # La stessa quota verticale e intenzionale: i pannelli sono allineati.
+        self.assertEqual(left.group(2).strip(), right.group(2).strip())
         self.assertNotEqual(left.group(3).strip(), right.group(3).strip())
         self.assertIn("x: 22; y: root.height * 0.405; width: 265; height: 190", source)
         self.assertIn(
