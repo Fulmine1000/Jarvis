@@ -7,6 +7,7 @@ autenticato: non aprire direttamente la porta del Mac su Internet.
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import json
 import os
 import threading
@@ -45,6 +46,14 @@ class GatewayJarvis:
             return True
         if not self.token or len(self.token) < 32:
             raise ValueError("JARVIS_GATEWAY_TOKEN deve contenere almeno 32 caratteri casuali")
+        try:
+            indirizzo = ipaddress.ip_address(self.host)
+        except ValueError as errore:
+            raise ValueError("Il gateway accetta solo un indirizzo IP loopback") from errore
+        if not indirizzo.is_loopback:
+            raise ValueError("Per sicurezza il gateway ascolta solo su loopback; usare un tunnel HTTPS autenticato")
+        if not 0 <= self.port <= 65535:
+            raise ValueError("Porta gateway non valida")
         gateway = self
 
         class Handler(BaseHTTPRequestHandler):
