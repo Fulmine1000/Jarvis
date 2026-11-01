@@ -38,12 +38,13 @@ def _gateway_chat(testo: str) -> str:
     access_id = os.environ.get("CLOUDFLARE_ACCESS_CLIENT_ID", "").strip()
     access_secret = os.environ.get("CLOUDFLARE_ACCESS_CLIENT_SECRET", "").strip()
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+            or parsed.query or parsed.fragment or parsed.path not in ("", "/")):
         raise RuntimeError("Gateway HTTPS non configurato")
     if not token or len(token) < 32:
         raise RuntimeError("Credenziali gateway non configurate")
-    if bool(access_id) != bool(access_secret):
-        raise RuntimeError("Credenziali Cloudflare Access incomplete")
+    if not access_id or not access_secret:
+        raise RuntimeError("Credenziali Cloudflare Access non configurate")
     if not isinstance(testo, str) or not testo.strip() or len(testo) > MAX_INPUT_CHARS:
         raise ValueError("Richiesta non valida")
 
