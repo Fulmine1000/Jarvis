@@ -56,15 +56,9 @@ class AdapterDispositivoIA:
         return True
 
     def trasferisci_identita(self) -> dict[str, Any]:
-        """Restituisce solo configurazione non sensibile necessaria all'host.
-
-        La memoria personale non viene copiata automaticamente sul dispositivo:
-        resta nel Core di Jarvis e può essere esposta solo tramite integrazioni
-        che implementino esplicitamente le relative autorizzazioni.
-        """
+        """Invia solo identità non sensibile; la memoria resta nel Core."""
         if not self.kernel:
             raise RuntimeError("Adapter non collegato al Kernel Jarvis")
-
         return {
             "nome": self.kernel.nome,
             "versione": self.kernel.versione,
@@ -111,23 +105,28 @@ class GestorePortabilitaIA:
             )
 
     def rimuovi(self, device_id: str) -> bool:
-        if device_id not in self.adapter:
+        adapter = self.adapter.get(device_id)
+        if adapter is None:
             return False
         if self.host_attivo == device_id:
+            adapter.disattiva_jarvis()
             self.host_attivo = None
         self.adapter.pop(device_id, None)
         return True
 
     def connetti(self, device_id: str) -> bool:
         adapter = self.adapter.get(device_id)
-        if not adapter or not adapter.connetti():
-            return False
-        return True
+        return bool(adapter and adapter.connetti())
 
     def attiva(self, device_id: str) -> bool:
         adapter = self.adapter.get(device_id)
-        if not adapter or not adapter.attiva_jarvis():
+        if adapter is None or not adapter.attiva_jarvis():
             return False
+        precedente = self.host_attivo
+        if precedente and precedente != device_id:
+            vecchio = self.adapter.get(precedente)
+            if vecchio:
+                vecchio.disattiva_jarvis()
         self.host_attivo = device_id
         return True
 
@@ -149,8 +148,18 @@ class GestorePortabilitaIA:
             raise KeyError(f"Host IA non trovato: {device_id}")
         if not adapter.profilo.online:
             raise RuntimeError("Host IA non connesso")
+
+        # Preparazione prima del cambio: se il nuovo host non accetta l'attivazione,
+        # il terminale precedente resta attivo.
         identita = adapter.trasferisci_identita()
-        adapter.attiva_jarvis()
+        if not adapter.attiva_jarvis():
+            raise RuntimeError("Il nuovo host non ha accettato l'attivazione")
+
+        precedente = self.host_attivo
+        if precedente and precedente != device_id:
+            vecchio = self.adapter.get(precedente)
+            if vecchio:
+                vecchio.disattiva_jarvis()
         self.host_attivo = device_id
         return identita
 
