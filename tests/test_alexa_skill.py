@@ -148,7 +148,7 @@ class AlexaGatewayTests(unittest.TestCase):
             def __exit__(self, *args):
                 return False
             def read(self, limit):
-                return b"x" * (self.module.MAX_RESPONSE_BYTES + 1)
+                return b"x" * 8193
 
         class FakeOpener:
             def open(self, request, timeout):
