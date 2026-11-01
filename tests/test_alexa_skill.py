@@ -76,6 +76,8 @@ class AlexaGatewayTests(unittest.TestCase):
         self.env = patch.dict(os.environ, {
             "JARVIS_GATEWAY_URL": "https://gateway.example.test",
             "JARVIS_GATEWAY_TOKEN": "x" * 48,
+            "CLOUDFLARE_ACCESS_CLIENT_ID": "access-id",
+            "CLOUDFLARE_ACCESS_CLIENT_SECRET": "access-secret",
         }, clear=False)
         self.env.start()
 
@@ -89,6 +91,11 @@ class AlexaGatewayTests(unittest.TestCase):
 
     def test_rifiuta_token_corto(self):
         os.environ["JARVIS_GATEWAY_TOKEN"] = "breve"
+        with self.assertRaises(RuntimeError):
+            self.module._gateway_chat("ciao")
+
+    def test_rifiuta_credenziali_cloudflare_incomplete(self):
+        os.environ.pop("CLOUDFLARE_ACCESS_CLIENT_SECRET", None)
         with self.assertRaises(RuntimeError):
             self.module._gateway_chat("ciao")
 
@@ -119,6 +126,8 @@ class AlexaGatewayTests(unittest.TestCase):
             result = self.module._gateway_chat("ciao")
         self.assertEqual(result, "Ciao Simone")
         self.assertEqual(opener.request.get_header("Authorization"), "Bearer " + "x" * 48)
+        self.assertEqual(opener.request.get_header("Cf-access-client-id"), "access-id")
+        self.assertEqual(opener.request.get_header("Cf-access-client-secret"), "access-secret")
         self.assertEqual(opener.timeout, self.module.GATEWAY_TIMEOUT_SECONDS)
         self.assertTrue(opener.request.full_url.endswith("/v1/chat"))
 
