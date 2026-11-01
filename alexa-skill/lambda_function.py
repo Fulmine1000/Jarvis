@@ -70,7 +70,9 @@ def _gateway_chat(testo: str) -> str:
         payload = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("Risposta del gateway non valida") from exc
-    risposta = payload.get("response") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        raise RuntimeError("Risposta del gateway non valida")
+    risposta = payload.get("response")
     if payload.get("ok") is not True or not isinstance(risposta, str) or not risposta.strip():
         raise RuntimeError("Jarvis non ha restituito una risposta")
     return risposta.strip()[:MAX_RESPONSE_BYTES]
