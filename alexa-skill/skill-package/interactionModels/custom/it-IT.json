@@ -1,0 +1,38 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "jarvis",
+      "intents": [
+        {
+          "name": "JarvisIntent",
+          "slots": [
+            {
+              "name": "testo",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "chiedi a Jarvis {testo}",
+            "di a Jarvis {testo}",
+            "dì a Jarvis {testo}",
+            "Jarvis {testo}",
+            "domanda a Jarvis {testo}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}
