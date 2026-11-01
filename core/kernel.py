@@ -15,6 +15,7 @@ from core.sicurezza import SicurezzaJarvis
 from cybersecurity.modulo import CybersecurityJarvis
 from core.aggiornamenti import AggiornamentiJarvis
 from core.portabilita import GestorePortabilitaIA
+from core.gateway_remoto import GatewayJarvis
 from intelligenza.cervello import CervelloJarvis
 from memoria.memoria import MemoriaJarvis
 from memoria.preferenze import PreferenzeJarvis
@@ -65,6 +66,7 @@ class KernelJarvis:
         self.modulo_comandi = ModuloComandi(self)
         self.modulo_voce = ModuloVoce(self)
         self.portabilita_ia = GestorePortabilitaIA(self, self.logger)
+        self.gateway_remoto = None
         self.trasferimento = None
         self.voce_disponibile = False
         self.notifiche_email_telegram = None
@@ -110,6 +112,14 @@ class KernelJarvis:
         except Exception as errore:
             self.logger.warning(f"Diagnostica non completata: {errore}")
         self.stato = "Operativo"
+        if os.environ.get("JARVIS_GATEWAY_ENABLED") == "1":
+            try:
+                self.gateway_remoto = GatewayJarvis(self)
+                self.gateway_remoto.avvia()
+                self.logger.info("Gateway remoto autenticato avviato.")
+            except Exception as errore:
+                self.gateway_remoto = None
+                self.logger.warning(f"Gateway remoto non avviato: {errore}")
         self.logger.info("Jarvis operativo.")
         return True
 
@@ -137,7 +147,7 @@ class KernelJarvis:
         return True
 
     def stato_sistema(self):
-        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "cybersecurity": self.cybersecurity.stato(), "notifiche_email_telegram": bool(self.notifiche_email_telegram), "sistema": self.stato_sistema_modulo.completo()}
+        return {"nome": self.nome, "versione": self.versione, "stato": self.stato, "base": self.base, "avvio": self.avvio, "arresto_richiesto": self.arresto_richiesto, "voce_disponibile": self.voce_disponibile, "memoria": self.memoria.stato(), "voce": self.modulo_voce.stato(), "comandi": self.modulo_comandi.stato(), "dispositivi": self.modulo_dispositivi.stato(), "capacita": self.capacita.stato(), "dialogo_ai": self.dialogo.stato(), "intelligenza": self.intelligenza.stato(), "portabilita_ia": self.portabilita_ia.stato(), "trasferimento": self.trasferimento.stato() if self.trasferimento else {}, "automazioni": self.automazioni.stato(), "pianificatore": self.pianificatore.stato(), "visione": self.visione.stato(), "diagnostica": self.diagnostica.stato(), "plugin": self.plugin_manager.stato(), "moduli": self.manager.stato(), "personalita": self.personalita.stato_personalita(), "preferenze": self.preferenze.stato(), "sicurezza": self.sicurezza.stato(), "cybersecurity": self.cybersecurity.stato(), "notifiche_email_telegram": bool(self.notifiche_email_telegram), "gateway_remoto": self.gateway_remoto.stato() if self.gateway_remoto else {"attivo": False}, "sistema": self.stato_sistema_modulo.completo()}
 
     def arresta(self):
         if self.stato == "Spento":
@@ -155,6 +165,9 @@ class KernelJarvis:
             self.dialogo.ferma()
         except Exception as errore:
             self.logger.warning(f"Errore arresto motore IA locale: {errore}")
+        if self.gateway_remoto:
+            self.gateway_remoto.ferma()
+            self.gateway_remoto = None
         self.portabilita_ia.disattiva()
         self.automazioni.ferma()
         self.pianificatore.ferma()
