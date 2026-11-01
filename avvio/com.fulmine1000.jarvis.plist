@@ -8,8 +8,7 @@
     <!-- Guardiano vocale: ascolta la wake word senza avviare l'HUD all'accesso. -->
     <key>ProgramArguments</key>
     <array>
-        <string>__JARVIS_PYTHON__</string>
-        <string>__JARVIS_ROOT__/avvio/guardiano_wake.py</string>
+        <string>__JARVIS_ROOT__/avvio/avvia_guardiano_mac.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
