@@ -10,7 +10,8 @@ host (inizialmente il Mac).
 - Gestione apertura, richiesta Jarvis, aiuto, stop e chiusura sessione.
 - Inoltro esclusivamente del testo a `POST /v1/chat`.
 - Richiesto un URL HTTPS; redirect HTTP non seguiti.
-- Token richiesto (minimo 32 caratteri), non salvato nel repository.
+- Token Jarvis richiesto (minimo 32 caratteri), non salvato nel repository.
+- Cloudflare Access Service Token obbligatorio (Client ID e Secret), non salvato nel repository.
 - Nessuna esecuzione shell o endpoint per comandi arbitrari.
 - Non ancora pubblicata né collegata a un account Amazon.
 
@@ -20,7 +21,7 @@ host (inizialmente il Mac).
 2. Installare le dipendenze di `requirements.txt` nel pacchetto di deploy.
 3. Impostare il handler `lambda_function.lambda_handler`.
 4. Configurare `JARVIS_GATEWAY_URL` con un URL HTTPS raggiungibile da AWS.
-5. Configurare `JARVIS_GATEWAY_TOKEN` tramite AWS Secrets Manager o ambiente protetto.
+5. Configurare `JARVIS_GATEWAY_TOKEN`, `CLOUDFLARE_ACCESS_CLIENT_ID` e `CLOUDFLARE_ACCESS_CLIENT_SECRET` tramite AWS Secrets Manager o ambiente protetto. Le credenziali Cloudflare Access sono obbligatorie: senza entrambe la Lambda rifiuta di contattare il gateway.
 6. In Alexa Developer Console creare una Custom Skill in italiano e associare l'endpoint Lambda.
 7. Configurare l'ID Skill e verificare che la verifica firma/timestamp dell'ASK SDK resti attiva.
 8. Testare prima con richieste innocue e timeout/rete non disponibile.
