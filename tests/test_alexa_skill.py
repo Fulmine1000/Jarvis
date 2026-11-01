@@ -99,6 +99,20 @@ class AlexaGatewayTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.module._gateway_chat("ciao")
 
+    def test_rifiuta_cloudflare_access_non_configurato(self):
+        os.environ.pop("CLOUDFLARE_ACCESS_CLIENT_ID", None)
+        os.environ.pop("CLOUDFLARE_ACCESS_CLIENT_SECRET", None)
+        with self.assertRaises(RuntimeError):
+            self.module._gateway_chat("ciao")
+
+    def test_rifiuta_url_gateway_con_query_o_path(self):
+        for url in ("https://gateway.example.test/percorso", "https://gateway.example.test?token=x"):
+            with self.subTest(url=url):
+                os.environ["JARVIS_GATEWAY_URL"] = url
+                with self.assertRaises(RuntimeError):
+                    self.module._gateway_chat("ciao")
+        os.environ["JARVIS_GATEWAY_URL"] = "https://gateway.example.test"
+
     def test_rifiuta_input_vuoto_o_troppo_lungo(self):
         with self.assertRaises(ValueError):
             self.module._gateway_chat(" ")
