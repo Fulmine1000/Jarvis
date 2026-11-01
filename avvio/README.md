@@ -12,7 +12,11 @@ Dalla cartella del progetto eseguire una sola volta:
 bash avvio/installa_avvio_mac.sh
 ```
 
-Dopo l'installazione Jarvis verrà avviato automaticamente al login dell'utente, senza dover aprire il Terminale e senza digitare `python jarvis.py`.
+Dopo l'installazione il guardiano vocale verrà avviato automaticamente al login dell'utente, senza dover aprire il Terminale. Quando riconosce la wake word, avvia la sessione di Jarvis. L'installer crea anche un token casuale per il gateway locale autenticato, se non esiste già.
+
+Il token e le impostazioni del gateway sono conservati in `~/.config/jarvis/gateway.env`, fuori dal repository, con permessi `600`; la cartella ha permessi `700`. Il LaunchAgent avvia un wrapper che carica questo file e passa le variabili al processo Jarvis. Il gateway continua ad ascoltare esclusivamente su `127.0.0.1:8767`: per Alexa servirà comunque un tunnel HTTPS protetto da Cloudflare Access.
+
+Per controllare il gateway dopo l'avvio, verificare il log `logs/guardiano_wake.log` e il log errori `logs/guardiano_wake_error.log`. Non copiare il token in chat o nel repository.
 
 ## Disinstallazione
 
