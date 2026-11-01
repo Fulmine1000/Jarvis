@@ -4,6 +4,11 @@ Agente verticale per Huawei P Smart 2019 (POT-LX1 / Android 10 / arm64-v8a).
 
 ## Architettura
 
+## Sicurezza del canale locale
+
+Il server HTTP dell'agente ascolta esclusivamente su `127.0.0.1:8765` (loopback). Il collegamento previsto è tramite `adb forward`/`adb reverse`; non è un servizio LAN e non deve essere pubblicato su Wi-Fi o Internet. Per il collegamento remoto futuro usare il gateway centrale autenticato, non esporre direttamente questo server Android.
+
+
 - Mac ↔ USB ↔ ADB ↔ Android agent
 - nessun IP del telefono richiesto
 - `adb forward` per il canale Mac → telefono
