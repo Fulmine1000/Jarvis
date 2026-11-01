@@ -32,3 +32,51 @@ Il gateway deve usare HTTPS e un segreto conservato fuori dal repository. Non es
 ## Attivazione
 
 La creazione della Skill, il collegamento alla funzione cloud e l'autorizzazione del dispositivo richiedono l'account Amazon Developer/AWS e l'intervento del proprietario. Fino a quel momento la documentazione descrive l'architettura, non un'integrazione gia operativa.
+
+## Primo componente operativo: gateway locale autenticato
+
+Il Core include ora `core/gateway_remoto.py`, integrato nel Kernel ma disattivato per impostazione predefinita.
+
+Per abilitarlo sul Mac:
+
+1. Generare un token casuale di almeno 32 caratteri e conservarlo fuori da Git.
+2. Impostare `JARVIS_GATEWAY_ENABLED=1` e `JARVIS_GATEWAY_TOKEN` nell'ambiente del processo Jarvis.
+3. Avviare Jarvis normalmente.
+
+Esempio macOS/Linux (il token viene generato e mostrato una sola volta nel terminale):
+
+```bash
+export JARVIS_GATEWAY_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export JARVIS_GATEWAY_ENABLED=1
+python3 jarvis.py
+```
+
+Su Windows PowerShell:
+
+```powershell
+$env:JARVIS_GATEWAY_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(48))"
+$env:JARVIS_GATEWAY_ENABLED = "1"
+python jarvis.py
+```
+
+Il gateway ascolta esclusivamente su `127.0.0.1:8767`. Espone solo:
+
+- `GET /v1/health`: stato minimo del Core, autenticato.
+- `POST /v1/chat`: invio di testo al motore conversazionale centrale, autenticato.
+
+Esempio di richiesta locale:
+
+```bash
+curl -H "Authorization: Bearer $JARVIS_GATEWAY_TOKEN" \
+     -H "Content-Type: application/json" \
+     http://127.0.0.1:8767/v1/chat \
+     -d '{"text":"Ciao Jarvis"}'
+```
+
+Sono rifiutati token mancanti/deboli, richieste non autenticate, JSON fuori schema, payload oltre 8 KiB e testo oltre 2.000 caratteri. Non esiste un endpoint per eseguire shell o comandi arbitrari. Il gateway viene arrestato insieme al Kernel. L'autenticazione non sostituisce TLS: il binding loopback è intenzionale. Per Alexa o accesso da fuori Mac serve ancora un tunnel/reverse proxy HTTPS autenticato e configurato separatamente.
+
+## Stato di questa fase
+
+- Implementato nel Core: gateway locale autenticato e opt-in.
+- Non ancora collegati: Alexa Skill, tunnel HTTPS pubblico, adapter Android M55 e sincronizzazione completa della sessione.
+- Nessun cambiamento all'HUD.
