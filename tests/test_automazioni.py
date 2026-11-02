@@ -36,6 +36,42 @@ class TestVisione(unittest.TestCase):
 
 
 class TestDialogo(unittest.TestCase):
+    def test_default_usa_router_automatico_e_modello_leggero(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            file_storia = os.path.join(cartella, "conversazioni.json")
+            with patch.dict(os.environ, {}, clear=True):
+                with patch.object(DialogoJarvis, "FILE_STORIA", file_storia):
+                    with patch.object(
+                        DialogoJarvis, "_trova_llama", return_value=(None, None)
+                    ):
+                        dialogo = DialogoJarvis()
+
+        self.assertEqual(dialogo.provider_richiesto, "auto")
+        self.assertEqual(dialogo.modello, "qwen2.5:0.5b")
+        self.assertEqual(
+            dialogo.modello_llama,
+            "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        )
+
+    def test_auto_seleziona_ollama_se_llama_cpp_non_e_disponibile(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            file_storia = os.path.join(cartella, "conversazioni.json")
+            with patch.dict(os.environ, {}, clear=True):
+                with patch.object(DialogoJarvis, "FILE_STORIA", file_storia):
+                    with patch.object(
+                        DialogoJarvis, "_trova_llama", return_value=(None, None)
+                    ):
+                        dialogo = DialogoJarvis()
+
+        with patch.object(
+            dialogo, "_trova_llama", return_value=(None, None)
+        ), patch.object(
+            dialogo,
+            "_raggiungibile",
+            side_effect=lambda endpoint, timeout=0.5: endpoint == dialogo.endpoint,
+        ):
+            self.assertEqual(dialogo._backend_disponibili(), ["ollama"])
+
     def test_stato(self):
         # Il test deve usare una cronologia isolata: la cronologia reale di
         # Jarvis è persistente e può contenere messaggi di sessioni precedenti.
