@@ -15,9 +15,9 @@ import urllib.request
 class DialogoJarvis:
     """Motore conversazionale IA di J.A.R.V.I.S.
 
-    Backend principale: llama.cpp locale. Ollama e API compatibili restano
-    disponibili come alternative esplicite. Nessuna chiave privata viene
-    salvata nella repository.
+    Router automatico: preferisce llama.cpp locale e poi Ollama quando
+    disponibili. Se nessun backend generativo è raggiungibile, usa il motore
+    conversazionale locale. Nessuna chiave privata viene salvata nella repository.
     """
 
     BASE_JARVIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +26,7 @@ class DialogoJarvis:
 
     def __init__(self, logger=None):
         self.logger = logger
-        self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "llama").strip().lower()
+        self.provider_richiesto = os.getenv("JARVIS_AI_PROVIDER", "auto").strip().lower()
         self.provider = self.provider_richiesto
         self.endpoint = os.getenv(
             "JARVIS_OLLAMA_URL", "http://127.0.0.1:11434/api/chat"
@@ -38,11 +38,11 @@ class DialogoJarvis:
         self.endpoint_compatibile = os.getenv("JARVIS_AI_URL", "").strip()
         self.modello = os.getenv(
             "JARVIS_AI_MODEL",
-            os.getenv("JARVIS_OLLAMA_MODEL", "qwen2.5:3b"),
+            os.getenv("JARVIS_OLLAMA_MODEL", "qwen2.5:0.5b"),
         ).strip()
         self.modello_llama = os.getenv(
             "JARVIS_LLAMA_MODEL",
-            "qwen2.5-3b-instruct-q4_k_m.gguf",
+            "qwen2.5-0.5b-instruct-q4_k_m.gguf",
         ).strip()
         self.api_key = os.getenv("JARVIS_AI_API_KEY", "").strip()
         self.timeout = self._intero_env("JARVIS_AI_TIMEOUT", 60, 5, 180)
@@ -91,9 +91,13 @@ class DialogoJarvis:
         self._carica_storia()
 
         # Precarica il server IA in background: il primo comando non deve
-        # aspettare anche il caricamento del modello da circa 2 GB.
+        # aspettare anche il caricamento del modello locale leggero.
         if self.provider_richiesto in {"llama", "llama_cpp", "llama.cpp"}:
             self._prepara_llama_background()
+        elif self.provider_richiesto in {"auto", "automatico"}:
+            binario, modello = self._trova_llama()
+            if binario and modello:
+                self._prepara_llama_background()
 
     @staticmethod
     def _intero_env(nome, predefinito, minimo, massimo):
