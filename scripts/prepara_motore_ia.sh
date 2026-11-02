@@ -6,9 +6,9 @@ IA_DIR="$ROOT/motore_ia"
 SRC_DIR="$IA_DIR/llama.cpp"
 BIN_DIR="$IA_DIR/bin"
 MODEL_DIR="$IA_DIR/modelli"
-MODEL_NAME="qwen2.5-3b-instruct-q4_k_m.gguf"
+MODEL_NAME="qwen2.5-0.5b-instruct-q4_k_m.gguf"
 MODEL="$MODEL_DIR/$MODEL_NAME"
-MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/$MODEL_NAME"
+MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/$MODEL_NAME"
 
 mkdir -p "$BIN_DIR" "$MODEL_DIR"
 
@@ -35,7 +35,7 @@ fi
 echo "=== Preparazione motore IA locale Jarvis ==="
 echo "Sistema: macOS Intel"
 echo "Motore: llama.cpp CPU"
-echo "Modello: Qwen2.5 3B Instruct Q4_K_M (~2 GB)"
+echo "Modello: Qwen2.5 0.5B Instruct Q4_K_M (~491 MB)"
 echo "Python: $PYTHON_BIN"
 
 if [ ! -d "$SRC_DIR/.git" ]; then
