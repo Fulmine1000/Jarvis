@@ -41,7 +41,7 @@ oppure:
 ./scripts/avvia_jarvis.sh
 ```
 
-Per la conversazione IA locale, Jarvis utilizza Ollama quando disponibile. Il modello predefinito è `llama3.2:3b`; endpoint e modello possono essere configurati tramite `JARVIS_OLLAMA_URL` e `JARVIS_OLLAMA_MODEL`.
+Per la conversazione IA locale, Jarvis seleziona automaticamente `llama.cpp` se trova il server e il modello locali; altrimenti prova Ollama quando è raggiungibile. Il modello Ollama predefinito è `qwen2.5:0.5b`, più adatto a sistemi con poca RAM; endpoint e modello possono essere configurati tramite `JARVIS_OLLAMA_URL` e `JARVIS_OLLAMA_MODEL`. Il modello da 0.5B è leggero ma meno capace dei modelli più grandi.
 
 ## Motore IA su macOS High Sierra
 
@@ -56,7 +56,7 @@ cd ~/Desktop/Jarvis
 bash scripts/prepara_motore_ia.sh
 ```
 
-Il preparatore compila llama.cpp per Intel/High Sierra e scarica il modello Qwen2.5-0.5B-Instruct Q4_0, che supporta l'italiano. citeturn2search0turn2search3
+Il preparatore compila llama.cpp per Intel/High Sierra e scarica Qwen2.5-0.5B-Instruct Q4_K_M (circa 491 MB), un modello compatto adatto a prove su hardware con memoria limitata. citeturn2search0turn2search3
 
 Dopo la preparazione, Jarvis avvia automaticamente il server locale quando serve.
  
