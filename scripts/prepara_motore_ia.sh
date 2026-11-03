@@ -111,7 +111,7 @@ if [ ! -f "$MODEL" ]; then
     echo "Uso il modello gia scaricato in /tmp."
     cp "/tmp/$MODEL_NAME" "$MODEL"
   else
-    echo "Scarico il modello Qwen2.5 3B Instruct Q4_K_M..."
+    echo "Scarico il modello Qwen2.5 0.5B Instruct Q4_K_M..."
     curl -L --fail --progress-bar -o "$MODEL" "$MODEL_URL"
   fi
 fi
