@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import socket
 import subprocess
 import tempfile
@@ -257,8 +258,18 @@ class DialogoJarvis:
                 self.modello_llama,
             ),
         ).strip()
+        windows = platform.system() == "Windows"
+        if windows and not binario.lower().endswith(".exe"):
+            candidato_windows = binario + ".exe"
+            if os.path.isfile(candidato_windows):
+                binario = candidato_windows
+
+        binario_disponibile = os.path.isfile(binario)
+        if binario_disponibile and not windows:
+            binario_disponibile = os.access(binario, os.X_OK)
+
         return (
-            binario if os.path.isfile(binario) and os.access(binario, os.X_OK) else None,
+            binario if binario_disponibile else None,
             modello if os.path.isfile(modello) else None,
         )
 
