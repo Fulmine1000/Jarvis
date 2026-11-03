@@ -72,6 +72,31 @@ class TestDialogo(unittest.TestCase):
         ):
             self.assertEqual(dialogo._backend_disponibili(), ["ollama"])
 
+    def test_trova_llama_riconosce_llama_server_exe_su_windows(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            file_storia = os.path.join(cartella, "conversazioni.json")
+            with patch.dict(
+                os.environ, {"JARVIS_AI_PROVIDER": "locale"}, clear=True
+            ):
+                with patch.object(DialogoJarvis, "BASE_JARVIS", cartella):
+                    with patch.object(DialogoJarvis, "FILE_STORIA", file_storia):
+                        dialogo = DialogoJarvis()
+
+            def file_presente(percorso):
+                return percorso.endswith("llama-server.exe") or percorso.endswith(
+                    "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+                )
+
+            with patch(
+                "core.dialogo.platform.system", return_value="Windows"
+            ), patch(
+                "core.dialogo.os.path.isfile", side_effect=file_presente
+            ):
+                binario, modello = dialogo._trova_llama()
+
+        self.assertTrue(binario.endswith("llama-server.exe"))
+        self.assertTrue(modello.endswith("qwen2.5-0.5b-instruct-q4_k_m.gguf"))
+
     def test_stato(self):
         # Il test deve usare una cronologia isolata: la cronologia reale di
         # Jarvis è persistente e può contenere messaggi di sessioni precedenti.
