@@ -72,19 +72,32 @@ class TestWakeWordFrammenti(unittest.TestCase):
     def test_trascrizioni_non_rinnovano_timeout_della_sessione(self):
         from unittest.mock import patch
 
-        with patch("voce.wake_word.time.time", return_value=100.0):
+        with patch("voce.wake_word.time.monotonic", return_value=100.0):
             self.wake.controlla("jarvis")
-        with patch("voce.wake_word.time.time", return_value=104.0):
+        with patch("voce.wake_word.time.monotonic", return_value=104.0):
             parziale = self.wake.controlla("su")
         self.assertTrue(parziale["parziale"])
         self.assertEqual(self.wake.ultimo_rilevamento, 100.0)
 
         # Scaduti i 10 secondi originali, una frase ambientale non è comando.
-        with patch("voce.wake_word.time.time", return_value=111.0):
+        with patch("voce.wake_word.time.monotonic", return_value=111.0):
             risultato = self.wake.controlla("già il rischio risuona")
         self.assertFalse(risultato["attivato"])
         self.assertEqual(risultato["comando"], "")
         self.assertFalse(self.wake.attivo)
+
+    def test_timeout_indipendente_da_cambiamenti_ora_sistema(self):
+        from unittest.mock import patch
+
+        with patch("voce.wake_word.time.monotonic", return_value=50.0):
+            self.wake.controlla("jarvis")
+        # L'orologio civile può saltare avanti/indietro: il timer usa monotonic.
+        with patch("voce.wake_word.time.time", return_value=999999.0):
+            with patch("voce.wake_word.time.monotonic", return_value=55.0):
+                self.assertTrue(self.wake.verifica_timeout())
+        with patch("voce.wake_word.time.time", return_value=1.0):
+            with patch("voce.wake_word.time.monotonic", return_value=61.0):
+                self.assertFalse(self.wake.verifica_timeout())
 
 
 if __name__ == "__main__":
