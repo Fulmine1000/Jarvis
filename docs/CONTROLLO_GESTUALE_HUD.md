@@ -1,46 +1,34 @@
-# Controllo gestuale HUD
+# Controllo gestuale HUD e ologramma 3D
 
-Il controllo gestuale si integra nell'applicazione Jarvis esistente e non crea
-una seconda applicazione. I fotogrammi vengono elaborati localmente in memoria;
-non vengono salvati video o immagini.
+Il visualizzatore 3D usa **MediaPipe Tasks Vision — Hand Landmarker**, lo stesso approccio basato sui landmark delle mani mostrato nel riferimento Gesture Synth.
 
-## Gesti iniziali
+## Rilevamento
 
-- Mano aperta: rilevamento/presenza della mano.
-- Pizzico pollice-indice: evento di selezione/afferra.
-- Movimento laterale: evento di scorrimento.
-- Due mani che si separano/avvicinano: evento di zoom avanti/indietro.
+- Webcam richiesta dal browser soltanto quando si apre il visualizzatore.
+- Due mani contemporaneamente, con 21 landmark per mano.
+- Scheletro e punti delle dita disegnati sopra l’anteprima della webcam.
+- Inferenza in un Web Worker con delegate CPU: il rendering dell’ologramma resta separato dal rilevamento.
+- Risoluzione webcam ridotta (256×192), massimo circa 10 fotogrammi al secondo per limitare il carico sul PC.
+- I fotogrammi vengono elaborati localmente in memoria; non vengono salvati né inviati a un server. Il browser scarica da CDN il codice WASM e il modello MediaPipe al primo avvio.
 
-Gli eventi compaiono nel flusso eventi dell'HUD e nel log. Questa prima integrazione
-riconosce i gesti, ma non simula ancora clic del mouse né modifica automaticamente
-ogni pannello QML: le azioni visive specifiche vanno calibrate sul comportamento
-reale dell'HUD e sui gesti del video di riferimento.
+## Gesti dell’ologramma
 
-## Attivazione
+- **Pizzico pollice-indice:** attiva/disattiva l’impulso del nucleo.
+- **Una mano:** movimento laterale per ruotare l’ologramma.
+- **Due mani:** allontanandole/avvicinandole si regola lo zoom.
+- **Mano aperta:** presenza e tracciamento, senza attivare comandi di sistema.
 
-**Visualizzatore 3D:** non richiede pacchetti Python. Avvia Jarvis e apri **APRI MODELLO 3D**: Chrome richiede il permesso per la fotocamera e riconosce le mani nel browser tramite MediaPipe JavaScript. È necessaria Internet per caricare le librerie dalla CDN; i fotogrammi non vengono salvati.
+Le soglie sono normalizzate rispetto al palmo per ridurre i falsi positivi dovuti alla distanza dalla webcam.
 
-**Controllo gestuale dell'HUD:** è una funzione Python separata e opzionale. Per attivarla all'avvio, installa le dipendenze e imposta `JARVIS_GESTI=1`:
+## Avvio e privacy
 
-```bash
-cd ~/Desktop/Jarvis
-source venv/bin/activate
-python -m pip install -r requirements-gesti.txt
-JARVIS_GESTI=1 python jarvis.py
-```
+1. Avvia Jarvis.
+2. Pronuncia o digita **“apri ologramma 3D”**.
+3. Consenti l’accesso alla webcam nel browser.
+4. Mantieni le mani interamente visibili e illuminate.
 
-Queste dipendenze Python possono non essere compatibili con ogni versione di Python o sistema operativo.
+Il viewer è servito soltanto su `127.0.0.1`. La webcam si arresta quando si chiude la pagina. Per il caricamento iniziale del motore e del modello è necessaria una connessione Internet; il riconoscimento delle immagini avviene sul PC.
 
-## Installazione e compatibilità
+## Compatibilità
 
-Le dipendenze sono separate da `requirements.txt` perché MediaPipe e OpenCV
-potrebbero non avere pacchetti compatibili con tutte le combinazioni di Python,
-macOS High Sierra 10.13 e Intel. Provare:
-
-```bash
-python -m pip install -r requirements-gesti.txt
-python -c "import cv2, mediapipe; print(cv2.__version__, mediapipe.__version__)"
-```
-
-Se l'installazione fallisce, non installare versioni casuali in `requirements.txt`:
-il modulo è opzionale e il resto di Jarvis continua a funzionare senza di esso.
+Non occorre installare MediaPipe o OpenCV in Python per il viewer 3D. Il modulo Python opzionale `interfaccia/gesti.py` resta separato e non è necessario per questa funzione. Il resto di Jarvis continua a funzionare anche se il browser non supporta webcam, WebAssembly o Web Worker.
