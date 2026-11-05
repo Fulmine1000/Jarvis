@@ -14,6 +14,7 @@ header strong{font-size:16px}
 #trackingError{display:none;max-width:340px;overflow-wrap:anywhere;color:#ffb08f;font-size:11px;margin-top:6px;white-space:normal}
 #handCamera{display:none!important}
 #cameraPreview{position:absolute;z-index:2;right:16px;bottom:16px;width:180px;height:135px;object-fit:cover;transform:scaleX(-1);border:1px solid #1b8994;background:#02080e;opacity:.9}
+#handOverlay{position:absolute;z-index:3;right:16px;bottom:16px;width:180px;height:135px;transform:scaleX(-1);pointer-events:none}
 #debugState{color:#70aeb8;font-size:10px;max-width:330px;overflow-wrap:anywhere}
 #scene{width:100vw;height:100vh;display:block}
 .panel{position:fixed!important;z-index:99999!important;left:12px!important;bottom:12px!important;width:min(440px,calc(100vw - 24px))!important;max-width:none!important;max-height:42vh;overflow:auto;padding:14px 16px!important;border:2px solid #48fff2!important;border-radius:8px;background:rgba(1,10,18,.97)!important;box-shadow:0 0 18px #087e8b;line-height:1.7;color:#eaffff!important;display:block!important;visibility:visible!important;opacity:1!important}
@@ -42,6 +43,7 @@ small{color:#70aeb8}
   // La mini-anteprima rende verificabile che il video arrivi davvero al riconoscitore.
 </script>
 <video id="cameraPreview" playsinline muted autoplay></video>
+<canvas id="handOverlay" width="180" height="135" aria-hidden="true"></canvas>
 <script>
 (() => {
   "use strict";
@@ -195,6 +197,8 @@ small{color:#70aeb8}
     setCameraStatus("ERRORE ASINCRONO", "#ff9b73", String(reason).slice(0,500));
   });
   const preview = document.getElementById("cameraPreview");
+  const handOverlay = document.getElementById("handOverlay");
+  const handCtx = handOverlay.getContext("2d");
   let processedFrames = 0;
   let lastDetectedHands = 0;
   let firstFrameAt = 0;
@@ -204,6 +208,16 @@ small{color:#70aeb8}
   let previousHandX = null;
 
   function distance2D(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+  const HAND_CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  function drawHandOverlay(hands){
+    handCtx.clearRect(0,0,handOverlay.width,handOverlay.height);
+    for(const hand of hands){
+      handCtx.lineWidth=1.5; handCtx.strokeStyle="#48fff2"; handCtx.shadowColor="#48fff2"; handCtx.shadowBlur=4; handCtx.beginPath();
+      for(const [a,b] of HAND_CONNECTIONS){if(hand[a]&&hand[b]){handCtx.moveTo(hand[a].x*handOverlay.width,hand[a].y*handOverlay.height);handCtx.lineTo(hand[b].x*handOverlay.width,hand[b].y*handOverlay.height);}}
+      handCtx.stroke(); handCtx.shadowBlur=0;
+      for(let i=0;i<hand.length;i++){const p=hand[i];handCtx.beginPath();handCtx.arc(p.x*handOverlay.width,p.y*handOverlay.height,(i===4||i===8)?3:2,0,Math.PI*2);handCtx.fillStyle=(i===4||i===8)?"#7dff9d":"#d7ffff";handCtx.fill();}
+    }
+  }
   function setCameraStatus(message, color, details="") {
     cameraState.textContent = message;
     cameraState.style.color = color;
@@ -215,6 +229,7 @@ small{color:#70aeb8}
   }
   function handleHandResults(results) {
     const found = results.multiHandLandmarks || [];
+    drawHandOverlay(found);
     lastDetectedHands = found.length;
     debugState.textContent = "RILEVAMENTO: " + found.length + " mano/i · fotogrammi elaborati: " + processedFrames + " · motore " + (handWorkerReady ? "CPU worker" : "avvio worker");
     const now = performance.now();
@@ -287,7 +302,7 @@ small{color:#70aeb8}
         throw new Error("Questo browser non supporta Worker o createImageBitmap.");
       }
       debugState.textContent = "AVVIO WORKER · caricamento modelli fuori dal thread grafico…";
-      handWorker = new Worker("/ologramma_3d_worker.js");
+      handWorker = new Worker("/ologramma_3d_worker.js", {type:"module"});
       const readyPromise = new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error("Timeout caricamento worker/modelli")), 90000);
         handWorker.addEventListener("message", function onFirstMessage(event) {
@@ -382,8 +397,8 @@ small{color:#70aeb8}
     }
     try {
       setCameraStatus("CAMERA: RICHIESTA PERMESSO…", "#48fff2");
-      // Webcam nativa e inferenza CPU: evita il percorso WebGL MediaPipe che
-      // causava GLctx.createTexture undefined.
+      // Webcam nativa a bassa risoluzione. MediaPipe Tasks Vision gira in un Web Worker
+      // con delegate CPU, senza bloccare il rendering dell’ologramma.
       cameraStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
