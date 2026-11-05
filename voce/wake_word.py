@@ -35,6 +35,8 @@ class WakeWordJarvis:
 
         self.prefissi_attivazione = ["ehi", "hey"]
         self.attivo = False
+        # Usa un orologio monotono: la sincronizzazione dell'ora di Windows
+        # non deve allungare o abbreviare la finestra di ascolto.
         self.ultimo_rilevamento = None
         self.tempo_attivo = max(1, int(timeout))
         self.ultimo_comando = ""
@@ -88,12 +90,9 @@ class WakeWordJarvis:
 
             # La wake word è già attiva: il comando può arrivare in un
             # segmento audio separato. Tuttavia Vosk può emettere frammenti
-            # isolati ("su", "georges", ecc.) che non devono essere eseguiti.
-            # Manteniamo la finestra attiva e aspettiamo una frase completa.
+            # isolati che non devono essere eseguiti.
             if len(frase.split()) == 1 and frase not in self.COMANDI_SINGOLA_PAROLA:
-                # Non rinnovare il timeout su frammenti casuali: altrimenti
-                # il rumore/il parlato ambientale può mantenere la sessione
-                # aperta indefinitamente e far eseguire frasi non intenzionali.
+                # Non rinnovare il timeout su frammenti casuali.
                 self.ultimo_comando = ""
                 return {
                     "attivato": True,
@@ -134,12 +133,12 @@ class WakeWordJarvis:
 
     def attiva(self):
         self.attivo = True
-        self.ultimo_rilevamento = time.time()
+        self.ultimo_rilevamento = time.monotonic()
 
     def verifica_timeout(self):
         if not self.attivo:
             return False
-        if time.time() - self.ultimo_rilevamento > self.tempo_attivo:
+        if time.monotonic() - self.ultimo_rilevamento > self.tempo_attivo:
             self.disattiva()
             return False
         return True
