@@ -1,66 +1,51 @@
 "use strict";
-let detector = null;
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
+let landmarker = null;
 let busy = false;
-
+let lastTimestamp = 0;
 self.onmessage = async (event) => {
   const data = event.data || {};
   if (data.type === "init") {
     try {
-      importScripts(
-        "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js",
-        "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.17.0/dist/tf-converter.min.js",
-        "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.17.0/dist/tf-backend-cpu.min.js",
-        "https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"
-      );
-      await self.tf.setBackend("cpu");
-      await self.tf.ready();
-      detector = await self.handPoseDetection.createDetector(
-        self.handPoseDetection.SupportedModels.MediaPipeHands,
-        {
-          runtime: "tfjs",
-          modelType: "lite",
-          maxHands: 2,
-          detectorModelUrl: "/models/detector/model.json",
-          landmarkModelUrl: "/models/landmark/model.json"
-        }
-      );
+      const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm");
+      landmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "CPU"
+        },
+        runningMode: "VIDEO",
+        numHands: 2,
+        minHandDetectionConfidence: 0.55,
+        minHandPresenceConfidence: 0.50,
+        minTrackingConfidence: 0.50
+      });
       self.postMessage({type:"ready"});
     } catch (error) {
       self.postMessage({type:"error", message:String(error && (error.stack || error.message) || error)});
     }
     return;
   }
-
-  if (data.type === "frame" && detector && !busy && data.bitmap) {
-    busy = true;
-    const bitmap = data.bitmap;
-    try {
-      const predictions = await detector.estimateHands(bitmap, {flipHorizontal:false});
-      const order = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip",
-        "index_finger_mcp","index_finger_pip","index_finger_dip","index_finger_tip",
-        "middle_finger_mcp","middle_finger_pip","middle_finger_dip","middle_finger_tip",
-        "ring_finger_mcp","ring_finger_pip","ring_finger_dip","ring_finger_tip",
-        "pinky_finger_mcp","pinky_finger_pip","pinky_finger_dip","pinky_finger_tip"];
-      const hands = predictions.map(hand => {
-        const points = hand.keypoints || [];
-        const byName = Object.fromEntries(points.filter(p => p.name).map(p => [p.name,p]));
-        return order.map((name,index) => {
-          const p = byName[name] || points[index];
-          if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return {x:0,y:0};
-          return {
-            x: Math.max(0,Math.min(1,p.x / bitmap.width)),
-            y: Math.max(0,Math.min(1,p.y / bitmap.height))
-          };
-        });
-      });
-      self.postMessage({type:"result", hands, points: predictions[0] && predictions[0].keypoints ? predictions[0].keypoints.length : 0});
-    } catch (error) {
-      self.postMessage({type:"error", message:String(error && (error.stack || error.message) || error)});
-    } finally {
-      try { bitmap.close(); } catch (_) {}
-      busy = false;
-    }
-  } else if (data.bitmap) {
-    try { data.bitmap.close(); } catch (_) {}
+  if (data.type !== "frame" || !landmarker || busy || !data.bitmap) {
+    if (data.bitmap) { try { data.bitmap.close(); } catch (_) {} }
+    return;
+  }
+  busy = true;
+  const bitmap = data.bitmap;
+  try {
+    const timestamp = Math.max(performance.now(), lastTimestamp + 1);
+    lastTimestamp = timestamp;
+    const result = landmarker.detectForVideo(bitmap, timestamp);
+    const hands = (result.landmarks || []).map(points => points.map(point => ({
+      x: Math.max(0, Math.min(1, point.x)),
+      y: Math.max(0, Math.min(1, point.y)),
+      z: Number.isFinite(point.z) ? point.z : 0
+    })));
+    self.postMessage({type:"result", hands, handedness:result.handedness || [], points:hands.reduce((n, hand) => n + hand.length, 0)});
+  } catch (error) {
+    self.postMessage({type:"error", message:String(error && (error.stack || error.message) || error)});
+  } finally {
+    try { bitmap.close(); } catch (_) {}
+    busy = false;
   }
 };
+self.addEventListener("close", () => { try { if (landmarker) landmarker.close(); } catch (_) {} });
