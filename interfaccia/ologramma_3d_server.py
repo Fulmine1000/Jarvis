@@ -186,8 +186,8 @@ def _handler_factory():
 def avvia_server(port: int = _PORT) -> str:
     """Avvia il server una sola volta e restituisce l'URL locale del viewer."""
     global _SERVER, _SERVER_THREAD, _PORT
-    # Scarica i modelli prima di aprire il browser, così il viewer usa solo URL locali.
-    _prepara_modelli()
+    # Il modello MediaPipe viene caricato dal worker del browser; il server locale
+    # serve soltanto pagina e worker, senza download preventivi.
     with _LOCK:
         if _SERVER is not None:
             return f"http://127.0.0.1:{_PORT}/"
