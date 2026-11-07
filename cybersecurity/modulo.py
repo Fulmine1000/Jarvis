@@ -45,7 +45,7 @@ class CybersecurityJarvis:
             "modulo": "Cybersecurity Jarvis",
             "stato": "pronto",
             "sistema": platform.system(),
-            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only"],
+            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only", "audit processi e servizi locali", "audit avvii automatici macOS", "audit permessi file sensibili"],
             "porte_consentite": list(self.PORTE_CONSENTITE),
             "host_in_attesa_di_conferma": self._host_in_attesa,
             "hardware_radio_nfc_ir": "richiede accessori esterni compatibili",
@@ -56,6 +56,21 @@ class CybersecurityJarvis:
         """Restituisce la postura di sicurezza macOS in sola lettura."""
         from .postura_mac import controlla_postura_mac
         return controlla_postura_mac()
+
+    def audit_processi_servizi(self):
+        """Inventario read-only di processi e porte locali in ascolto."""
+        from .audit_host import audit_processi_servizi
+        return audit_processi_servizi()
+
+    def audit_avvii_mac(self):
+        """Inventario statico dei LaunchAgents/LaunchDaemons macOS."""
+        from .audit_host import audit_avvii_mac
+        return audit_avvii_mac()
+
+    def audit_permessi_sensibili(self):
+        """Controlla i permessi di file e directory che possono contenere segreti."""
+        from .audit_host import audit_permessi_sensibili
+        return audit_permessi_sensibili()
 
     def analizza_rete_locale(self):
         nome = socket.gethostname()
