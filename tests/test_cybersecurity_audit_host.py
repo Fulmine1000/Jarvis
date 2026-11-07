@@ -65,7 +65,7 @@ class TestAuditAvviiMac(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "LaunchAgents"
             root.mkdir()
-            target = root / "target.plist"
+            target = Path(tmp) / "target.plist"
             with target.open("wb") as file:
                 plistlib.dump({"Label": "target"}, file)
             link = root / "linked.plist"
