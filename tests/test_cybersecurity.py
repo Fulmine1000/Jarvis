@@ -17,6 +17,18 @@ class TestCybersecurityJarvis(unittest.TestCase):
         self.assertEqual(risultato["host"], "mac-test")
         self.assertIn("sola lettura", risultato["tipo_controllo"])
 
+    def test_rapporto_sicurezza_non_dichiara_ok_se_un_audit_e_parziale(self):
+        self.modulo.controlla_sicurezza_mac = lambda: {"ok": True}
+        self.modulo.audit_processi_servizi = lambda: {"ok": False, "errori": ["permesso negato"]}
+        self.modulo.audit_avvii_mac = lambda: {"ok": True}
+        self.modulo.audit_permessi_sensibili = lambda: {"ok": True}
+
+        risultato = self.modulo.rapporto_sicurezza()
+
+        self.assertFalse(risultato["ok"])
+        self.assertTrue(risultato["parziale"])
+        self.assertEqual(risultato["controlli_parziali"], ["processi_servizi"])
+
     def test_rifiuta_ip_pubblico(self):
         self.assertIn("solo IP privati", self.modulo.richiedi_scansione_host("8.8.8.8"))
         self.assertIsNone(self.modulo._host_in_attesa)
