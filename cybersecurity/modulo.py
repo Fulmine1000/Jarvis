@@ -236,7 +236,14 @@ class CybersecurityJarvis:
                 return {"ok": False, "errore": "Il percorso non indica una cartella esistente."}
             file_esaminati, file_con_hash = 0, 0
             problemi, errori = [], []
-            for cartella, directory, nomi in os.walk(str(radice), followlinks=False):
+            def registra_errore_directory(errore):
+                percorso_errore = getattr(errore, "filename", None)
+                dettaglio = str(percorso_errore or type(errore).__name__)
+                errori.append(f"Directory non leggibile: {dettaglio}")
+
+            for cartella, directory, nomi in os.walk(
+                str(radice), followlinks=False, onerror=registra_errore_directory
+            ):
                 directory[:] = sorted(d for d in directory if d not in self.ESCLUSIONI_DIRECTORY and not d.startswith("."))
                 for nome in sorted(nomi):
                     path = Path(cartella) / nome
@@ -258,7 +265,7 @@ class CybersecurityJarvis:
                             problemi.append({"file": str(path), "tipo": "avvertenza", **item})
                 if file_esaminati > self.MASSIMO_FILE_AUDIT:
                     break
-            risultato = {"ok": True, "cartella": str(radice), "file_esaminati": min(file_esaminati, self.MASSIMO_FILE_AUDIT), "file_con_hash": file_con_hash, "problemi": problemi[:300], "errori": errori, "nota": "controllo euristico statico: verificare manualmente i risultati; nessun file eseguito"}
+            risultato = {"ok": not bool(errori), "parziale": bool(errori), "cartella": str(radice), "file_esaminati": min(file_esaminati, self.MASSIMO_FILE_AUDIT), "file_con_hash": file_con_hash, "problemi": problemi[:300], "errori": errori, "nota": "controllo euristico statico: verificare manualmente i risultati; nessun file eseguito"}
             self._ultimo_risultato = risultato
             self._log(f"Controllo statico progetto completato: {radice} ({file_con_hash} file).")
             return risultato
