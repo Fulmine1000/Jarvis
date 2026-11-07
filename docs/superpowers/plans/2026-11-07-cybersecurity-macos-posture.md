@@ -98,6 +98,19 @@
 
 - Test-first verificato: i test dedicati hanno fallito prima delle rispettive implementazioni e sono passati dopo.
 - GitHub Actions: `compileall`, `pip check` e suite completa superati su Python 3.11, 3.12, 3.13 e 3.15.
-- Ultimo conteggio osservato: 332 test, 1 skipped, nessun errore (Python 3.11).
+- Conteggio aggiornato dopo gli audit locali e lo scanner opzionale: 344 test, 1 skipped, nessun errore (Python 3.11).
 - Verifica fisica su macOS High Sierra non eseguita: i runner GitHub usano Ubuntu; occorre provarla sul Mac per confermare gli output reali dei comandi di sistema.
 - CodeRabbit non è esposto come strumento eseguibile in questa sessione; revisione finale effettuata manualmente sui file modificati.
+
+## Fase successiva completata: audit host e antimalware opzionale
+
+- [x] Test-first per inventario processi e socket in ascolto.
+- [x] Test-first per inventario plist LaunchAgents/LaunchDaemons.
+- [x] Test-first per permessi di directory SSH e file sensibili.
+- [x] Test-first per ClamAV assente, pulito, infetto e timeout.
+- [x] Facciata CybersecurityJarvis e routing dei comandi vocali.
+- [x] Pulsante CYBER aggiunto all'HUD.
+- [x] Documentazione dedicata in `docs/CYBERSECURITY_DIFENSIVA.md`.
+- [x] CI finale: run `42369684454`, 344 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
+- [ ] Prova fisica su macOS High Sierra: in attesa di esecuzione sul Mac dell'utente.
+- [ ] Verifica ClamAV sul Mac: dipende dal fatto che `clamscan` sia già installato.
