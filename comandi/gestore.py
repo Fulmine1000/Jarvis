@@ -402,6 +402,30 @@ class GestoreComandi:
         # Cybersecurity difensiva: inventario passivo per default; le verifiche
         # TCP richiedono una richiesta esplicita e una seconda conferma vocale.
         cyber = getattr(k, "cybersecurity", None) if k else None
+        if c in (
+            "controlla sicurezza mac",
+            "controlla sicurezza del mac",
+            "controlla protezioni macos",
+            "controlla protezioni mac os",
+            "verifica sicurezza mac",
+            "verifica sicurezza del mac",
+        ):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            risultato = cyber.controlla_sicurezza_mac()
+            if not risultato.get("ok"):
+                return risultato.get("errore", "Verifica sicurezza macOS non completata.")
+            righe = [
+                f"{item.get('nome', 'Controllo')}: {item.get('stato', 'non verificabile')}"
+                for item in risultato.get("controlli", [])
+            ]
+            dettagli = ". ".join(righe) if righe else "Nessun controllo disponibile"
+            return (
+                f"Verifica sicurezza macOS completata su {risultato.get('sistema', 'Mac')}. "
+                + dettagli
+                + ". "
+                + risultato.get("nota", "Verifica in sola lettura.")
+            )
         if c in ("stato cybersecurity", "cybersecurity", "strumenti cybersecurity", "modalità cybersecurity", "modalita cybersecurity"):
             if not cyber:
                 return "Modulo cybersecurity non disponibile."
