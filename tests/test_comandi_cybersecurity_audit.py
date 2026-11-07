@@ -40,7 +40,7 @@ class TestComandiAuditCybersecurity(unittest.TestCase):
         self.assertIn("permessi troppo aperti", risposta)
 
     def test_comando_scansione_malware(self):
-        risposta = self.gestore._esegui_raw("scansiona malware /tmp/esempio.bin")
+        risposta = self.gestore._esegui_cybersecurity_file_command("scansiona malware /tmp/esempio.bin")
         self.assertIn("nessuna minaccia rilevata", risposta)
         self.assertIn("/tmp/esempio.bin", risposta)
 
