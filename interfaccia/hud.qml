@@ -204,20 +204,26 @@ ApplicationWindow {
         Text { x: 16; y: 39; text: "DATI IN ATTESA DI RICHIESTA"; color: "#8ceeff"; font.pixelSize: 9; font.bold: true }
         Text { x: 16; y: 56; text: "Chiedi a Jarvis le condizioni locali"; color: "#62b8d5"; font.pixelSize: 10 }
         Button {
-            x: 16; y: 68; width: 88; height: 28; text: "METEO"
+            x: 16; y: 68; width: 62; height: 28; text: "METEO"
             onClicked: bridge.executeCommand("meteo")
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 10; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
         Button {
-            x: 112; y: 68; width: 100; height: 28; text: "NOTIZIE"
+            x: 84; y: 68; width: 68; height: 28; text: "NOTIZIE"
             onClicked: bridge.executeCommand("notizie")
-            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 10; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
         Button {
-            x: 218; y: 68; width: 78; height: 28; text: "NUCLEO 3D"
+            x: 158; y: 68; width: 68; height: 28; text: "NUCLEO 3D"
             onClicked: bridge.executeCommand("apri ologramma 3d")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 8; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
+        }
+        Button {
+            x: 232; y: 68; width: 64; height: 28; text: "CYBER"
+            onClicked: bridge.executeCommand("controlla processi e servizi")
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
