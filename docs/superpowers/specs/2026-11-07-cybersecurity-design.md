@@ -35,6 +35,18 @@ Il branch `master` contiene già `cybersecurity/modulo.py`, collegato a `KernelJ
 
 Aggiungere un controllo read-only per lo stato del firewall applicazioni, FileVault, Gatekeeper e System Integrity Protection. Eseguire solo gli strumenti di sistema macOS previsti, con argomenti fissi, `shell=False`, timeout breve, nessuna elevazione dei privilegi e gestione esplicita degli output non riconosciuti. Su sistemi non macOS il controllo deve dichiararsi non applicabile. Il comando vocale sarà `controlla sicurezza Mac` e un alias `controlla protezioni macOS`.
 
+## Stato aggiornato — 7 novembre 2026
+
+Sono implementati e collegati al kernel/comandi vocali:
+- baseline macOS read-only per firewall applicazioni, FileVault, Gatekeeper e SIP;
+- inventario locale di processi e socket TCP/UDP in ascolto tramite psutil, con limiti e indicatori euristici;
+- lettura statica dei LaunchAgents/LaunchDaemons macOS;
+- controllo dei permessi POSIX di directory SSH, chiavi private note, credenziali AWS e file .env standard;
+- scansione locale opzionale con ClamAV, solo se il binario è già installato, con timeout e limiti, senza rimozione o quarantena;
+- pulsante CYBER nell'HUD e documentazione in `docs/CYBERSECURITY_DIFENSIVA.md`.
+
+La CI completa ha eseguito 344 test (1 skipped) con esito positivo su Python 3.11, 3.12, 3.13 e 3.15. I runner sono Ubuntu: il test fisico del Mac Intel/High Sierra resta obbligatorio prima di considerare validate le uscite dei comandi macOS e la disponibilità reale di ClamAV.
+
 ## Evoluzione prevista
 
 1. Baseline macOS read-only.
