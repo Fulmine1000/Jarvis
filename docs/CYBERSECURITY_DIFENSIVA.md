@@ -7,6 +7,7 @@ Jarvis offre una raccolta locale di controlli di sicurezza in sola lettura. Le f
 | Comando | Cosa controlla | Effetti |
 |---|---|---|
 | `stato cybersecurity` | Capacità disponibili e limiti | Nessuno |
+| `rapporto cybersecurity` | Esegue insieme postura macOS, processi/porte, avvii e permessi sensibili | Sola lettura; non esegue ClamAV automaticamente |
 | `controlla sicurezza mac` | Firewall applicazioni, FileVault, Gatekeeper, SIP | Legge lo stato; non cambia impostazioni |
 | `analizza la mia rete` | Nome host, IP locali e interfacce | Nessun pacchetto inviato |
 | `controlla processi e servizi` | Metadati processi e socket locali in ascolto | Non termina processi e non effettua scansioni |
