@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import re
+from pathlib import Path
 
 
 class GestoreComandi:
@@ -425,6 +426,56 @@ class GestoreComandi:
                 + dettagli
                 + ". "
                 + risultato.get("nota", "Verifica in sola lettura.")
+            )
+        if c in ("controlla processi e servizi", "controlla processi", "audit processi", "controlla porte in ascolto"):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            risultato = cyber.audit_processi_servizi()
+            if not risultato.get("ok"):
+                return risultato.get("errore", "Audit processi e servizi non disponibile.")
+            indicatori = len(risultato.get("indicatori", []))
+            listener = risultato.get("porte_in_ascolto", [])
+            esposti = sum(1 for item in listener if item.get("esposto_su_tutte_le_interfacce"))
+            return (
+                f"Audit locale completato: {risultato.get('processi_esaminati', 0)} processi esaminati, "
+                f"{len(listener)} porte in ascolto, {esposti} in ascolto su tutte le interfacce, "
+                f"{indicatori} percorsi di eseguibili da verificare. "
+                "Nessun processo è stato terminato e nessun pacchetto è stato inviato."
+            )
+        if c in ("controlla avvii automatici", "audit avvii", "controlla programmi all avvio", "controlla programmi all'avvio"):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            risultato = cyber.audit_avvii_mac()
+            if not risultato.get("ok"):
+                return risultato.get("errore", "Audit avvii automatici non disponibile.")
+            elementi = risultato.get("elementi", [])
+            sospetti = [item for item in elementi if item.get("indicatori")]
+            nomi = ", ".join(item.get("etichetta", "elemento sconosciuto") for item in sospetti[:5])
+            dettaglio = ("Elementi da verificare: " + nomi + ".") if nomi else "Nessun indicatore euristico rilevato."
+            return (
+                f"Audit avvii completato: {len(elementi)} elementi esaminati; "
+                f"{len(sospetti)} da verificare. {dettaglio} "
+                "Non ho avviato, fermato o modificato programmi."
+            )
+        if c in ("controlla permessi sensibili", "verifica permessi ssh", "audit permessi", "controlla permessi file sensibili"):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            risultato = cyber.audit_permessi_sensibili()
+            if not risultato.get("ok"):
+                return risultato.get("errore", "Audit permessi non disponibile.")
+            controlli = risultato.get("controlli", [])
+            problemi = [item for item in controlli if item.get("stato") != "ok"]
+            if not controlli:
+                return "Non ho trovato file sensibili nei percorsi standard controllati."
+            dettaglio = "; ".join(
+                f"{Path(item.get('percorso', '')).name}: {item.get('stato')}"
+                for item in problemi[:5]
+            )
+            return (
+                f"Audit permessi completato: {len(controlli)} percorsi esaminati, "
+                f"{len(problemi)} da verificare. "
+                + (dettaglio if dettaglio else "Tutti i permessi verificati risultano ristretti.")
+                + ". Non ho modificato alcun permesso."
             )
         if c in ("stato cybersecurity", "cybersecurity", "strumenti cybersecurity", "modalità cybersecurity", "modalita cybersecurity"):
             if not cyber:
