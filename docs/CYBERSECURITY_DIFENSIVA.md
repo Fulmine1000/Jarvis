@@ -12,12 +12,17 @@ Jarvis offre una raccolta locale di controlli di sicurezza in sola lettura. Le f
 | `controlla processi e servizi` | Metadati processi e socket locali in ascolto | Non termina processi e non effettua scansioni |
 | `controlla avvii automatici` | Plist LaunchAgents e LaunchDaemons | Non avvia, ferma o modifica job |
 | `controlla permessi sensibili` | Permessi POSIX di .ssh, chiavi private note, credenziali AWS e .env nella home | Non cambia permessi e non legge i segreti |
+| `scansiona malware PERCORSO` | Scansione locale ClamAV di un file o cartella indicati | Richiede ClamAV già installato; non elimina né mette in quarantena |
 | `hash sha256 di file PERCORSO` | Impronta SHA-256 di un file | Solo lettura |
 | `analizza file PERCORSO` | Indicatori statici e possibili segreti | Non esegue il file |
 | `controlla progetto PERCORSO` | Analisi statica limitata dell'albero di progetto | Non esegue file |
 | `analizza log PERCORSO` | Conteggi euristici di errori e autenticazioni fallite | Non modifica il log |
 | `scansiona host 192.168.1.20` | Richiede una verifica TCP limitata su un solo IPv4 privato | Non parte senza la conferma esatta |
 | `confermo scansione 192.168.1.20` | Verifica le sole porte TCP in allowlist sull'host confermato | Connessioni TCP limitate |
+
+## Scanner antimalware opzionale
+
+Il comando `scansiona malware PERCORSO` usa il binario `clamscan` se già installato. Jarvis non installa ClamAV e non scarica firme. La scansione ha timeout di 120 secondi, limiti di 5 MB per file, 50 MB di dimensione complessiva e 500 file per cartella. Il binario viene avviato con argomenti fissi, `shell=False`, senza opzioni di rimozione o quarantena. Se ClamAV non è presente, il comando spiega che la funzione non è disponibile. Un risultato pulito significa soltanto che le firme presenti non hanno rilevato minacce note.
 
 ## Dettagli e interpretazione
 
@@ -42,7 +47,7 @@ Il controllo usa comandi di sistema fissi con `shell=False` e timeout. Su output
 - Nessun exploit, brute force, phishing, furto di credenziali, malware, persistenza, evasione o accesso non autorizzato.
 - Nessuna scansione automatica di subnet, indirizzi pubblici o dispositivi non confermati.
 - Nessuna modifica automatica a firewall, FileVault, Gatekeeper, SIP, permessi, servizi o processi.
-- I rilevamenti sono euristici: possono esserci falsi positivi e falsi negativi.
+- I rilevamenti sono euristici: possono esserci falsi positivi e falsi negativi. ClamAV dipende dalle firme installate e non rileva necessariamente minacce nuove.
 - La presenza di una porta, di un processo o di un avvio automatico non dimostra una vulnerabilità.
 - Gli audit macOS devono essere provati sul Mac reale: la CI GitHub esegue i test su runner Ubuntu e non sostituisce il test su High Sierra.
 
