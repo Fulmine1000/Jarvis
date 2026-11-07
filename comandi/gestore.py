@@ -431,15 +431,16 @@ class GestoreComandi:
             if not cyber:
                 return "Modulo cybersecurity non disponibile."
             risultato = cyber.controlla_sicurezza_mac()
-            if not risultato.get("ok"):
-                return risultato.get("errore", "Verifica sicurezza macOS non completata.")
+            if not risultato.get("ok") and risultato.get("errore"):
+                return risultato["errore"]
             righe = [
                 f"{item.get('nome', 'Controllo')}: {item.get('stato', 'non verificabile')}"
                 for item in risultato.get("controlli", [])
             ]
             dettagli = ". ".join(righe) if righe else "Nessun controllo disponibile"
+            stato_verifica = "completata" if risultato.get("ok") else "parziale: alcuni controlli non sono verificabili"
             return (
-                f"Verifica sicurezza macOS completata su {risultato.get('sistema', 'Mac')}. "
+                f"Verifica sicurezza macOS {stato_verifica} su {risultato.get('sistema', 'Mac')}. "
                 + dettagli
                 + ". "
                 + risultato.get("nota", "Verifica in sola lettura.")
