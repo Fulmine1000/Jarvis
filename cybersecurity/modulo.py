@@ -45,7 +45,7 @@ class CybersecurityJarvis:
             "modulo": "Cybersecurity Jarvis",
             "stato": "pronto",
             "sistema": platform.system(),
-            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only", "audit processi e servizi locali", "audit avvii automatici macOS", "audit permessi file sensibili", "scansione malware locale opzionale ClamAV"],
+            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only", "audit processi e servizi locali", "audit avvii automatici macOS", "audit permessi file sensibili", "scansione malware locale opzionale ClamAV", "rapporto cybersecurity unificato"],
             "porte_consentite": list(self.PORTE_CONSENTITE),
             "host_in_attesa_di_conferma": self._host_in_attesa,
             "hardware_radio_nfc_ir": "richiede accessori esterni compatibili",
@@ -76,6 +76,29 @@ class CybersecurityJarvis:
         """Usa ClamAV solo se già installato e sul percorso esplicitamente scelto."""
         from .scanner_malware import scansiona_malware
         return scansiona_malware(percorso)
+
+    def rapporto_sicurezza(self):
+        """Esegue in sequenza gli audit locali read-only senza scansione malware."""
+        risultati = {
+            "postura_mac": self.controlla_sicurezza_mac(),
+            "processi_servizi": self.audit_processi_servizi(),
+            "avvii_automatici": self.audit_avvii_mac(),
+            "permessi_sensibili": self.audit_permessi_sensibili(),
+        }
+        parziali = [
+            nome for nome, risultato in risultati.items()
+            if not risultato.get("ok", False)
+        ]
+        return {
+            "ok": True,
+            "parziale": bool(parziali),
+            "controlli_parziali": parziali,
+            **risultati,
+            "nota": (
+                "Rapporto read-only: non modifica impostazioni, permessi o processi. "
+                "La scansione antimalware richiede un comando separato e ClamAV installato."
+            ),
+        }
 
     def analizza_rete_locale(self):
         nome = socket.gethostname()
