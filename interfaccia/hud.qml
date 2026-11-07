@@ -223,7 +223,7 @@ ApplicationWindow {
         }
         Button {
             x: 232; y: 68; width: 64; height: 28; text: "CYBER"
-            onClicked: bridge.executeCommand("controlla processi e servizi")
+            onClicked: bridge.executeCommand("rapporto cybersecurity")
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
