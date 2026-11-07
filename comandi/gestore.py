@@ -205,6 +205,7 @@ class GestoreComandi:
             (r"^(?:analizza file|controlla file)\s+(.+)$", "file"),
             (r"^(?:controlla progetto|analizza progetto|audit progetto)\s+(.+)$", "progetto"),
             (r"^(?:analizza log|controlla log)\s+(.+)$", "log"),
+            (r"^(?:scansiona|analizza) malware\s+(.+)$", "malware"),
         )
         for pattern, tipo in comandi:
             match = re.match(pattern, testo, re.IGNORECASE)
@@ -229,6 +230,22 @@ class GestoreComandi:
                 if not risultato.get("ok"):
                     return risultato.get("errore", "Impossibile calcolare l'hash.")
                 return "SHA-256 di " + risultato["file"] + ": " + risultato["sha256"]
+            if tipo == "malware":
+                risultato = cyber.scansiona_malware(percorso)
+                if not risultato.get("ok"):
+                    return risultato.get("errore", "Scansione malware non disponibile.")
+                rilevamenti = risultato.get("rilevamenti", [])
+                if risultato.get("stato") == "minaccia rilevata":
+                    return (
+                        f"ClamAV ha rilevato {len(rilevamenti)} elemento/i da verificare in {risultato.get('percorso', percorso)}. "
+                        + " ".join(rilevamenti[:3])
+                        + " Nessun file è stato modificato o messo in quarantena."
+                    )
+                return (
+                    f"Scansione ClamAV completata su {risultato.get('percorso', percorso)}: "
+                    + risultato.get("stato", "esito non disponibile")
+                    + ". Nessun file è stato modificato."
+                )
             if tipo == "file":
                 risultato = cyber.analizza_file(percorso)
             elif tipo == "progetto":
