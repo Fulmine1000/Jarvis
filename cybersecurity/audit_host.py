@@ -62,6 +62,7 @@ def audit_processi_servizi(psutil_mod=None):
         }
 
     processi_esaminati = 0
+    processi_non_letti = 0
     nomi_per_pid = {}
     indicatori = []
     porte_in_ascolto = []
@@ -90,7 +91,12 @@ def audit_processi_servizi(psutil_mod=None):
                     })
             except Exception:
                 # Un processo può terminare o negare l'accesso mentre viene letto.
+                processi_non_letti += 1
                 continue
+        if processi_non_letti:
+            errori.append(
+                f"{processi_non_letti} processi non leggibili: inventario parziale."
+            )
     except Exception as errore:
         errori.append("Elenco processi parziale: " + type(errore).__name__)
 
@@ -129,6 +135,7 @@ def audit_processi_servizi(psutil_mod=None):
         "ok": not bool(errori),
         "sistema": platform.system(),
         "processi_esaminati": processi_esaminati,
+        "processi_non_letti": processi_non_letti,
         "indicatori": indicatori[:100],
         "porte_in_ascolto": porte_in_ascolto,
         "errori": errori,
