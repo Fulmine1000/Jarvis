@@ -45,6 +45,20 @@ class TestComandoPosturaMac(unittest.TestCase):
         self.assertEqual(cyber.chiamate, 1)
         self.assertIn("Verifica sicurezza macOS completata", risposta)
 
+    def test_mostra_gli_stati_anche_se_il_controllo_e_parziale(self):
+        class CybersecurityParziale(CybersecurityFinta):
+            def controlla_sicurezza_mac(self):
+                risultato = super().controlla_sicurezza_mac()
+                risultato["ok"] = False
+                risultato["nota"] = "Un controllo non è verificabile."
+                return risultato
+
+        gestore = GestoreComandi(kernel=KernelFinto(CybersecurityParziale()))
+        risposta = gestore._esegui_raw("controlla sicurezza mac")
+
+        self.assertIn("Firewall applicazioni: attivo", risposta)
+        self.assertIn("parziale", risposta.lower())
+
     def test_risponde_chiaramente_se_il_modulo_non_e_disponibile(self):
         gestore = GestoreComandi(kernel=KernelFinto(None))
 
