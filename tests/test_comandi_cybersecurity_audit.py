@@ -16,6 +16,15 @@ class CybersecurityFinta:
     def scansiona_malware(self, percorso):
         return {"ok": True, "stato": "nessuna minaccia rilevata", "percorso": percorso, "rilevamenti": [], "nota": "read-only"}
 
+    def rapporto_sicurezza(self):
+        return {
+            "ok": True,
+            "postura_mac": {"controlli": [{"nome": "Firewall", "stato": "attivo"}]},
+            "processi_servizi": {"processi_esaminati": 12, "porte_in_ascolto": []},
+            "avvii_automatici": {"elementi": []},
+            "permessi_sensibili": {"controlli": []},
+        }
+
 
 class KernelFinto:
     def __init__(self):
@@ -43,6 +52,11 @@ class TestComandiAuditCybersecurity(unittest.TestCase):
         risposta = self.gestore._esegui_cybersecurity_file_command("scansiona malware /tmp/esempio.bin")
         self.assertIn("nessuna minaccia rilevata", risposta)
         self.assertIn("/tmp/esempio.bin", risposta)
+
+    def test_rapporto_cybersecurity_unificato(self):
+        risposta = self.gestore._esegui_raw("rapporto cybersecurity")
+        self.assertIn("Firewall: attivo", risposta)
+        self.assertIn("12 processi", risposta)
 
 
 if __name__ == "__main__":
