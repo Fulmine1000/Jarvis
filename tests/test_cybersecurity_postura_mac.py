@@ -88,6 +88,7 @@ class TestPosturaMac(unittest.TestCase):
         self.assertEqual(stati["FileVault"], "non verificabile")
         self.assertEqual(stati["Gatekeeper"], "disattivo")
         self.assertEqual(stati["System Integrity Protection"], "attivo")
+        self.assertFalse(risultato["ok"])
 
     def test_output_ambiguo_non_viene_classificato(self):
         risultato = controlla_postura_mac(
