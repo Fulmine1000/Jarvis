@@ -1,6 +1,6 @@
 # Cybersecurity macOS Posture Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Aggiungere a Jarvis un controllo read-only della postura di sicurezza macOS, invocabile a voce e compatibile con High Sierra/Python 3.11.
 
@@ -39,14 +39,14 @@
 - Produces: `controlla_postura_mac(sistema=None, runner=None) -> dict`.
 - Il risultato include `ok`, `sistema`, `controlli` e `nota`; ogni controllo include `nome`, `stato` e `dettaglio`.
 
-- [ ] Scrivere test per macOS con quattro output noti: firewall, FileVault, Gatekeeper e SIP.
-- [ ] Eseguire il test e verificare il fallimento atteso prima dell'implementazione.
-- [ ] Scrivere test che garantiscano `shell=False`, timeout limitato e argomenti fissi.
-- [ ] Scrivere test per sistema non macOS e verificare che il runner non venga chiamato.
-- [ ] Scrivere test per timeout, comando mancante e output sconosciuto: solo il controllo interessato diventa "non verificabile".
-- [ ] Implementare il modulo con sola libreria standard e parsing conservativo.
-- [ ] Eseguire i test del modulo e tutta la suite unittest.
-- [ ] Commit: `Aggiunge il controllo read-only della sicurezza macOS`.
+- [x] Scrivere test per macOS con quattro output noti: firewall, FileVault, Gatekeeper e SIP.
+- [x] Eseguire il test e verificare il fallimento atteso prima dell'implementazione.
+- [x] Scrivere test che garantiscano `shell=False`, timeout limitato e argomenti fissi.
+- [x] Scrivere test per sistema non macOS e verificare che il runner non venga chiamato.
+- [x] Scrivere test per timeout, comando mancante e output sconosciuto: solo il controllo interessato diventa "non verificabile".
+- [x] Implementare il modulo con sola libreria standard e parsing conservativo.
+- [x] Eseguire i test del modulo e tutta la suite unittest.
+- [x] Commit: `Aggiunge il controllo read-only della sicurezza macOS`.
 
 ### Task 2: Collegamento al modulo cybersecurity
 
@@ -58,11 +58,11 @@
 - Consumes: `controlla_postura_mac()`.
 - Produces: `CybersecurityJarvis.controlla_sicurezza_mac()`.
 
-- [ ] Aggiungere un test che verifica il passaggio del risultato senza alterazioni.
-- [ ] Eseguire il test e verificare il fallimento atteso.
-- [ ] Aggiungere il metodo di facciata e aggiornare `stato()` con la capacità.
-- [ ] Eseguire test cybersecurity e suite completa.
-- [ ] Commit: `Espone la verifica postura macOS nel modulo cybersecurity`.
+- [x] Aggiungere un test che verifica il passaggio del risultato senza alterazioni.
+- [x] Eseguire il test e verificare il fallimento atteso.
+- [x] Aggiungere il metodo di facciata e aggiornare `stato()` con la capacità.
+- [x] Eseguire test cybersecurity e suite completa.
+- [x] Commit: `Espone la verifica postura macOS nel modulo cybersecurity`.
 
 ### Task 3: Comando vocale
 
@@ -74,21 +74,30 @@
 - Consumes: `kernel.cybersecurity.controlla_sicurezza_mac()`.
 - Produces: comandi `controlla sicurezza mac` e `controlla protezioni macOS`.
 
-- [ ] Scrivere test per entrambe le frasi e per modulo non disponibile.
-- [ ] Verificare il fallimento atteso.
-- [ ] Implementare routing deterministico senza inoltrare al modello IA.
-- [ ] Eseguire test mirati e suite completa.
-- [ ] Commit: `Aggiunge il comando vocale per la postura di sicurezza Mac`.
+- [x] Scrivere test per entrambe le frasi e per modulo non disponibile.
+- [x] Verificare il fallimento atteso.
+- [x] Implementare routing deterministico senza inoltrare al modello IA.
+- [x] Eseguire test mirati e suite completa.
+- [x] Commit: `Aggiunge il comando vocale per la postura di sicurezza Mac`.
 
 ### Task 4: Documentazione e verifica
 
 **Files:**
 - Modify: `README.md`
 
-- [ ] Documentare comandi, significato degli stati e limiti del controllo.
-- [ ] Verificare `python -m compileall -q .`.
-- [ ] Verificare `python -m unittest discover -s tests -p 'test_*.py' -v`.
-- [ ] Verificare i risultati GitHub Actions per Python 3.11, 3.12, 3.13 e 3.15.
-- [ ] Segnalare separatamente i test non eseguibili senza il Mac fisico.
-- [ ] Commit: `Documenta la verifica della sicurezza macOS`.
+- [x] Documentare comandi, significato degli stati e limiti del controllo.
+- [x] Verificare `python -m compileall -q .`.
+- [x] Verificare `python -m unittest discover -s tests -p 'test_*.py' -v`.
+- [x] Verificare i risultati GitHub Actions per Python 3.11, 3.12, 3.13 e 3.15.
+- [x] Segnalare separatamente i test non eseguibili senza il Mac fisico.
+- [x] Commit: `Documenta la verifica della sicurezza macOS`.
 
+
+
+## Esito dell'esecuzione
+
+- Test-first verificato: i test dedicati hanno fallito prima delle rispettive implementazioni e sono passati dopo.
+- GitHub Actions: `compileall`, `pip check` e suite completa superati su Python 3.11, 3.12, 3.13 e 3.15.
+- Ultimo conteggio osservato: 332 test, 1 skipped, nessun errore (Python 3.11).
+- Verifica fisica su macOS High Sierra non eseguita: i runner GitHub usano Ubuntu; occorre provarla sul Mac per confermare gli output reali dei comandi di sistema.
+- CodeRabbit non è esposto come strumento eseguibile in questa sessione; revisione finale effettuata manualmente sui file modificati.
