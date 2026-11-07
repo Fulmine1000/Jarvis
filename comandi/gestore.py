@@ -450,7 +450,11 @@ class GestoreComandi:
                 return risultato.get("errore", "Audit avvii automatici non disponibile.")
             elementi = risultato.get("elementi", [])
             sospetti = [item for item in elementi if item.get("indicatori")]
-            nomi = ", ".join(item.get("etichetta", "elemento sconosciuto") for item in sospetti[:5])
+            nomi = ", ".join(
+                item.get("etichetta", "elemento sconosciuto")
+                + (" (" + ", ".join(item.get("indicatori", [])) + ")" if item.get("indicatori") else "")
+                for item in sospetti[:5]
+            )
             dettaglio = ("Elementi da verificare: " + nomi + ".") if nomi else "Nessun indicatore euristico rilevato."
             return (
                 f"Audit avvii completato: {len(elementi)} elementi esaminati; "
