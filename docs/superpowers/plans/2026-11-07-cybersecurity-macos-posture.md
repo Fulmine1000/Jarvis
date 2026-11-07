@@ -98,7 +98,7 @@
 
 - Test-first verificato: i test dedicati hanno fallito prima delle rispettive implementazioni e sono passati dopo.
 - GitHub Actions: `compileall`, `pip check` e suite completa superati su Python 3.11, 3.12, 3.13 e 3.15.
-- Conteggio aggiornato dopo il rapporto unificato e i limiti ClamAV: 349 test, 1 skipped, nessun errore (Python 3.11).
+- Conteggio aggiornato dopo il rapporto unificato e i limiti ClamAV: 350 test, 1 skipped, nessun errore (Python 3.11).
 - Verifica fisica su macOS High Sierra non eseguita: i runner GitHub usano Ubuntu; occorre provarla sul Mac per confermare gli output reali dei comandi di sistema.
 - CodeRabbit non è esposto come strumento eseguibile in questa sessione; revisione finale effettuata manualmente sui file modificati.
 
@@ -118,8 +118,11 @@
 - [x] Rapporto unico `rapporto cybersecurity` che orchestra tutti gli audit read-only.
 - [x] Pulsante CYBER HUD collegato al rapporto unificato.
 - [x] Scanner ClamAV: rifiuto preventivo di file oltre 5 MB e risultato esplicitamente limitato alle dimensioni/numero di file consentiti.
-- [x] CI finale del rapporto: run `42369853273`, 349 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
+- [x] CI finale del rapporto: run `42369853273`, 350 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
 
 - [x] Audit LaunchAgents/LaunchDaemons: include directory utente, `/Library` e `/System/Library`; salta symlink e plist oltre 1 MB.
 - [x] I controlli parziali o non verificabili vengono esposti esplicitamente nel rapporto e nel comando postura macOS.
-- [x] CI finale aggiornata: run `42370042872`, 349 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
+- [x] CI finale aggiornata: run `42370138950`, 350 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
+
+- [x] Audit permessi: distingue gli stati non verificabili da permessi troppo aperti e marca il rapporto come parziale.
+- [x] CI finale dopo l'ultimo hardening: run `42370138950`, 350 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
