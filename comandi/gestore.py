@@ -498,6 +498,33 @@ class GestoreComandi:
                 + (dettaglio if dettaglio else "Tutti i permessi verificati risultano ristretti.")
                 + ". Non ho modificato alcun permesso."
             )
+        if c in ("rapporto cybersecurity", "rapporto sicurezza informatica", "audit sicurezza completo"):
+            if not cyber:
+                return "Modulo cybersecurity non disponibile."
+            risultato = cyber.rapporto_sicurezza()
+            if not risultato.get("ok"):
+                return "Non sono riuscito a completare il rapporto cybersecurity."
+            postura = risultato.get("postura_mac", {})
+            righe_postura = [
+                f"{item.get('nome', 'Protezione')}: {item.get('stato', 'non verificabile')}"
+                for item in postura.get("controlli", [])
+            ]
+            processi = risultato.get("processi_servizi", {})
+            avvii = risultato.get("avvii_automatici", {})
+            permessi = risultato.get("permessi_sensibili", {})
+            problemi_avvii = sum(1 for item in avvii.get("elementi", []) if item.get("indicatori"))
+            problemi_permessi = sum(1 for item in permessi.get("controlli", []) if item.get("stato") != "ok")
+            parti = [
+                "Rapporto cybersecurity read-only completato",
+                ". ".join(righe_postura) if righe_postura else "Postura macOS non applicabile o non disponibile",
+                f"{processi.get('processi_esaminati', 0)} processi e {len(processi.get('porte_in_ascolto', []))} porte in ascolto",
+                f"{len(avvii.get('elementi', []))} avvii automatici esaminati, {problemi_avvii} da verificare",
+                f"{len(permessi.get('controlli', []))} percorsi sensibili esaminati, {problemi_permessi} con permessi da verificare",
+            ]
+            if risultato.get("controlli_parziali"):
+                parti.append("Controlli non disponibili: " + ", ".join(risultato["controlli_parziali"]))
+            parti.append("La scansione malware è separata e richiede ClamAV già installato. Nessuna impostazione è stata modificata.")
+            return ". ".join(parti)
         if c in ("stato cybersecurity", "cybersecurity", "strumenti cybersecurity", "modalità cybersecurity", "modalita cybersecurity"):
             if not cyber:
                 return "Modulo cybersecurity non disponibile."
