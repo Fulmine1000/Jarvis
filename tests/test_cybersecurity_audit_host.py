@@ -2,6 +2,7 @@ import os
 import plistlib
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -107,7 +108,7 @@ class TestAuditPermessi(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             (home / ".ssh").mkdir()
-            with unittest.mock.patch("cybersecurity.audit_host.Path.lstat", side_effect=PermissionError):
+            with patch("cybersecurity.audit_host.Path.lstat", side_effect=PermissionError):
                 risultato = audit_permessi_sensibili(home=home)
 
         self.assertFalse(risultato["ok"])
