@@ -103,6 +103,16 @@ class TestAuditAvviiMac(unittest.TestCase):
 
 
 class TestAuditPermessi(unittest.TestCase):
+    def test_permessi_non_verificabili_segnalano_audit_parziale(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / ".ssh").mkdir()
+            with unittest.mock.patch("cybersecurity.audit_host.Path.lstat", side_effect=PermissionError):
+                risultato = audit_permessi_sensibili(home=home)
+
+        self.assertFalse(risultato["ok"])
+        self.assertEqual(risultato["controlli"][0]["stato"], "non verificabile")
+
     @unittest.skipUnless(hasattr(os, "chmod"), "Permessi POSIX non disponibili")
     def test_segnala_chiave_ssh_e_cartella_con_permessi_troppo_aperti(self):
         with tempfile.TemporaryDirectory() as tmp:
