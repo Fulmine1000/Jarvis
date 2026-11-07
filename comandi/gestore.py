@@ -514,13 +514,22 @@ class GestoreComandi:
             avvii = risultato.get("avvii_automatici", {})
             permessi = risultato.get("permessi_sensibili", {})
             problemi_avvii = sum(1 for item in avvii.get("elementi", []) if item.get("indicatori"))
-            problemi_permessi = sum(1 for item in permessi.get("controlli", []) if item.get("stato") != "ok")
+            problemi_permessi = sum(
+                1 for item in permessi.get("controlli", [])
+                if item.get("stato") not in ("ok", "non verificabile")
+            )
+            permessi_non_verificabili = sum(
+                1 for item in permessi.get("controlli", [])
+                if item.get("stato") == "non verificabile"
+            )
             parti = [
                 "Rapporto cybersecurity read-only completato",
                 ". ".join(righe_postura) if righe_postura else "Postura macOS non applicabile o non disponibile",
                 f"{processi.get('processi_esaminati', 0)} processi e {len(processi.get('porte_in_ascolto', []))} porte in ascolto",
                 f"{len(avvii.get('elementi', []))} avvii automatici esaminati, {problemi_avvii} da verificare",
-                f"{len(permessi.get('controlli', []))} percorsi sensibili esaminati, {problemi_permessi} con permessi da verificare",
+                f"{len(permessi.get('controlli', []))} percorsi sensibili esaminati, "
+                f"{problemi_permessi} con permessi da verificare, "
+                f"{permessi_non_verificabili} non verificabili",
             ]
             if risultato.get("controlli_parziali"):
                 parti.append("Controlli non disponibili: " + ", ".join(risultato["controlli_parziali"]))
