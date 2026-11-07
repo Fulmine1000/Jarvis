@@ -91,5 +91,20 @@ class TestCybersecurityJarvis(unittest.TestCase):
         self.assertEqual(risultato["file_esaminati"], 1)
 
 
+    def test_controllo_progetto_segnala_directory_non_accessibili_come_parziale(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def walk_con_errore(percorso, followlinks=False, onerror=None):
+                if onerror is not None:
+                    onerror(PermissionError("accesso negato alla directory"))
+                return iter(())
+
+            with patch("cybersecurity.modulo.os.walk", side_effect=walk_con_errore):
+                risultato = self.modulo.controlla_progetto(tmp)
+
+        self.assertFalse(risultato["ok"])
+        self.assertTrue(risultato["parziale"])
+        self.assertTrue(any("Directory non leggibile" in errore for errore in risultato["errori"]))
+
+
 if __name__ == "__main__":
     unittest.main()
