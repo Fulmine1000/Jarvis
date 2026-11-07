@@ -45,12 +45,17 @@ class CybersecurityJarvis:
             "modulo": "Cybersecurity Jarvis",
             "stato": "pronto",
             "sistema": platform.system(),
-            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali"],
+            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only"],
             "porte_consentite": list(self.PORTE_CONSENTITE),
             "host_in_attesa_di_conferma": self._host_in_attesa,
             "hardware_radio_nfc_ir": "richiede accessori esterni compatibili",
             "limiti": ["nessuna scansione di subnet", "nessun exploit o brute force", "i file non vengono eseguiti", "solo sistemi autorizzati"],
         }
+
+    def controlla_sicurezza_mac(self):
+        """Restituisce la postura di sicurezza macOS in sola lettura."""
+        from .postura_mac import controlla_postura_mac
+        return controlla_postura_mac()
 
     def analizza_rete_locale(self):
         nome = socket.gethostname()
