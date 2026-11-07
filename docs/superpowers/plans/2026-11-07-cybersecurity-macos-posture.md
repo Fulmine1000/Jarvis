@@ -98,7 +98,7 @@
 
 - Test-first verificato: i test dedicati hanno fallito prima delle rispettive implementazioni e sono passati dopo.
 - GitHub Actions: `compileall`, `pip check` e suite completa superati su Python 3.11, 3.12, 3.13 e 3.15.
-- Conteggio aggiornato dopo gli audit locali e lo scanner opzionale: 344 test, 1 skipped, nessun errore (Python 3.11).
+- Conteggio aggiornato dopo il rapporto unificato e i limiti ClamAV: 347 test, 1 skipped, nessun errore (Python 3.11).
 - Verifica fisica su macOS High Sierra non eseguita: i runner GitHub usano Ubuntu; occorre provarla sul Mac per confermare gli output reali dei comandi di sistema.
 - CodeRabbit non è esposto come strumento eseguibile in questa sessione; revisione finale effettuata manualmente sui file modificati.
 
@@ -114,3 +114,8 @@
 - [x] CI finale: run `42369684454`, 344 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
 - [ ] Prova fisica su macOS High Sierra: in attesa di esecuzione sul Mac dell'utente.
 - [ ] Verifica ClamAV sul Mac: dipende dal fatto che `clamscan` sia già installato.
+
+- [x] Rapporto unico `rapporto cybersecurity` che orchestra tutti gli audit read-only.
+- [x] Pulsante CYBER HUD collegato al rapporto unificato.
+- [x] Scanner ClamAV: rifiuto preventivo di file oltre 5 MB e risultato esplicitamente limitato alle dimensioni/numero di file consentiti.
+- [x] CI finale del rapporto: run `42369853273`, 347 test (1 skipped), Python 3.11/3.12/3.13/3.15 tutti superati.
