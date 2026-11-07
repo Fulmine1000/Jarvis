@@ -236,6 +236,7 @@ Il modulo `cybersecurity/` comprende strumenti locali con limiti espliciti:
 - hash SHA-256 di file per verificarne l'integrità;
 - analisi statica euristica di file e progetti per individuare possibili segreti accidentali e costrutti che meritano revisione;
 - analisi di log locali per contare errori, autenticazioni fallite e possibili blocchi;
+- controllo read-only su macOS di firewall applicazioni, FileVault, Gatekeeper e System Integrity Protection, con timeout e stato 'non verificabile' in caso di output incerto;
 - indicazioni sui limiti dell'hardware radio, NFC, USB e infrarossi.
 
 Esempi di comandi, usando il percorso completo del file o della cartella:
@@ -245,6 +246,7 @@ Esempi di comandi, usando il percorso completo del file o della cartella:
 - `controlla progetto /Users/utente/Desktop/MioProgetto`
 - `analizza log /Users/utente/Desktop/app.log`
 - `analizza la mia rete`
+- `controlla sicurezza mac` oppure `controlla protezioni macOS` (solo lettura, nessuna modifica alle protezioni);
 - `scansiona host 192.168.1.20`, poi confermare esattamente con `confermo scansione 192.168.1.20`.
 
-L'analisi statica non esegue i file, non rimuove elementi e non certifica che un progetto sia sicuro. I rilevamenti sono euristici e richiedono revisione umana. La scansione TCP è intenzionalmente limitata e non è una scansione di vulnerabilità. Non sono implementati exploit, furto di credenziali, brute force, malware, persistenza, evasione, spoofing o deautenticazione Wi-Fi. Testare solo sistemi propri o per cui si dispone di autorizzazione. Radio sub-GHz, NFC e infrarossi richiedono hardware compatibile e driver specifici.
+Il controllo della postura macOS usa soltanto comandi di sistema fissi, senza shell, privilegi elevati o modifiche; su altri sistemi si dichiara non applicabile. Un risultato non verificabile non equivale a una protezione disattivata. L'analisi statica non esegue i file, non rimuove elementi e non certifica che un progetto sia sicuro. I rilevamenti sono euristici e richiedono revisione umana. La scansione TCP è intenzionalmente limitata e non è una scansione di vulnerabilità. Non sono implementati exploit, furto di credenziali, brute force, malware, persistenza, evasione, spoofing o deautenticazione Wi-Fi. Testare solo sistemi propri o per cui si dispone di autorizzazione. Radio sub-GHz, NFC e infrarossi richiedono hardware compatibile e driver specifici.
