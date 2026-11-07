@@ -61,6 +61,26 @@ class TestAuditProcessiServizi(unittest.TestCase):
 
 
 class TestAuditAvviiMac(unittest.TestCase):
+    def test_ignora_link_simbolici_e_plist_oltre_un_megabyte(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "LaunchAgents"
+            root.mkdir()
+            target = root / "target.plist"
+            with target.open("wb") as file:
+                plistlib.dump({"Label": "target"}, file)
+            link = root / "linked.plist"
+            link.symlink_to(target)
+            grande = root / "grande.plist"
+            with grande.open("wb") as file:
+                file.truncate(1024 * 1024 + 1)
+
+            risultato = audit_avvii_mac(roots=[root])
+
+        self.assertFalse(risultato["ok"])
+        self.assertEqual(risultato["elementi"], [])
+        self.assertTrue(any("symlink" in errore.lower() or "simbolico" in errore.lower() for errore in risultato["errori"]))
+        self.assertTrue(any("limite" in errore.lower() for errore in risultato["errori"]))
+
     def test_analizza_plist_senza_eseguire_i_programmi(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "LaunchAgents"
