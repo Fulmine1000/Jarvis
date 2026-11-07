@@ -45,7 +45,7 @@ Sono implementati e collegati al kernel/comandi vocali:
 - scansione locale opzionale con ClamAV, solo se il binario è già installato, con timeout e limiti, senza rimozione o quarantena;
 - rapporto unificato `rapporto cybersecurity`, pulsante CYBER nell'HUD e documentazione in `docs/CYBERSECURITY_DIFENSIVA.md`.
 
-La CI completa ha eseguito 347 test (1 skipped) con esito positivo su Python 3.11, 3.12, 3.13 e 3.15. I runner sono Ubuntu: il test fisico del Mac Intel/High Sierra resta obbligatorio prima di considerare validate le uscite dei comandi macOS e la disponibilità reale di ClamAV.
+La CI completa ha eseguito 349 test (1 skipped) con esito positivo su Python 3.11, 3.12, 3.13 e 3.15. I runner sono Ubuntu: il test fisico del Mac Intel/High Sierra resta obbligatorio prima di considerare validate le uscite dei comandi macOS e la disponibilità reale di ClamAV.
 
 ## Evoluzione prevista
 
