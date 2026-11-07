@@ -262,7 +262,7 @@ def audit_permessi_sensibili(home=None):
             })
 
     return {
-        "ok": True,
+        "ok": not any(item["stato"] == "non verificabile" for item in controlli),
         "controlli": controlli,
         "nota": (
             "Controllo read-only dei metadati. Jarvis non cambia i permessi; "
