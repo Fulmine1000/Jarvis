@@ -135,3 +135,28 @@ class TestAuditPermessi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProcessoNonAccessibile:
+    @property
+    def info(self):
+        raise PermissionError("accesso negato")
+
+
+class PsutilConProcessoNonAccessibile:
+    CONN_LISTEN = "LISTEN"
+
+    def process_iter(self, attrs):
+        return iter([ProcessoNonAccessibile()])
+
+    def net_connections(self, kind):
+        return []
+
+
+class TestAuditProcessiParziale(unittest.TestCase):
+    def test_segnala_audit_parziale_quando_un_processo_non_e_leggibile(self):
+        risultato = audit_processi_servizi(psutil_mod=PsutilConProcessoNonAccessibile())
+
+        self.assertFalse(risultato["ok"])
+        self.assertEqual(risultato["processi_non_letti"], 1)
+        self.assertTrue(any("processi non leggibili" in errore for errore in risultato["errori"]))
