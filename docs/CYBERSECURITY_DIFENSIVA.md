@@ -33,7 +33,7 @@ L'inventario usa psutil, già previsto tra le dipendenze di Jarvis. Il controllo
 
 ### Avvii automatici macOS
 
-Vengono letti i file plist nelle directory LaunchAgents e LaunchDaemons standard. Jarvis mostra etichetta, programma e indicatori euristici, ad esempio un programma che punta a Download o a un percorso temporaneo, oppure un eseguibile mancante. Un servizio sconosciuto non è automaticamente malware. Non usare la sola presenza di `RunAtLoad` o `KeepAlive` come prova di compromissione.
+Vengono letti i file plist nelle directory LaunchAgents e LaunchDaemons dell'utente, di `/Library` e di `/System/Library`. I collegamenti simbolici vengono ignorati e i plist oltre 1 MB non vengono caricati. Jarvis mostra etichetta, programma e indicatori euristici, ad esempio un programma che punta a Download o a un percorso temporaneo, oppure un eseguibile mancante. Un servizio sconosciuto non è automaticamente malware. Non usare la sola presenza di `RunAtLoad` o `KeepAlive` come prova di compromissione.
 
 ### Permessi sensibili
 
