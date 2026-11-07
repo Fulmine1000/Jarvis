@@ -90,7 +90,7 @@ class CybersecurityJarvis:
             if not risultato.get("ok", False)
         ]
         return {
-            "ok": True,
+            "ok": not bool(parziali),
             "parziale": bool(parziali),
             "controlli_parziali": parziali,
             **risultati,
