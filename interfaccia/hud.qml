@@ -215,6 +215,12 @@ ApplicationWindow {
             contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 10; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
         }
+        Button {
+            x: 218; y: 68; width: 78; height: 28; text: "NUCLEO 3D"
+            onClicked: bridge.executeCommand("apri ologramma 3d")
+            contentItem: Text { text: parent.text; color: "#d9f8ff"; font.pixelSize: 9; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: "#08263d"; border.color: "#00cfff"; radius: 2 }
+        }
     }
 
     // Orologio in alto a destra.
