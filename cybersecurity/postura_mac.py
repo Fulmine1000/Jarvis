@@ -68,7 +68,8 @@ def controlla_postura_mac(sistema=None, runner=None):
             dettaglio = "Comando non disponibile o tempo massimo superato."
         controlli.append({"nome": nome, "stato": stato, "dettaglio": dettaglio})
 
-    return {"ok": True, "sistema": sistema, "controlli": controlli,
+    return {"ok": not any(item["stato"] == "non verificabile" for item in controlli),
+            "sistema": sistema, "controlli": controlli,
             "nota": ("Verifica read-only. Un risultato non verificabile non significa "
                      "che la protezione sia disattivata; questo controllo non certifica "
                      "la sicurezza complessiva del Mac.")}
