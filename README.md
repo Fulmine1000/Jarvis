@@ -236,8 +236,12 @@ Il modulo `cybersecurity/` comprende strumenti locali con limiti espliciti:
 - hash SHA-256 di file per verificarne l'integrità;
 - analisi statica euristica di file e progetti per individuare possibili segreti accidentali e costrutti che meritano revisione;
 - analisi di log locali per contare errori, autenticazioni fallite e possibili blocchi;
-- controllo read-only su macOS di firewall applicazioni, FileVault, Gatekeeper e System Integrity Protection, con timeout e stato 'non verificabile' in caso di output incerto;
+- controllo read-only su macOS di firewall applicazioni, FileVault, Gatekeeper e System Integrity Protection;
+- audit locale di processi e socket in ascolto, senza terminare processi o inviare scansioni di rete;
+- inventario statico dei LaunchAgents/LaunchDaemons macOS e controllo dei permessi di directory SSH, chiavi private note, credenziali AWS e file .env, senza leggere segreti o cambiare permessi;
 - indicazioni sui limiti dell'hardware radio, NFC, USB e infrarossi.
+
+Comandi aggiuntivi: `controlla processi e servizi`, `controlla avvii automatici`, `controlla permessi sensibili`. Il pulsante **CYBER** nell'HUD avvia l'inventario locale di processi e servizi. La guida completa è in [docs/CYBERSECURITY_DIFENSIVA.md](docs/CYBERSECURITY_DIFENSIVA.md).
 
 Esempi di comandi, usando il percorso completo del file o della cartella:
 
