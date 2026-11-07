@@ -11,7 +11,7 @@ class TestRapportoCybersecurity(unittest.TestCase):
         avvii = {"ok": True, "elementi": []}
         permessi = {"ok": True, "controlli": []}
 
-        with patch("cybersecurity.modulo.controlla_postura_mac", create=True, return_value=posture), \
+        with patch("cybersecurity.postura_mac.controlla_postura_mac", return_value=posture), \
              patch("cybersecurity.audit_host.audit_processi_servizi", return_value=processi), \
              patch("cybersecurity.audit_host.audit_avvii_mac", return_value=avvii), \
              patch("cybersecurity.audit_host.audit_permessi_sensibili", return_value=permessi), \
