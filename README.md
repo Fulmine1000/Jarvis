@@ -242,7 +242,7 @@ Il modulo `cybersecurity/` comprende strumenti locali con limiti espliciti:
 - inventario statico dei LaunchAgents/LaunchDaemons macOS e controllo dei permessi di directory SSH, chiavi private note, credenziali AWS e file .env, senza leggere segreti o cambiare permessi;
 - indicazioni sui limiti dell'hardware radio, NFC, USB e infrarossi.
 
-Comandi aggiuntivi: `controlla processi e servizi`, `controlla avvii automatici`, `controlla permessi sensibili`, `scansiona malware /percorso/del/file` (richiede ClamAV già installato). Il pulsante **CYBER** nell'HUD avvia l'inventario locale di processi e servizi. La guida completa è in [docs/CYBERSECURITY_DIFENSIVA.md](docs/CYBERSECURITY_DIFENSIVA.md).
+Comando principale: `rapporto cybersecurity` esegue insieme gli audit locali read-only. Sono disponibili anche `controlla processi e servizi`, `controlla avvii automatici`, `controlla permessi sensibili` e `scansiona malware /percorso/del/file` (richiede ClamAV già installato). Il pulsante **CYBER** nell'HUD avvia l'inventario locale di processi e servizi. La guida completa è in [docs/CYBERSECURITY_DIFENSIVA.md](docs/CYBERSECURITY_DIFENSIVA.md).
 
 Esempi di comandi, usando il percorso completo del file o della cartella:
 
