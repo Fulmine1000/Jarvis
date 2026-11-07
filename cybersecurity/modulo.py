@@ -45,7 +45,7 @@ class CybersecurityJarvis:
             "modulo": "Cybersecurity Jarvis",
             "stato": "pronto",
             "sistema": platform.system(),
-            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only", "audit processi e servizi locali", "audit avvii automatici macOS", "audit permessi file sensibili"],
+            "modalita": ["inventario rete passivo", "verifica TCP limitata con conferma", "hash SHA-256", "analisi statica file/progetti", "analisi log locali", "postura macOS read-only", "audit processi e servizi locali", "audit avvii automatici macOS", "audit permessi file sensibili", "scansione malware locale opzionale ClamAV"],
             "porte_consentite": list(self.PORTE_CONSENTITE),
             "host_in_attesa_di_conferma": self._host_in_attesa,
             "hardware_radio_nfc_ir": "richiede accessori esterni compatibili",
@@ -71,6 +71,11 @@ class CybersecurityJarvis:
         """Controlla i permessi di file e directory che possono contenere segreti."""
         from .audit_host import audit_permessi_sensibili
         return audit_permessi_sensibili()
+
+    def scansiona_malware(self, percorso):
+        """Usa ClamAV solo se già installato e sul percorso esplicitamente scelto."""
+        from .scanner_malware import scansiona_malware
+        return scansiona_malware(percorso)
 
     def analizza_rete_locale(self):
         nome = socket.gethostname()
