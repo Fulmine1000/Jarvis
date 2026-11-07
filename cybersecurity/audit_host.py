@@ -15,6 +15,7 @@ from pathlib import Path
 _LIMITE_PROCESSI = 300
 _LIMITE_LISTENER = 150
 _LIMITE_AVVII = 200
+_MAX_PLIST_BYTES = 1024 * 1024
 _NOMI_CHIAVI_PRIVATE = (
     "id_rsa",
     "id_ecdsa",
@@ -125,7 +126,7 @@ def audit_processi_servizi(psutil_mod=None):
         errori.append("Socket in ascolto non completamente leggibili: " + type(errore).__name__)
 
     return {
-        "ok": True,
+        "ok": not bool(errori),
         "sistema": platform.system(),
         "processi_esaminati": processi_esaminati,
         "indicatori": indicatori[:100],
@@ -155,6 +156,8 @@ def audit_avvii_mac(home=None, roots=None):
             base_home / "Library" / "LaunchAgents",
             Path("/Library/LaunchAgents"),
             Path("/Library/LaunchDaemons"),
+            Path("/System/Library/LaunchAgents"),
+            Path("/System/Library/LaunchDaemons"),
         )
 
     elementi = []
@@ -173,6 +176,12 @@ def audit_avvii_mac(home=None, roots=None):
                 errori.append("Raggiunto il limite massimo di elementi di avvio.")
                 break
             try:
+                if percorso.is_symlink():
+                    errori.append(f"{percorso}: collegamento simbolico ignorato")
+                    continue
+                if percorso.stat().st_size > _MAX_PLIST_BYTES:
+                    errori.append(f"{percorso}: superato il limite di 1 MB per plist")
+                    continue
                 with percorso.open("rb") as file:
                     dati = plistlib.load(file)
                 if not isinstance(dati, dict):
@@ -198,7 +207,7 @@ def audit_avvii_mac(home=None, roots=None):
             except (OSError, ValueError, plistlib.InvalidFileException) as errore:
                 errori.append(f"{percorso}: {type(errore).__name__}")
     return {
-        "ok": True,
+        "ok": not bool(errori),
         "applicabile": True,
         "elementi": elementi,
         "errori": errori,
