@@ -33,7 +33,18 @@ class WakeWordJarvis:
         if not self.parole_attivazione:
             self.parole_attivazione = predefinite[:]
 
-        self.prefissi_attivazione = ["ehi", "hey"]
+        # Accetta anche il primo segmento delle wake phrase composte.
+        # Esempio: se la configurazione contiene "ok jarvis", Vosk può
+        # trascrivere "ok" e "jarvis" in due segmenti distinti.
+        self.prefissi_attivazione = list(dict.fromkeys(
+            parola.split()[0]
+            for parola in self.parole_attivazione
+            if len(parola.split()) > 1
+        ))
+        # Mantieni i prefissi italiani/inglesi standard per compatibilità.
+        for prefisso in ("ehi", "hey"):
+            if prefisso not in self.prefissi_attivazione:
+                self.prefissi_attivazione.append(prefisso)
         self.attivo = False
         # Usa un orologio monotono: la sincronizzazione dell'ora di Windows
         # non deve allungare o abbreviare la finestra di ascolto.
