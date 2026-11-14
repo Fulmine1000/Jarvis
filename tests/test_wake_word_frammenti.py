@@ -86,6 +86,38 @@ class TestWakeWordFrammenti(unittest.TestCase):
         self.assertEqual(risultato["comando"], "")
         self.assertFalse(self.wake.attivo)
 
+    def test_wake_word_personalizzata_completa(self):
+        wake = WakeWordJarvis(parole=["ok jarvis"])
+        risultato = wake.controlla("ok jarvis che ore sono")
+        self.assertTrue(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "che ore sono")
+
+    def test_prefisso_wake_word_personalizzata_in_segmenti_separati(self):
+        wake = WakeWordJarvis(parole=["ok jarvis"])
+        primo = wake.controlla("ok")
+        self.assertTrue(primo["attivato"])
+        self.assertEqual(primo["comando"], "")
+
+        secondo = wake.controlla("jarvis")
+        self.assertTrue(secondo["attivato"])
+        self.assertEqual(secondo["comando"], "")
+
+        comando = wake.controlla("che ore sono")
+        self.assertTrue(comando["attivato"])
+        self.assertEqual(comando["comando"], "che ore sono")
+
+    def test_aggiunta_wake_word_aggiorna_prefisso(self):
+        self.wake.aggiungi_parola("ok jarvis")
+        risultato = self.wake.controlla("ok")
+        self.assertTrue(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+
+    def test_rimozione_wake_word_rimuove_prefisso_personalizzato(self):
+        self.wake.aggiungi_parola("ok jarvis")
+        self.wake.rimuovi_parola("ok jarvis")
+        risultato = self.wake.controlla("ok")
+        self.assertFalse(risultato["attivato"])
+
     def test_timeout_indipendente_da_cambiamenti_ora_sistema(self):
         from unittest.mock import patch
 

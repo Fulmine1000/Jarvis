@@ -33,13 +33,25 @@ class WakeWordJarvis:
         if not self.parole_attivazione:
             self.parole_attivazione = predefinite[:]
 
-        self.prefissi_attivazione = ["ehi", "hey"]
+        self._aggiorna_prefissi_attivazione()
         self.attivo = False
         # Usa un orologio monotono: la sincronizzazione dell'ora di Windows
         # non deve allungare o abbreviare la finestra di ascolto.
         self.ultimo_rilevamento = None
         self.tempo_attivo = max(1, int(timeout))
         self.ultimo_comando = ""
+
+    def _aggiorna_prefissi_attivazione(self):
+        """Allinea i prefissi alle wake phrase attualmente configurate."""
+        self.prefissi_attivazione = list(dict.fromkeys(
+            parola.split()[0]
+            for parola in self.parole_attivazione
+            if len(parola.split()) > 1
+        ))
+        # Mantieni i prefissi italiani/inglesi standard per compatibilità.
+        for prefisso in ("ehi", "hey"):
+            if prefisso not in self.prefissi_attivazione:
+                self.prefissi_attivazione.append(prefisso)
 
     def pulisci_testo(self, testo):
         if not testo:
@@ -153,6 +165,7 @@ class WakeWordJarvis:
         parola = self.pulisci_testo(parola)
         if parola and parola not in self.parole_attivazione:
             self.parole_attivazione.append(parola)
+            self._aggiorna_prefissi_attivazione()
             return f"Parola aggiunta: {parola}"
         return "Parola già presente."
 
@@ -162,6 +175,7 @@ class WakeWordJarvis:
             self.parole_attivazione.remove(parola)
             if not self.parole_attivazione:
                 self.parole_attivazione.append("jarvis")
+            self._aggiorna_prefissi_attivazione()
             return f"Parola rimossa: {parola}"
         return "Parola non trovata."
 
