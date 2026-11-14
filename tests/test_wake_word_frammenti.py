@@ -106,6 +106,18 @@ class TestWakeWordFrammenti(unittest.TestCase):
         self.assertTrue(comando["attivato"])
         self.assertEqual(comando["comando"], "che ore sono")
 
+    def test_aggiunta_wake_word_aggiorna_prefisso(self):
+        self.wake.aggiungi_parola("ok jarvis")
+        risultato = self.wake.controlla("ok")
+        self.assertTrue(risultato["attivato"])
+        self.assertEqual(risultato["comando"], "")
+
+    def test_rimozione_wake_word_rimuove_prefisso_personalizzato(self):
+        self.wake.aggiungi_parola("ok jarvis")
+        self.wake.rimuovi_parola("ok jarvis")
+        risultato = self.wake.controlla("ok")
+        self.assertFalse(risultato["attivato"])
+
     def test_timeout_indipendente_da_cambiamenti_ora_sistema(self):
         from unittest.mock import patch
 
